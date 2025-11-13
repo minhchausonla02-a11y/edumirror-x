@@ -19,11 +19,14 @@ export async function POST(req: Request) {
       const mammoth = await import("mammoth");
       const result = await mammoth.default.extractRawText({ buffer: buf });
       text = result.value || "";
-    } else if (name.endsWith(".pdf")) {
-      const pdfParse = (await import("pdf-parse")).default;
-      const data = await pdfParse(buf);
-      text = data.text || "";
-    } else if (name.endsWith(".doc")) {
+   } else if (name.endsWith(".pdf")) {
+  // Fix import pdf-parse cho TypeScript/Vercel
+  const pdfModule = (await import("pdf-parse")) as any;
+  const pdfParse = pdfModule.default || pdfModule;
+  const data = await pdfParse(buf as any);
+  text = data.text || "";
+} else if (name.endsWith(".doc")) {
+
       return NextResponse.json(
         { error: "Tệp .doc (cũ) chưa hỗ trợ. Vui lòng 'Save As' sang .docx rồi tải lại." },
         { status: 415 }
