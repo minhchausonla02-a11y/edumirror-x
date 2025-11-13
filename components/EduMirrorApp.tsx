@@ -16,6 +16,29 @@ export default function EduMirrorApp() {
   // Kết quả phân tích giáo án & Khảo sát 60s
   const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null);
   const [survey, setSurvey] = useState<SurveyV2UI | null>(null);
+  const handleCopyStudentLink = () => {
+  if (!survey) return;
+
+  try {
+    const json = JSON.stringify(survey);
+    const base64 = btoa(json);
+    const url = `${window.location.origin}/survey?data=${encodeURIComponent(
+      base64
+    )}`;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url);
+      alert("Đã copy đường link phiếu khảo sát cho học sinh.\nDán vào Zalo / mã QR để gửi cho lớp.");
+    } else {
+      // fallback
+      prompt("Sao chép đường link phiếu khảo sát:", url);
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Không tạo được link phiếu khảo sát. Vui lòng thử lại.");
+  }
+};
+
 
   // ===== KT–KN (tuỳ chọn) =====
   const [ktknEnabled, setKtknEnabled] = useState(true);
@@ -299,12 +322,27 @@ export default function EduMirrorApp() {
             </section>
           )}
 
-          {/* Phiếu khảo sát 60s */}
-          {survey && (
-            <section className="rounded-2xl border bg-white shadow-sm p-6">
-              <SurveyView survey={survey} />
-            </section>
-          )}
+{/* Phiếu khảo sát 60s */}
+{survey && (
+  <section className="rounded-2xl border bg-white shadow-sm p-6">
+    <div className="mb-3 text-lg font-semibold">
+      Phiếu 60 giây sau tiết học
+    </div>
+
+    <SurveyView survey={survey} />
+
+    <div className="mt-4 flex flex-wrap gap-2">
+      <button
+        type="button"
+        onClick={handleCopyStudentLink}
+        className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+      >
+        Lấy link cho học sinh
+      </button>
+    </div>
+  </section>
+)}
+
         </main>
       ) : null}
     </div>
