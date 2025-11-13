@@ -22,25 +22,25 @@ export default function EduMirrorApp() {
 
   try {
     const json = JSON.stringify(survey);
-    const base64 = btoa(json);
+
+    // MÃ HOÁ AN TOÀN CHO TIẾNG VIỆT: DÙNG encodeURIComponent
     const url = `${window.location.origin}/survey?data=${encodeURIComponent(
-      base64
+      json
     )}`;
 
-    // Lưu lại để hiện ra dưới nút
+    // Lưu lại để hiện dưới nút
     setSurveyLink(url);
 
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url);
       alert(
-        "Đã copy đường link phiếu khảo sát cho học sinh.\nDán vào Zalo / mã QR để gửi cho lớp."
+        "Đã tạo và copy link phiếu khảo sát.\nHãy gửi link này cho học sinh!"
       );
     } else {
-      // fallback
       prompt("Sao chép đường link phiếu khảo sát:", url);
     }
   } catch (e) {
-    console.error(e);
+    console.error("Lỗi tạo link khảo sát:", e);
     alert("Không tạo được link phiếu khảo sát. Vui lòng thử lại.");
   }
 };

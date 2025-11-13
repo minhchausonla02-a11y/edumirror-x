@@ -9,15 +9,16 @@ type SurveyPageProps = {
 export default function SurveyPage({ searchParams }: SurveyPageProps) {
   let survey: SurveyV2UI | null = null;
 
-  if (searchParams.data) {
-    try {
-      // Giải mã base64 từ query ?data=...
-      const json = Buffer.from(searchParams.data, "base64").toString("utf-8");
-      survey = JSON.parse(json);
-    } catch (err) {
-      console.error("Lỗi giải mã survey:", err);
-    }
+ if (searchParams.data) {
+  try {
+    // Giải mã JSON đã được encodeURIComponent
+    const json = decodeURIComponent(searchParams.data);
+    survey = JSON.parse(json);
+  } catch (err) {
+    console.error("Lỗi giải mã survey:", err);
   }
+}
+
 
   if (!survey) {
     return (
