@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     if (!key) return NextResponse.json({ ok: false, error: "NO_KEY" }, { status: 400 });
 
     const client = new OpenAI({ apiKey: key });
-    await client.models.list({ limit: 1 });
+    await client.models.list();
 
     return NextResponse.json({ ok: true });
   } catch (e: any) {
