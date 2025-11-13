@@ -16,6 +16,7 @@ export default function EduMirrorApp() {
   // Kết quả phân tích giáo án & Khảo sát 60s
   const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null);
   const [survey, setSurvey] = useState<SurveyV2UI | null>(null);
+  const [surveyLink, setSurveyLink] = useState<string>("");
   const handleCopyStudentLink = () => {
   if (!survey) return;
 
@@ -26,9 +27,14 @@ export default function EduMirrorApp() {
       base64
     )}`;
 
+    // Lưu lại để hiện ra dưới nút
+    setSurveyLink(url);
+
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url);
-      alert("Đã copy đường link phiếu khảo sát cho học sinh.\nDán vào Zalo / mã QR để gửi cho lớp.");
+      alert(
+        "Đã copy đường link phiếu khảo sát cho học sinh.\nDán vào Zalo / mã QR để gửi cho lớp."
+      );
     } else {
       // fallback
       prompt("Sao chép đường link phiếu khảo sát:", url);
@@ -340,8 +346,24 @@ export default function EduMirrorApp() {
         Lấy link cho học sinh
       </button>
     </div>
+
+    {surveyLink && (
+      <div className="mt-2 w-full max-w-xl">
+        <div className="text-xs text-neutral-600 mb-1">
+          Đường link phiếu khảo sát (copy / dán vào Zalo hoặc tạo mã QR):
+        </div>
+        <input
+          type="text"
+          readOnly
+          value={surveyLink}
+          className="w-full rounded border px-2 py-1 text-xs bg-neutral-50"
+          onFocus={(e) => e.currentTarget.select()}
+        />
+      </div>
+    )}
   </section>
 )}
+
 
         </main>
       ) : null}
