@@ -1,0 +1,360 @@
+{
+  "subject": "Toán THPT",
+  "version": "GDPT2018",
+  "grade": "11",
+  "topics": [
+    {
+      "code": "11.ALG.01",
+      "name": "Dãy số – Cấp số cộng, Cấp số nhân",
+      "core_outcomes": [
+        "Hiểu khái niệm dãy số; định nghĩa và tính chất cấp số cộng, cấp số nhân.",
+        "Thiết lập và sử dụng công thức số hạng tổng quát, công sai/công bội.",
+        "Tính tổng n số hạng đầu của cấp số cộng/cấp số nhân.",
+        "Giải quyết bài toán thực tiễn gắn với sự tăng/giảm đều hoặc theo tỉ lệ."
+      ],
+      "skills": [
+        "Nhận dạng dãy cho trước là CSC/CSN.",
+        "Tính a_n, S_n và suy luận ngược tìm n hoặc công sai/công bội.",
+        "Mô hình hoá các tình huống tăng trưởng theo cấp số."
+      ],
+      "keywords": ["dãy số","cấp số cộng","cấp số nhân","công sai","công bội","S_n","a_n"],
+      "importance": 0.9
+    },
+    {
+      "code": "11.ALG.02",
+      "name": "Hàm số lượng giác: định nghĩa, tính chất, đồ thị",
+      "core_outcomes": [
+        "Nắm định nghĩa các hàm sin, cos, tan, cot và mối liên hệ giữa chúng.",
+        "Hiểu chu kì, miền xác định, miền giá trị; tịnh tiến pha, biên độ cơ bản.",
+        "Vẽ và phân tích đồ thị các hàm lượng giác cơ bản."
+      ],
+      "skills": [
+        "Xác định chu kì, biên độ, pha.",
+        "Biến đổi để đưa về dạng cơ bản A·sin(Bx + C) hoặc A·cos(Bx + C).",
+        "Suy luận từ đồ thị về giá trị lớn nhất/nhỏ nhất, nghiệm."
+      ],
+      "keywords": ["sin","cos","tan","cot","chu kì","biên độ","đồ thị lượng giác"],
+      "importance": 1.0
+    },
+    {
+      "code": "11.ALG.03",
+      "name": "Đồng nhất thức và công thức lượng giác",
+      "core_outcomes": [
+        "Sử dụng công thức cộng, nhân đôi, hạ bậc, biến đổi tích–tổng.",
+        "Nhận biết và áp dụng các đẳng thức lượng giác cơ bản.",
+        "Biến đổi biểu thức lượng giác phục vụ giải phương trình/bất phương trình đơn giản."
+      ],
+      "skills": [
+        "Rút gọn, quy đồng biểu thức lượng giác.",
+        "Chuyển đổi giữa sin–cos–tan để đơn giản hoá.",
+        "Lựa chọn công thức phù hợp trong từng bối cảnh bài toán."
+      ],
+      "keywords": ["công thức lượng giác","hạ bậc","nhân đôi","tổng–tích","đồng nhất thức"],
+      "importance": 0.9
+    },
+    {
+      "code": "11.ALG.04",
+      "name": "Phương trình lượng giác cơ bản và một số dạng điển hình",
+      "core_outcomes": [
+        "Giải các phương trình lượng giác cơ bản và phương trình đưa về dạng cơ bản.",
+        "Xử lí một số hệ/phương trình lượng giác điển hình bằng biến đổi công thức.",
+        "Liên hệ nghiệm phương trình với bài toán hình học/chu kì."
+      ],
+      "skills": [
+        "Đưa phương trình về sinx = a, cosx = a, tanx = a,…",
+        "Dùng công thức hạ bậc, nhân đôi để tuyến tính hoá biểu thức.",
+        "Phân tích điều kiện xác định và tập nghiệm theo chu kì."
+      ],
+      "keywords": ["phương trình lượng giác","sinx=a","cosx=a","tanx=a","chu kì nghiệm"],
+      "importance": 1.0
+    },
+    {
+      "code": "11.CAL.01",
+      "name": "Giới hạn dãy số",
+      "core_outcomes": [
+        "Hiểu khái niệm giới hạn dãy; các định lí cơ bản về giới hạn.",
+        "Tính giới hạn dãy bằng biến đổi đại số, so sánh, kẹp,…",
+        "Phân biệt hội tụ/không hội tụ; nhận biết dãy đơn điệu, bị chặn."
+      ],
+      "skills": [
+        "Sử dụng tính chất giới hạn và quy tắc tính giới hạn.",
+        "Khai thác đơn điệu–bị chặn để suy ra hội tụ.",
+        "Nhận ra các dãy kinh điển (1+1/n)^n, n-th root,…"
+      ],
+      "keywords": ["giới hạn dãy","hội tụ","đơn điệu","bị chặn","quy tắc giới hạn"],
+      "importance": 0.95
+    },
+    {
+      "code": "11.CAL.02",
+      "name": "Giới hạn hàm số và tính liên tục",
+      "core_outcomes": [
+        "Nắm khái niệm giới hạn tại điểm, bên trái/bên phải; định nghĩa liên tục.",
+        "Tính giới hạn hàm số dùng biến đổi đại số, khử dạng 0/0 đơn giản.",
+        "Nhận biết điểm gián đoạn; điều kiện liên tục trên khoảng."
+      ],
+      "skills": [
+        "Vận dụng các định lí giới hạn của tổng, tích, thương, hợp hàm.",
+        "Phân tích dạng vô định đơn giản để xử lí.",
+        "Mô tả hành vi hàm số gần điểm xét bằng bảng giá trị/đồ thị."
+      ],
+      "keywords": ["giới hạn hàm số","liên tục","gián đoạn","dạng vô định"],
+      "importance": 0.95
+    },
+    {
+      "code": "11.CAL.03",
+      "name": "Đạo hàm: định nghĩa, quy tắc và ý nghĩa",
+      "core_outcomes": [
+        "Hiểu định nghĩa đạo hàm; mối liên hệ với vận tốc tức thời, hệ số góc tiếp tuyến.",
+        "Nắm quy tắc đạo hàm: tổng, tích, thương, hợp; đạo hàm các hàm sơ cấp.",
+        "Vận dụng đạo hàm để tìm tiếp tuyến, tiếp cận biến thiên cục bộ."
+      ],
+      "skills": [
+        "Tính đạo hàm các biểu thức cơ bản và hợp hàm.",
+        "Thiết lập phương trình tiếp tuyến tại điểm cho trước.",
+        "Đọc ý nghĩa đạo hàm từ đồ thị (tăng/giảm cục bộ)."
+      ],
+      "keywords": ["đạo hàm","tiếp tuyến","vận tốc tức thời","quy tắc đạo hàm"],
+      "importance": 1.0
+    },
+    {
+      "code": "11.CAL.04",
+      "name": "Ứng dụng đạo hàm: đơn điệu, cực trị, bài toán tối ưu",
+      "core_outcomes": [
+        "Sử dụng đạo hàm để khảo sát tính đơn điệu và tìm cực trị đơn giản.",
+        "Giải các bài toán tối ưu cơ bản có ràng buộc đơn giản.",
+        "Liên hệ dấu đạo hàm với hình dạng đồ thị."
+      ],
+      "skills": [
+        "Lập bảng biến thiên với f', suy ra khoảng tăng/giảm.",
+        "Tìm điểm cực đại/cực tiểu cục bộ và giá trị tương ứng.",
+        "Mô hình hoá và giải bài toán thực tiễn tối ưu hoá một biến."
+      ],
+      "keywords": ["đơn điệu","cực trị","tối ưu hoá","bảng biến thiên","f'"],
+      "importance": 1.0
+    },
+    {
+      "code": "11.CAL.05",
+      "name": "Hàm số mũ và hàm lôgarit",
+      "core_outcomes": [
+        "Hiểu định nghĩa a^x (a>0,a≠1), log_a x; tính chất và miền xác định.",
+        "Vẽ/phân tích đồ thị hàm mũ và lôgarit cơ bản.",
+        "So sánh, xấp xỉ dựa vào tính đơn điệu và dạng đồ thị."
+      ],
+      "skills": [
+        "Biến đổi biểu thức mũ–log; đổi cơ số.",
+        "Giải phương trình/bất phương trình mũ–log đơn giản.",
+        "Dùng log để tuyến tính hoá quan hệ nhân/tỉ lệ."
+      ],
+      "keywords": ["hàm mũ","lôgarit","đổi cơ số","đồ thị mũ–log","miền xác định"],
+      "importance": 0.95
+    },
+    {
+      "code": "11.ALG.05",
+      "name": "Phương trình, bất phương trình mũ – lôgarit cơ bản",
+      "core_outcomes": [
+        "Giải phương trình mũ–log bằng biến đổi tương đương và đổi cơ số.",
+        "Giải bất phương trình mũ–log cơ bản dựa vào tính đơn điệu.",
+        "Ứng dụng vào các bài toán tăng trưởng theo cấp số nhân, suy giảm phóng xạ đơn giản."
+      ],
+      "skills": [
+        "Xử lí điều kiện xác định của log.",
+        "Đưa về cùng cơ số để so sánh/giải.",
+        "Phân tích nghiệm trên trục số, liên hệ bối cảnh thực tế."
+      ],
+      "keywords": ["phương trình mũ","phương trình log","bất phương trình mũ–log","đổi cơ số"],
+      "importance": 0.9
+    },
+    {
+      "code": "11.GEO.01",
+      "name": "Hình học không gian: điểm, đường thẳng, mặt phẳng; vectơ trong không gian (mức cơ bản)",
+      "core_outcomes": [
+        "Nhận biết các đối tượng cơ bản trong không gian: điểm, đường thẳng, mặt phẳng.",
+        "Biểu diễn véc-tơ trong không gian ở mức trực quan; các quan hệ song song, cắt nhau.",
+        "Sử dụng kí hiệu và ngôn ngữ hình học không gian đúng chuẩn."
+      ],
+      "skills": [
+        "Dựng hình cơ bản trong không gian bằng hình chiếu/nhận xét.",
+        "Mô tả vị trí tương đối của đường–mặt.",
+        "Chuyển đổi giữa mô tả lời và kí hiệu."
+      ],
+      "keywords": ["không gian","đường thẳng","mặt phẳng","vectơ không gian","vị trí tương đối"],
+      "importance": 0.85
+    },
+    {
+      "code": "11.GEO.02",
+      "name": "Quan hệ song song trong không gian",
+      "core_outcomes": [
+        "Nắm các định lí về song song giữa đường–đường, đường–mặt, mặt–mặt.",
+        "Vận dụng để suy luận vị trí tương đối và dựng hình.",
+        "Liên hệ song song với phép chiếu, tỉ số đồng dạng trong cấu hình không gian đơn giản."
+      ],
+      "skills": [
+        "Dựng đường thẳng/mặt phẳng song song theo yêu cầu.",
+        "Suy luận song song từ sơ đồ hình không gian.",
+        "Giải bài toán chứng minh song song bằng định lí."
+      ],
+      "keywords": ["song song","đường–mặt","mặt–mặt","định lí song song","dựng hình"],
+      "importance": 0.9
+    },
+    {
+      "code": "11.GEO.03",
+      "name": "Quan hệ vuông góc trong không gian",
+      "core_outcomes": [
+        "Hiểu khái niệm vuông góc giữa đường–đường, đường–mặt, mặt–mặt.",
+        "Nắm tiêu chí vuông góc (đường vuông góc với hai đường cắt nhau trong mặt,…).",
+        "Vận dụng vuông góc trong các cấu hình khối đa diện cơ bản."
+      ],
+      "skills": [
+        "Chứng minh vuông góc bằng tiêu chí và định lí.",
+        "Dựng đường/mặt vuông góc trong cấu hình cho trước.",
+        "Kết hợp song song–vuông góc để giải quyết bài toán vị trí."
+      ],
+      "keywords": ["vuông góc","đường–mặt","mặt–mặt","tiêu chí vuông góc"],
+      "importance": 0.95
+    },
+    {
+      "code": "11.GEO.04",
+      "name": "Góc giữa hai đường thẳng, góc giữa đường thẳng và mặt phẳng, góc nhị diện",
+      "core_outcomes": [
+        "Xác định và tính số đo góc giữa hai đường thẳng chéo, giữa đường và mặt.",
+        "Nhận biết và tính góc nhị diện, góc phẳng nhị diện ở các trường hợp cơ bản.",
+        "Mô tả ứng dụng góc trong các tình huống hình học không gian và thực tiễn."
+      ],
+      "skills": [
+        "Dựng hình, chọn tam giác vuông/phẳng trung gian để tính góc.",
+        "Sử dụng phép chiếu vuông góc để quy về bài toán phẳng.",
+        "Giải thích hình học kết quả tính được."
+      ],
+      "keywords": ["góc giữa hai đường","góc đường–mặt","góc nhị diện","góc phẳng nhị diện"],
+      "importance": 0.95
+    },
+    {
+      "code": "11.GEO.05",
+      "name": "Khoảng cách trong không gian",
+      "core_outcomes": [
+        "Định nghĩa và xác định khoảng cách từ điểm đến đường, điểm đến mặt, giữa hai đường chéo.",
+        "Tính khoảng cách bằng phương pháp hình học, chiếu vuông góc, tam giác vuông phụ.",
+        "Vận dụng trong các khối đa diện thường gặp."
+      ],
+      "skills": [
+        "Chọn cấu hình phụ trợ (mặt phẳng trung gian, hình chiếu).",
+        "Lập luận để quy về độ dài trong tam giác/phẳng.",
+        "Giải thích hình học lời giải và kiểm tra điều kiện."
+      ],
+      "keywords": ["khoảng cách","điểm–đường","điểm–mặt","hai đường chéo"],
+      "importance": 0.9
+    },
+    {
+      "code": "11.GEO.06",
+      "name": "Khối đa diện: hình chóp, hình lăng trụ; cắt–giao hình",
+      "core_outcomes": [
+        "Nhận biết các khối đa diện cơ bản: chóp, lăng trụ, hình hộp,…",
+        "Phân tích mặt cắt, giao tuyến, thiết diện với mặt phẳng.",
+        "Vận dụng quan hệ song song–vuông góc trong phân tích thiết diện."
+      ],
+      "skills": [
+        "Dựng thiết diện của khối với mặt phẳng cho trước.",
+        "Xác định giao tuyến hai mặt phẳng trong khối.",
+        "Sử dụng mô hình/ảnh chiếu để minh hoạ."
+      ],
+      "keywords": ["khối đa diện","hình chóp","lăng trụ","thiết diện","giao tuyến"],
+      "importance": 0.9
+    },
+    {
+      "code": "11.GEO.07",
+      "name": "Thể tích khối đa diện; hình chóp cụt đều",
+      "core_outcomes": [
+        "Công thức thể tích các khối đa diện thường gặp (hình hộp chữ nhật, lăng trụ, chóp).",
+        "Tính thể tích chóp cụt đều và bài toán liên quan đến tỉ số đồng dạng.",
+        "Vận dụng thể tích trong bài toán thực tiễn đơn giản."
+      ],
+      "skills": [
+        "Lựa chọn công thức thể tích phù hợp theo cấu trúc khối.",
+        "Dùng tỉ số đồng dạng để suy ra thể tích chóp cụt.",
+        "Khai thác đối xứng để đơn giản hoá tính toán."
+      ],
+      "keywords": ["thể tích","khối đa diện","hình chóp cụt đều","đồng dạng"],
+      "importance": 0.9
+    },
+    {
+      "code": "11.STAT.01",
+      "name": "Thống kê mô tả: dữ liệu ghép nhóm và số đặc trưng",
+      "core_outcomes": [
+        "Thu thập, phân loại, biểu diễn dữ liệu ghép nhóm (bảng tần số, biểu đồ).",
+        "Tính các số đặc trưng trung tâm: trung bình, trung vị, mốt; tứ phân vị ở mức cơ bản.",
+        "Nhận xét mức độ phân tán và xu thế từ các số đặc trưng."
+      ],
+      "skills": [
+        "Lập bảng phân bố tần số/tần suất cho dữ liệu ghép nhóm.",
+        "Tính trung bình, trung vị, mốt cho dữ liệu ghép nhóm.",
+        "Mô tả và so sánh hai tập dữ liệu qua số đặc trưng."
+      ],
+      "keywords": ["thống kê","dữ liệu ghép nhóm","trung bình","trung vị","mốt","tứ phân vị"],
+      "importance": 0.85
+    },
+    {
+      "code": "11.PROB.01",
+      "name": "Khái niệm xác suất cổ điển và các biến cố",
+      "core_outcomes": [
+        "Nhận biết không gian mẫu, biến cố; quan hệ giữa biến cố (hợp, giao, đối, độc lập).",
+        "Định nghĩa xác suất theo cách tiếp cận cổ điển trong các mô hình rời rạc đơn giản.",
+        "Ước tính và diễn giải xác suất trong ngữ cảnh thực tiễn."
+      ],
+      "skills": [
+        "Mô tả không gian mẫu và đếm phần tử theo nguyên tắc cộng/nhân.",
+        "Xác định biến cố độc lập hay không độc lập trong tình huống đơn giản.",
+        "Tính xác suất bằng công thức cơ bản và lập luận tổ hợp."
+      ],
+      "keywords": ["xác suất","biến cố","hợp","giao","độc lập","không gian mẫu"],
+      "importance": 0.9
+    },
+    {
+      "code": "11.PROB.02",
+      "name": "Quy tắc cộng – quy tắc nhân xác suất; sơ đồ cây",
+      "core_outcomes": [
+        "Tính xác suất của hợp biến cố (công thức cộng) và giao biến cố độc lập (công thức nhân).",
+        "Vận dụng sơ đồ cây trong các bài toán gồm nhiều bước độc lập/điều kiện đơn giản.",
+        "Giải bài toán xác suất điển hình bằng công thức và biểu diễn trực quan."
+      ],
+      "skills": [
+        "Xây dựng sơ đồ cây cho quá trình nhiều bước.",
+        "Nhận diện cấu trúc độc lập để dùng công thức nhân.",
+        "Ước tính xác suất từ tần suất thực nghiệm khi phù hợp."
+      ],
+      "keywords": ["quy tắc cộng","quy tắc nhân","sơ đồ cây","xác suất hợp","xác suất giao"],
+      "importance": 0.9
+    },
+    {
+      "code": "11.ENR.01",
+      "name": "Chuyên đề mở rộng: toạ độ không gian Oxyz (nếu triển khai)",
+      "core_outcomes": [
+        "Nhận biết hệ trục Oxyz, vectơ chỉ phương/pháp tuyến ở mức cơ bản.",
+        "Phương trình đường thẳng/mặt phẳng dạng đơn giản; vị trí tương đối cơ bản.",
+        "Ứng dụng toạ độ để tính góc, khoảng cách ở các trường hợp dễ."
+      ],
+      "skills": [
+        "Viết phương trình đường thẳng/mặt phẳng với dữ kiện trực tiếp.",
+        "Tính góc/ khoảng cách qua tích vô hướng, chuẩn hoá vectơ.",
+        "Liên hệ hình học thuần tuý với mô hình toạ độ."
+      ],
+      "keywords": ["Oxyz","vectơ pháp tuyến","phương trình mặt phẳng","phương trình đường thẳng"],
+      "importance": 0.6
+    },
+    {
+      "code": "11.ENR.02",
+      "name": "Chuyên đề mở rộng: bài toán thực tiễn với mũ–log–đạo hàm",
+      "core_outcomes": [
+        "Mô hình hoá tăng trưởng theo cấp số nhân và suy giảm bằng hàm mũ/log.",
+        "Giải quyết tối ưu hoá một biến bằng đạo hàm trong ngữ cảnh thực tiễn.",
+        "Đánh giá độ hợp lí của mô hình và kết quả."
+      ],
+      "skills": [
+        "Thiết lập phương trình mũ/log từ dữ kiện thực tế.",
+        "Tối ưu hoá bằng đạo hàm và kiểm tra điều kiện biên.",
+        "Trình bày kết quả bằng đồ thị/giải thích định tính."
+      ],
+      "keywords": ["mô hình hoá","hàm mũ","lôgarit","tối ưu hoá","đạo hàm ứng dụng"],
+      "importance": 0.65
+    }
+  ]
+}
