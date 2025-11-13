@@ -21,16 +21,24 @@ export default function EduMirrorApp() {
   if (!survey) return;
 
   try {
+    // 1) Chuyển survey -> JSON
     const json = JSON.stringify(survey);
 
-    // MÃ HOÁ AN TOÀN CHO TIẾNG VIỆT: DÙNG encodeURIComponent
+    // 2) Mã hoá UTF-8 để tránh lỗi tiếng Việt
+    const utf8 = encodeURIComponent(json);
+
+    // 3) Nén thành base64 (ngắn hơn rất nhiều so với %xx)
+    const base64 = btoa(utf8);
+
+    // 4) Đưa vào URL, encode 1 lần nữa cho an toàn
     const url = `${window.location.origin}/survey?data=${encodeURIComponent(
-      json
+      base64
     )}`;
 
-    // Lưu lại để hiện dưới nút
+    // Lưu để hiển thị dưới nút
     setSurveyLink(url);
 
+    // Copy vào clipboard
     if (navigator.clipboard && navigator.clipboard.writeText) {
       navigator.clipboard.writeText(url);
       alert(
@@ -44,6 +52,7 @@ export default function EduMirrorApp() {
     alert("Không tạo được link phiếu khảo sát. Vui lòng thử lại.");
   }
 };
+
 
 
   // ===== KT–KN (tuỳ chọn) =====

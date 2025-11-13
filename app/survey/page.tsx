@@ -11,13 +11,22 @@ export default function SurveyPage({ searchParams }: SurveyPageProps) {
 
  if (searchParams.data) {
   try {
-    // Giải mã JSON đã được encodeURIComponent
-    const json = decodeURIComponent(searchParams.data);
+    // data đang là base64 đã encodeURIComponent một lần
+    const base64 = decodeURIComponent(searchParams.data);
+
+    // Giải mã base64 -> chuỗi UTF-8 (có dạng %xx%yy...)
+    const utf8 = Buffer.from(base64, "base64").toString("utf8");
+
+    // Giải mã %xx -> JSON gốc
+    const json = decodeURIComponent(utf8);
+
+    // Parse JSON thành object survey
     survey = JSON.parse(json);
   } catch (err) {
     console.error("Lỗi giải mã survey:", err);
   }
 }
+
 
 
   if (!survey) {
