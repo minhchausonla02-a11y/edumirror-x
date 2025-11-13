@@ -16,10 +16,13 @@ export async function POST(req: Request) {
     if (lower.endsWith(".txt")) {
       text = buf.toString("utf-8");
     } else if (lower.endsWith(".pdf")) {
-      const { default: pdf } = await import("pdf-parse");
-      const out = await pdf(buf as any);
-      text = out.text || "";
-    } else if (lower.endsWith(".docx") || lower.endsWith(".doc")) {
+  // Fix import pdf-parse cho TypeScript/Vercel
+  const pdfModule = (await import("pdf-parse")) as any;
+  const pdf = pdfModule.default || pdfModule;
+  const out = await pdf(buf as any);
+  text = out.text || "";
+} else if (lower.endsWith(".docx") || lower.endsWith(".doc")) {
+
       const { default: mammoth } = await import("mammoth");
       const out = await mammoth.extractRawText({ buffer: buf });
       text = out.value || "";
