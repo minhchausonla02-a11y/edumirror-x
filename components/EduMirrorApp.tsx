@@ -1,11 +1,8 @@
 "use client";
 
-import { Buffer } from "buffer";
 import { useEffect, useMemo, useState } from "react";
 import ResultsView, { AnalyzeResult } from "@/components/ResultsView";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
-import { compressToEncodedURIComponent } from "lz-string";
-
 
 export default function EduMirrorApp() {
   // ===== STATE CHÍNH =====
@@ -16,11 +13,12 @@ export default function EduMirrorApp() {
   const [loading, setLoading] = useState(false);
   const [chip, setChip] = useState<string>("");
 
-  // Kết quả phân tích giáo án & Khảo sát 60s
+  // Kết quả phân tích & khảo sát
   const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null);
   const [survey, setSurvey] = useState<SurveyV2UI | null>(null);
+  const [surveyId, setSurveyId] = useState<string | null>(null);
 
-  // QR code cho phiếu khảo sát
+  // QR
   const [qrUrl, setQrUrl] = useState<string>("");
 
   // ===== KT–KN (tuỳ chọn) =====
@@ -74,6 +72,7 @@ export default function EduMirrorApp() {
       setChip(`Đã nạp: ${f.name} (${text.length.toLocaleString()} ký tự)`);
       setAnalysis(null);
       setSurvey(null);
+      setSurveyId(null);
       setQrUrl("");
     } catch (err: any) {
       alert("Lỗi: " + err.message);
@@ -112,6 +111,7 @@ export default function EduMirrorApp() {
       setAnalysis(data.result);
       setChip("Đã phân tích: Bài học");
       setSurvey(null);
+      setSurveyId(null);
       setQrUrl("");
     } catch (err: any) {
       alert("Lỗi: " + err.message);
@@ -150,8 +150,30 @@ export default function EduMirrorApp() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Generate survey failed");
-      setSurvey(data.survey_v2);
+
+      const surveyData: SurveyV2UI = data.survey_v2;
+      setSurvey(surveyData);
       setQrUrl("");
+
+      // LƯU survey xuống Supabase để lấy id ngắn
+      try {
+        const saveRes = await fetch("/api/save-survey", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ survey: surveyData }),
+        });
+        const saveData = await saveRes.json();
+        if (!saveRes.ok) {
+          throw new Error(saveData?.error || "Không lưu được phiếu khảo sát.");
+        }
+        setSurveyId(saveData.id);
+      } catch (e: any) {
+        console.error("Lỗi lưu survey:", e);
+        setSurveyId(null);
+        alert(
+          "Đã sinh phiếu nhưng chưa lưu được mã để phát cho học sinh.\nHãy thử sinh lại phiếu nếu cần dùng QR."
+        );
+      }
     } catch (err: any) {
       alert("Lỗi: " + err.message);
     } finally {
@@ -160,23 +182,22 @@ export default function EduMirrorApp() {
   }
 
   // ===== QR HANDLERS =====
-const handleGenerateQR = () => {
-  if (!survey) {
-    alert("Chưa có phiếu khảo sát. Hãy bấm 'Sinh bộ câu hỏi' trước.");
-    return;
-  }
+  const handleGenerateQR = () => {
+    if (!survey) {
+      alert("Chưa có phiếu khảo sát. Hãy bấm 'Sinh bộ câu hỏi' trước.");
+      return;
+    }
+    if (!surveyId) {
+      alert(
+        "Phiếu chưa có mã ID. Hãy bấm 'Sinh bộ câu hỏi' lại hoặc chờ vài giây rồi thử lại."
+      );
+      return;
+    }
 
-  try {
-    // 1) Survey -> JSON
-    const json = JSON.stringify(survey);
+    const surveyUrl = `${window.location.origin}/survey?id=${encodeURIComponent(
+      surveyId
+    )}`;
 
-    // 2) NÉN JSON thành chuỗi ngắn, an toàn cho URL
-    const compressed = compressToEncodedURIComponent(json);
-
-    // 3) URL phiếu khảo sát cho học sinh (dùng tham số z)
-    const surveyUrl = `${window.location.origin}/survey?z=${compressed}`;
-
-    // 4) URL ảnh QR (quickchart)
     const qr = `https://quickchart.io/qr?text=${encodeURIComponent(
       surveyUrl
     )}&size=260`;
@@ -185,12 +206,7 @@ const handleGenerateQR = () => {
     alert(
       "Đã tạo mã QR cho phiếu khảo sát.\nChiếu QR cho HS quét, hoặc mở ảnh để lưu/gửi cho HS."
     );
-  } catch (e) {
-    console.error("Lỗi tạo QR:", e);
-    alert("Không tạo được mã QR. Vui lòng thử lại.");
-  }
-};
-
+  };
 
   const handleOpenQRInNewTab = () => {
     if (!qrUrl) {
@@ -319,6 +335,7 @@ const handleGenerateQR = () => {
                     setLessonText("");
                     setAnalysis(null);
                     setSurvey(null);
+                    setSurveyId(null);
                     setChip("");
                     setQrUrl("");
                   }}
