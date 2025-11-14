@@ -4,6 +4,8 @@ import { Buffer } from "buffer";
 import { useEffect, useMemo, useState } from "react";
 import ResultsView, { AnalyzeResult } from "@/components/ResultsView";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
+import { compressToEncodedURIComponent } from "lz-string";
+
 
 export default function EduMirrorApp() {
   // ===== STATE CHÍNH =====
@@ -158,38 +160,37 @@ export default function EduMirrorApp() {
   }
 
   // ===== QR HANDLERS =====
-  const handleGenerateQR = () => {
-    if (!survey) {
-      alert("Chưa có phiếu khảo sát. Hãy bấm 'Sinh bộ câu hỏi' trước.");
-      return;
-    }
+const handleGenerateQR = () => {
+  if (!survey) {
+    alert("Chưa có phiếu khảo sát. Hãy bấm 'Sinh bộ câu hỏi' trước.");
+    return;
+  }
 
-    try {
-      // 1) Survey -> JSON
-      const json = JSON.stringify(survey);
+  try {
+    // 1) Survey -> JSON
+    const json = JSON.stringify(survey);
 
-      // 2) JSON -> base64 (hỗ trợ tiếng Việt)
-      const base64 = Buffer.from(json, "utf8").toString("base64");
+    // 2) NÉN JSON thành chuỗi ngắn, an toàn cho URL
+    const compressed = compressToEncodedURIComponent(json);
 
-      // 3) URL phiếu khảo sát cho học sinh
-      const surveyUrl = `${window.location.origin}/survey?data=${encodeURIComponent(
-        base64
-      )}`;
+    // 3) URL phiếu khảo sát cho học sinh (dùng tham số z)
+    const surveyUrl = `${window.location.origin}/survey?z=${compressed}`;
 
-      // 4) URL ảnh QR (dùng quickchart.io)
-      const qr = `https://quickchart.io/qr?text=${encodeURIComponent(
-        surveyUrl
-      )}&size=260`;
+    // 4) URL ảnh QR (quickchart)
+    const qr = `https://quickchart.io/qr?text=${encodeURIComponent(
+      surveyUrl
+    )}&size=260`;
 
-      setQrUrl(qr);
-      alert(
-        "Đã tạo mã QR cho phiếu khảo sát.\nChiếu QR cho HS quét, hoặc mở ảnh để lưu/gửi cho HS."
-      );
-    } catch (e) {
-      console.error("Lỗi tạo QR:", e);
-      alert("Không tạo được mã QR. Vui lòng thử lại.");
-    }
-  };
+    setQrUrl(qr);
+    alert(
+      "Đã tạo mã QR cho phiếu khảo sát.\nChiếu QR cho HS quét, hoặc mở ảnh để lưu/gửi cho HS."
+    );
+  } catch (e) {
+    console.error("Lỗi tạo QR:", e);
+    alert("Không tạo được mã QR. Vui lòng thử lại.");
+  }
+};
+
 
   const handleOpenQRInNewTab = () => {
     if (!qrUrl) {

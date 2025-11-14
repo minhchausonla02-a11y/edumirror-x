@@ -1,38 +1,39 @@
+import { Buffer } from "buffer";
+import { decompressFromEncodedURIComponent } from "lz-string";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
 
-type SurveyPageProps = {
+type Props = {
   searchParams: {
-    data?: string;
+    data?: string; // kiểu cũ (base64) – vẫn hỗ trợ
+    z?: string;    // kiểu mới (nén)
   };
 };
 
-export default function SurveyPage({ searchParams }: SurveyPageProps) {
+export default function SurveyPage({ searchParams }: Props) {
   let survey: SurveyV2UI | null = null;
 
- if (searchParams.data) {
   try {
-    // data đang là base64 đã encodeURIComponent một lần
-    const base64 = decodeURIComponent(searchParams.data);
-
-    // Giải mã base64 -> chuỗi UTF-8 (có dạng %xx%yy...)
-    const utf8 = Buffer.from(base64, "base64").toString("utf8");
-
-    // Giải mã %xx -> JSON gốc
-    const json = decodeURIComponent(utf8);
-
-    // Parse JSON thành object survey
-    survey = JSON.parse(json);
-  } catch (err) {
-    console.error("Lỗi giải mã survey:", err);
+    if (searchParams.z) {
+      // 🔹 Kiểu mới: dữ liệu nén bằng lz-string
+      const json = decompressFromEncodedURIComponent(searchParams.z);
+      if (json) {
+        survey = JSON.parse(json);
+      }
+    } else if (searchParams.data) {
+      // 🔹 Kiểu cũ: base64 (để nếu sau này bạn vẫn dùng link cũ thì vẫn chạy)
+      const base64 = searchParams.data;
+      const json = Buffer.from(base64, "base64").toString("utf8");
+      survey = JSON.parse(json);
+    }
+  } catch (e) {
+    console.error("Không đọc được dữ liệu phiếu khảo sát:", e);
+    survey = null;
   }
-}
-
-
 
   if (!survey) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50">
-        <div className="max-w-md text-center bg-white shadow rounded-2xl p-6">
+      <main className="min-h-screen flex items-center justify-center bg-neutral-50 px-4">
+        <div className="max-w-md rounded-2xl bg-white shadow p-6 text-center">
           <h1 className="text-lg font-semibold mb-2">
             Không tải được phiếu khảo sát
           </h1>
@@ -41,28 +42,15 @@ export default function SurveyPage({ searchParams }: SurveyPageProps) {
             thầy/cô để nhận đường link mới.
           </p>
         </div>
-      </div>
+      </main>
     );
   }
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <main className="mx-auto max-w-2xl px-4 py-8 space-y-4">
-        <div className="text-center space-y-2">
-          <h1 className="text-xl font-semibold">
-            Phiếu 60 giây sau tiết học
-          </h1>
-          <p className="text-sm text-neutral-600">
-            Phiếu hoàn toàn ẩn danh. Em trả lời thật lòng trong khoảng 1 phút
-            để thầy/cô hiểu lớp hơn.
-          </p>
-        </div>
-
-        <section className="mt-4 rounded-2xl border bg-white shadow-sm p-4">
-          {/* SurveyView sẽ hiển thị giao diện câu hỏi */}
-          <SurveyView survey={survey} />
-        </section>
-      </main>
-    </div>
+    <main className="min-h-screen bg-neutral-50 px-4 py-8">
+      <div className="mx-auto max-w-2xl rounded-2xl bg-white shadow p-6">
+        <SurveyView survey={survey} />
+      </div>
+    </main>
   );
 }
