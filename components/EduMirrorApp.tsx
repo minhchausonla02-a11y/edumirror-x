@@ -1,9 +1,11 @@
 "use client";
 
-import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import ResultsView, { AnalyzeResult } from "@/components/ResultsView";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
+
+// 🟢 LUÔN dùng domain production này để tạo link cho học sinh
+const PRODUCTION_ORIGIN = "https://edumirror-x.vercel.app";
 
 export default function EduMirrorApp() {
   // ===== STATE CHÍNH =====
@@ -19,7 +21,7 @@ export default function EduMirrorApp() {
   const [survey, setSurvey] = useState<SurveyV2UI | null>(null);
   const [surveyId, setSurveyId] = useState<string | null>(null);
 
-  // QR (chỉ chứa URL ngắn)
+  // QR
   const [qrUrl, setQrUrl] = useState<string>("");
 
   // ===== KT–KN (tuỳ chọn) =====
@@ -55,7 +57,7 @@ export default function EduMirrorApp() {
     alert("Đã lưu API Key");
   }
 
-  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
     try {
@@ -68,12 +70,9 @@ export default function EduMirrorApp() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Không trích xuất được tệp");
-
       const text: string = data?.text || "";
       setLessonText(text);
       setChip(`Đã nạp: ${f.name} (${text.length.toLocaleString()} ký tự)`);
-
-      // reset
       setAnalysis(null);
       setSurvey(null);
       setSurveyId(null);
@@ -112,11 +111,8 @@ export default function EduMirrorApp() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Analyze failed");
-
       setAnalysis(data.result);
       setChip("Đã phân tích: Bài học");
-
-      // reset khảo sát hiện tại
       setSurvey(null);
       setSurveyId(null);
       setQrUrl("");
@@ -155,17 +151,15 @@ export default function EduMirrorApp() {
             : undefined,
         }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Generate survey failed");
 
       const surveyData: SurveyV2UI = data.survey_v2;
       setSurvey(surveyData);
-      setQrUrl(""); // xoá QR cũ
+      setQrUrl("");
 
-      // LƯU survey xuống CSDL để lấy ID ngắn
+      // 🟢 LƯU survey xuống backend để lấy ID ngắn
       try {
-        // ĐẢM BẢO route API này tồn tại: /api/save-survey (hoặc đổi cho khớp backend)
         const saveRes = await fetch("/api/save-survey", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -175,12 +169,13 @@ export default function EduMirrorApp() {
         if (!saveRes.ok) {
           throw new Error(saveData?.error || "Không lưu được phiếu khảo sát.");
         }
-        setSurveyId(saveData.id); // ID ngắn dùng cho QR
+        setSurveyId(saveData.id);
       } catch (e: any) {
         console.error("Lỗi lưu survey:", e);
         setSurveyId(null);
         alert(
-          "Đã sinh phiếu nhưng chưa lưu được mã để phát cho học sinh.\nHãy thử sinh lại phiếu nếu cần dùng QR."
+          "Đã sinh phiếu nhưng chưa lưu được mã ID để phát cho học sinh.\n" +
+            "Bạn vẫn có thể xem trước phiếu, nhưng sẽ chưa tạo được QR."
         );
       }
     } catch (err: any) {
@@ -198,25 +193,26 @@ export default function EduMirrorApp() {
     }
     if (!surveyId) {
       alert(
-        "Phiếu chưa có mã ID. Hãy bấm 'Sinh bộ câu hỏi' lại hoặc chờ vài giây rồi thử lại."
+        "Phiếu chưa có mã ID ngắn.\n" +
+          "Hãy bấm 'Sinh bộ câu hỏi' lại hoặc kiểm tra lại API / CSDL."
       );
       return;
     }
 
-    // URL học sinh mở để làm phiếu – rất ngắn, chỉ chứa ID
-    const surveyUrl = `${window.location.origin}/survey?id=${encodeURIComponent(
+    // 🟢 LUÔN dùng PRODUCTION_ORIGIN để URL luôn ngắn & cố định
+    const surveyUrl = `${PRODUCTION_ORIGIN}/survey?id=${encodeURIComponent(
       surveyId
     )}`;
 
-   // Ảnh QR sinh từ URL ngắn (dùng api.qrserver.com)
-const qr = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
-  surveyUrl
-)}`;
-
+    // Chỉ encode URL ngắn vào QR → không bao giờ bị “amount of data is too big”
+    const qr = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
+      surveyUrl
+    )}`;
 
     setQrUrl(qr);
     alert(
-      "Đã tạo mã QR cho phiếu khảo sát.\nChiếu QR cho HS quét, hoặc mở ảnh để lưu/gửi cho HS."
+      "Đã tạo mã QR cho phiếu khảo sát.\n" +
+        "Chiếu QR cho HS quét, hoặc bấm 'Mở / lưu mã QR để gửi' để lưu ảnh."
     );
   };
 
