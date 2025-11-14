@@ -208,10 +208,11 @@ export default function EduMirrorApp() {
       surveyId
     )}`;
 
-    // Ảnh QR sinh từ URL ngắn → không còn lỗi "amount of data is too big"
-    const qr = `https://quickchart.io/qr?text=${encodeURIComponent(
-      surveyUrl
-    )}&size=260`;
+   // Ảnh QR sinh từ URL ngắn (dùng api.qrserver.com)
+const qr = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
+  surveyUrl
+)}`;
+
 
     setQrUrl(qr);
     alert(
