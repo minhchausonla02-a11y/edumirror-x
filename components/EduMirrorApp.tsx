@@ -1,5 +1,6 @@
 "use client";
 
+import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 import ResultsView, { AnalyzeResult } from "@/components/ResultsView";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
@@ -18,7 +19,7 @@ export default function EduMirrorApp() {
   const [survey, setSurvey] = useState<SurveyV2UI | null>(null);
   const [surveyId, setSurveyId] = useState<string | null>(null);
 
-  // QR
+  // QR (chỉ chứa URL ngắn)
   const [qrUrl, setQrUrl] = useState<string>("");
 
   // ===== KT–KN (tuỳ chọn) =====
@@ -54,7 +55,7 @@ export default function EduMirrorApp() {
     alert("Đã lưu API Key");
   }
 
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
     if (!f) return;
     try {
@@ -67,9 +68,12 @@ export default function EduMirrorApp() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Không trích xuất được tệp");
+
       const text: string = data?.text || "";
       setLessonText(text);
       setChip(`Đã nạp: ${f.name} (${text.length.toLocaleString()} ký tự)`);
+
+      // reset
       setAnalysis(null);
       setSurvey(null);
       setSurveyId(null);
@@ -108,8 +112,11 @@ export default function EduMirrorApp() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Analyze failed");
+
       setAnalysis(data.result);
       setChip("Đã phân tích: Bài học");
+
+      // reset khảo sát hiện tại
       setSurvey(null);
       setSurveyId(null);
       setQrUrl("");
@@ -148,15 +155,17 @@ export default function EduMirrorApp() {
             : undefined,
         }),
       });
+
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Generate survey failed");
 
       const surveyData: SurveyV2UI = data.survey_v2;
       setSurvey(surveyData);
-      setQrUrl("");
+      setQrUrl(""); // xoá QR cũ
 
-      // LƯU survey xuống Supabase để lấy id ngắn
+      // LƯU survey xuống CSDL để lấy ID ngắn
       try {
+        // ĐẢM BẢO route API này tồn tại: /api/save-survey (hoặc đổi cho khớp backend)
         const saveRes = await fetch("/api/save-survey", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -166,7 +175,7 @@ export default function EduMirrorApp() {
         if (!saveRes.ok) {
           throw new Error(saveData?.error || "Không lưu được phiếu khảo sát.");
         }
-        setSurveyId(saveData.id);
+        setSurveyId(saveData.id); // ID ngắn dùng cho QR
       } catch (e: any) {
         console.error("Lỗi lưu survey:", e);
         setSurveyId(null);
@@ -194,10 +203,12 @@ export default function EduMirrorApp() {
       return;
     }
 
+    // URL học sinh mở để làm phiếu – rất ngắn, chỉ chứa ID
     const surveyUrl = `${window.location.origin}/survey?id=${encodeURIComponent(
       surveyId
     )}`;
 
+    // Ảnh QR sinh từ URL ngắn → không còn lỗi "amount of data is too big"
     const qr = `https://quickchart.io/qr?text=${encodeURIComponent(
       surveyUrl
     )}&size=260`;
