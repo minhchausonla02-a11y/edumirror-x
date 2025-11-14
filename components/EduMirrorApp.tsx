@@ -170,7 +170,8 @@ export default function EduMirrorApp() {
         if (!saveRes.ok) {
           throw new Error(saveData?.error || "Không lưu được phiếu khảo sát.");
         }
-        setSurveyId(saveData.id); // ID ngắn để nhúng vào QR
+        // ID ngắn để nhúng vào QR
+        setSurveyId(saveData.id);
       } catch (e: any) {
         console.error("Lỗi lưu survey:", e);
         setSurveyId(null);
@@ -191,7 +192,13 @@ export default function EduMirrorApp() {
       alert("Chưa có phiếu khảo sát. Hãy bấm 'Sinh bộ câu hỏi' trước.");
       return;
     }
-    if (!surveyId) {
+
+    // Ưu tiên ID ngắn từ Supabase, nếu không có thì fallback sang short_id / id trong survey
+    const fallbackId =
+      (survey as any)?.short_id || (survey as any)?.id || null;
+    const effectiveId = surveyId || fallbackId;
+
+    if (!effectiveId) {
       alert(
         "Phiếu chưa có mã ID ngắn.\n" +
           "Hãy bấm 'Sinh bộ câu hỏi' lại hoặc kiểm tra lại API / CSDL."
@@ -201,10 +208,10 @@ export default function EduMirrorApp() {
 
     // URL cho học sinh làm phiếu – RẤT NGẮN, chỉ chứa id
     const surveyUrl = `${PRODUCTION_ORIGIN}/survey?id=${encodeURIComponent(
-      surveyId
+      effectiveId
     )}`;
 
-    // Ảnh QR sinh từ URL ngắn → không bao giờ dính lỗi "amount of data is too big"
+    // Tạo QR bằng api.qrserver.com → không bao giờ dính lỗi "amount of data is too big"
     const qr = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
       surveyUrl
     )}`;
