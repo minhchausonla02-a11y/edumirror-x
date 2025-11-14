@@ -109,7 +109,7 @@ export default function EduMirrorApp() {
       if (!res.ok) throw new Error(data?.error || "Analyze failed");
       setAnalysis(data.result);
       setChip("Đã phân tích: Bài học");
-      setSurvey(null); // reset khảo sát để sinh lại theo phân tích mới
+      setSurvey(null);
       setQrUrl("");
     } catch (err: any) {
       alert("Lỗi: " + err.message);
@@ -168,18 +168,18 @@ export default function EduMirrorApp() {
       // 1) Survey -> JSON
       const json = JSON.stringify(survey);
 
-      // 2) JSON -> base64 (an toàn cho tiếng Việt)
+      // 2) JSON -> base64 (hỗ trợ tiếng Việt)
       const base64 = Buffer.from(json, "utf8").toString("base64");
 
-      // 3) URL phiếu khảo sát
+      // 3) URL phiếu khảo sát cho học sinh
       const surveyUrl = `${window.location.origin}/survey?data=${encodeURIComponent(
         base64
       )}`;
 
-      // 4) URL ảnh QR (dùng dịch vụ tạo QR miễn phí)
-      const qr = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
+      // 4) URL ảnh QR (dùng quickchart.io)
+      const qr = `https://quickchart.io/qr?text=${encodeURIComponent(
         surveyUrl
-      )}`;
+      )}&size=260`;
 
       setQrUrl(qr);
       alert(
@@ -365,7 +365,7 @@ export default function EduMirrorApp() {
           {survey && (
             <section className="rounded-2xl border bg-white shadow-sm p-6">
               <div className="mb-3 text-lg font-semibold">
-                Phiếu 60 giây sau tiết học
+                Xem trước phiếu 60 giây sau tiết học
               </div>
 
               <SurveyView survey={survey} />
