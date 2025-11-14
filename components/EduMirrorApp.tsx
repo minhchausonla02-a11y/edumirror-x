@@ -1,5 +1,6 @@
 "use client";
 
+import { Buffer } from "buffer";
 import { useEffect, useMemo, useState } from "react";
 import ResultsView, { AnalyzeResult } from "@/components/ResultsView";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
@@ -16,44 +17,9 @@ export default function EduMirrorApp() {
   // Kết quả phân tích giáo án & Khảo sát 60s
   const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null);
   const [survey, setSurvey] = useState<SurveyV2UI | null>(null);
-  const [surveyLink, setSurveyLink] = useState<string>("");
-  const handleCopyStudentLink = () => {
-  if (!survey) return;
 
-  try {
-    // 1) Chuyển survey -> JSON
-    const json = JSON.stringify(survey);
-
-    // 2) Mã hoá UTF-8 để tránh lỗi tiếng Việt
-    const utf8 = encodeURIComponent(json);
-
-    // 3) Nén thành base64 (ngắn hơn rất nhiều so với %xx)
-    const base64 = btoa(utf8);
-
-    // 4) Đưa vào URL, encode 1 lần nữa cho an toàn
-    const url = `${window.location.origin}/survey?data=${encodeURIComponent(
-      base64
-    )}`;
-
-    // Lưu để hiển thị dưới nút
-    setSurveyLink(url);
-
-    // Copy vào clipboard
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url);
-      alert(
-        "Đã tạo và copy link phiếu khảo sát.\nHãy gửi link này cho học sinh!"
-      );
-    } else {
-      prompt("Sao chép đường link phiếu khảo sát:", url);
-    }
-  } catch (e) {
-    console.error("Lỗi tạo link khảo sát:", e);
-    alert("Không tạo được link phiếu khảo sát. Vui lòng thử lại.");
-  }
-};
-
-
+  // QR code cho phiếu khảo sát
+  const [qrUrl, setQrUrl] = useState<string>("");
 
   // ===== KT–KN (tuỳ chọn) =====
   const [ktknEnabled, setKtknEnabled] = useState(true);
@@ -81,7 +47,7 @@ export default function EduMirrorApp() {
 
   // ===== HANDLERS =====
   async function handleSaveKey() {
-    const inp = (document.getElementById("apiKeyInput") as HTMLInputElement)!;
+    const inp = document.getElementById("apiKeyInput") as HTMLInputElement;
     const v = inp.value.trim();
     localStorage.setItem("edumirror_key", v);
     setApiKey(v);
@@ -95,7 +61,10 @@ export default function EduMirrorApp() {
       setLoading(true);
       const form = new FormData();
       form.append("file", f);
-      const res = await fetch("/api/extractText", { method: "POST", body: form });
+      const res = await fetch("/api/extractText", {
+        method: "POST",
+        body: form,
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Không trích xuất được tệp");
       const text: string = data?.text || "";
@@ -103,6 +72,7 @@ export default function EduMirrorApp() {
       setChip(`Đã nạp: ${f.name} (${text.length.toLocaleString()} ký tự)`);
       setAnalysis(null);
       setSurvey(null);
+      setQrUrl("");
     } catch (err: any) {
       alert("Lỗi: " + err.message);
     } finally {
@@ -117,7 +87,9 @@ export default function EduMirrorApp() {
     }
     try {
       setLoading(true);
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
       const saved = localStorage.getItem("edumirror_key") || "";
       if (saved) headers["x-proxy-key"] = saved;
 
@@ -138,6 +110,7 @@ export default function EduMirrorApp() {
       setAnalysis(data.result);
       setChip("Đã phân tích: Bài học");
       setSurvey(null); // reset khảo sát để sinh lại theo phân tích mới
+      setQrUrl("");
     } catch (err: any) {
       alert("Lỗi: " + err.message);
     } finally {
@@ -152,7 +125,9 @@ export default function EduMirrorApp() {
     }
     try {
       setLoading(true);
-      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
       const saved = localStorage.getItem("edumirror_key") || "";
       if (saved) headers["x-proxy-key"] = saved;
 
@@ -169,18 +144,60 @@ export default function EduMirrorApp() {
                 common_misconceptions: analysis.common_misconceptions,
               }
             : undefined,
-          // aiFallback: true (mặc định) — có thể bỏ nếu chỉ dùng ngân hàng mẫu
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error || "Generate survey failed");
       setSurvey(data.survey_v2);
+      setQrUrl("");
     } catch (err: any) {
       alert("Lỗi: " + err.message);
     } finally {
       setLoading(false);
     }
   }
+
+  // ===== QR HANDLERS =====
+  const handleGenerateQR = () => {
+    if (!survey) {
+      alert("Chưa có phiếu khảo sát. Hãy bấm 'Sinh bộ câu hỏi' trước.");
+      return;
+    }
+
+    try {
+      // 1) Survey -> JSON
+      const json = JSON.stringify(survey);
+
+      // 2) JSON -> base64 (an toàn cho tiếng Việt)
+      const base64 = Buffer.from(json, "utf8").toString("base64");
+
+      // 3) URL phiếu khảo sát
+      const surveyUrl = `${window.location.origin}/survey?data=${encodeURIComponent(
+        base64
+      )}`;
+
+      // 4) URL ảnh QR (dùng dịch vụ tạo QR miễn phí)
+      const qr = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
+        surveyUrl
+      )}`;
+
+      setQrUrl(qr);
+      alert(
+        "Đã tạo mã QR cho phiếu khảo sát.\nChiếu QR cho HS quét, hoặc mở ảnh để lưu/gửi cho HS."
+      );
+    } catch (e) {
+      console.error("Lỗi tạo QR:", e);
+      alert("Không tạo được mã QR. Vui lòng thử lại.");
+    }
+  };
+
+  const handleOpenQRInNewTab = () => {
+    if (!qrUrl) {
+      alert("Chưa có mã QR. Hãy bấm 'Tạo mã QR cho học sinh' trước.");
+      return;
+    }
+    window.open(qrUrl, "_blank");
+  };
 
   // ===== UI =====
   return (
@@ -206,7 +223,10 @@ export default function EduMirrorApp() {
               <option value="gpt-4o-mini">GPT-4o mini</option>
               <option value="gpt-4o">GPT-4o</option>
             </select>
-            <button onClick={handleSaveKey} className="rounded bg-neutral-900 text-white px-4 py-2">
+            <button
+              onClick={handleSaveKey}
+              className="rounded bg-neutral-900 text-white px-4 py-2"
+            >
               Lưu API Key
             </button>
             <span className="text-xs text-neutral-500">
@@ -230,7 +250,8 @@ export default function EduMirrorApp() {
                 <div className="flex items-center gap-3">
                   <input type="file" onChange={handleFileChange} />
                   <div className="text-sm text-neutral-600">
-                    Hỗ trợ: <b>.docx</b>, <b>.pdf</b>, <b>.txt</b> (tệp .doc cũ: vui lòng chuyển sang .docx)
+                    Hỗ trợ: <b>.docx</b>, <b>.pdf</b>, <b>.txt</b> (tệp .doc cũ:
+                    vui lòng chuyển sang .docx)
                   </div>
                 </div>
                 {chip && (
@@ -298,6 +319,7 @@ export default function EduMirrorApp() {
                     setAnalysis(null);
                     setSurvey(null);
                     setChip("");
+                    setQrUrl("");
                   }}
                   className="px-4 py-2 rounded border"
                 >
@@ -332,48 +354,62 @@ export default function EduMirrorApp() {
           {/* Kết quả phân tích */}
           {analysis && (
             <section className="rounded-2xl border bg-white shadow-sm p-6">
-              <div className="mb-3 text-lg font-semibold">🧪 Kết quả phân tích giáo án</div>
+              <div className="mb-3 text-lg font-semibold">
+                🧪 Kết quả phân tích giáo án
+              </div>
               <ResultsView result={analysis} lessonTitle="bai_hoc" />
             </section>
           )}
 
-{/* Phiếu khảo sát 60s */}
-{survey && (
-  <section className="rounded-2xl border bg-white shadow-sm p-6">
-    <div className="mb-3 text-lg font-semibold">
-      Phiếu 60 giây sau tiết học
-    </div>
+          {/* Phiếu khảo sát 60s */}
+          {survey && (
+            <section className="rounded-2xl border bg-white shadow-sm p-6">
+              <div className="mb-3 text-lg font-semibold">
+                Phiếu 60 giây sau tiết học
+              </div>
 
-    <SurveyView survey={survey} />
+              <SurveyView survey={survey} />
 
-    <div className="mt-4 flex flex-wrap gap-2">
-      <button
-        type="button"
-        onClick={handleCopyStudentLink}
-        className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-      >
-        Lấy link cho học sinh
-      </button>
-    </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleGenerateQR}
+                  className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                >
+                  Tạo mã QR cho học sinh
+                </button>
 
-    {surveyLink && (
-      <div className="mt-2 w-full max-w-xl">
-        <div className="text-xs text-neutral-600 mb-1">
-          Đường link phiếu khảo sát (copy / dán vào Zalo hoặc tạo mã QR):
-        </div>
-        <input
-          type="text"
-          readOnly
-          value={surveyLink}
-          className="w-full rounded border px-2 py-1 text-xs bg-neutral-50"
-          onFocus={(e) => e.currentTarget.select()}
-        />
-      </div>
-    )}
-  </section>
-)}
+                {qrUrl && (
+                  <button
+                    type="button"
+                    onClick={handleOpenQRInNewTab}
+                    className="inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-neutral-50"
+                  >
+                    Mở / lưu mã QR để gửi
+                  </button>
+                )}
+              </div>
 
-
+              {qrUrl && (
+                <div className="mt-4">
+                  <div className="text-xs text-neutral-600 mb-2">
+                    Mã QR cho học sinh (chiếu lên màn hình, HS dùng
+                    Camera/Zalo để quét):
+                  </div>
+                  <img
+                    src={qrUrl}
+                    alt="QR code phiếu khảo sát"
+                    className="border rounded-xl p-2 bg-white"
+                  />
+                  <p className="mt-2 text-xs text-neutral-500">
+                    Muốn gửi QR cho HS qua Zalo/Facebook: bấm{" "}
+                    <b>“Mở / lưu mã QR để gửi”</b>, lưu ảnh từ tab mới rồi gửi
+                    cho các em.
+                  </p>
+                </div>
+              )}
+            </section>
+          )}
         </main>
       ) : null}
     </div>
