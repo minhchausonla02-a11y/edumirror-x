@@ -1,9 +1,8 @@
-// app/api/save-survey/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabaseAdmin"; // giữ nguyên đúng tên client như file save-survey
+
 export async function GET(req: NextRequest) {
   try {
-    // Lấy ?id=... từ URL /api/survey?id=xxxx
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
 
@@ -14,16 +13,13 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // DÙNG ĐÚNG CLIENT GIỐNG file save-survey
-    // Nếu bên bạn là supabaseAdmin thì giữ nguyên,
-    // nếu là "supabase" thì thay tên cho khớp.
     const supabase = supabaseAdmin;
 
-    // TODO: nếu bảng / cột tên khác thì sửa ở đây
+    // ❗ 3 CHỖ NÀY PHẢI KHỚP VỚI file app/api/save-survey/route.ts
     const { data, error } = await supabase
-      .from("surveys")        // tên bảng: sửa nếu bạn đang dùng bảng khác
-      .select("survey_v2")    // cột chứa JSON phiếu khảo sát
-      .eq("short_id", id)     // cột short_id = id trong QR
+      .from("surveys")        // ✅ TÊN BẢNG – sửa nếu bạn đang dùng bảng khác
+      .select("survey_v2")    // ✅ CỘT JSON chứa phiếu khảo sát
+      .eq("short_id", id)     // ✅ CỘT chứa short_id
       .single();
 
     if (error || !data) {
