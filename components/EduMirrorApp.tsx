@@ -1,10 +1,11 @@
 "use client";
 
+import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import ResultsView, { AnalyzeResult } from "@/components/ResultsView";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
 
-// 🟢 LUÔN dùng domain production này để tạo link cho học sinh
+// Domain production cố định để QR luôn ngắn, không bị dính link preview của Vercel
 const PRODUCTION_ORIGIN = "https://edumirror-x.vercel.app";
 
 export default function EduMirrorApp() {
@@ -158,7 +159,7 @@ export default function EduMirrorApp() {
       setSurvey(surveyData);
       setQrUrl("");
 
-      // 🟢 LƯU survey xuống backend để lấy ID ngắn
+      // LƯU survey xuống Supabase để lấy ID ngắn
       try {
         const saveRes = await fetch("/api/save-survey", {
           method: "POST",
@@ -169,13 +170,12 @@ export default function EduMirrorApp() {
         if (!saveRes.ok) {
           throw new Error(saveData?.error || "Không lưu được phiếu khảo sát.");
         }
-        setSurveyId(saveData.id);
+        setSurveyId(saveData.id); // ID ngắn để nhúng vào QR
       } catch (e: any) {
         console.error("Lỗi lưu survey:", e);
         setSurveyId(null);
         alert(
-          "Đã sinh phiếu nhưng chưa lưu được mã ID để phát cho học sinh.\n" +
-            "Bạn vẫn có thể xem trước phiếu, nhưng sẽ chưa tạo được QR."
+          "Đã sinh phiếu nhưng chưa lưu được mã để phát cho học sinh.\nHãy thử sinh lại phiếu nếu cần dùng QR."
         );
       }
     } catch (err: any) {
@@ -199,12 +199,12 @@ export default function EduMirrorApp() {
       return;
     }
 
-    // 🟢 LUÔN dùng PRODUCTION_ORIGIN để URL luôn ngắn & cố định
+    // URL cho học sinh làm phiếu – RẤT NGẮN, chỉ chứa id
     const surveyUrl = `${PRODUCTION_ORIGIN}/survey?id=${encodeURIComponent(
       surveyId
     )}`;
 
-    // Chỉ encode URL ngắn vào QR → không bao giờ bị “amount of data is too big”
+    // Ảnh QR sinh từ URL ngắn → không bao giờ dính lỗi "amount of data is too big"
     const qr = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
       surveyUrl
     )}`;
