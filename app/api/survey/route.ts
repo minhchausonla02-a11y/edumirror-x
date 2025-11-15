@@ -1,6 +1,6 @@
 // app/api/survey/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -8,59 +8,48 @@ export async function GET(req: NextRequest) {
 
   if (!id) {
     return NextResponse.json(
-      { ok: false, error: "Thiếu tham số id." },
+      { ok: false, error: "Thiếu id phiếu khảo sát." },
       { status: 400 }
     );
   }
 
   try {
-    // Lấy phiếu khảo sát theo short_id
-    const { data, error } = await supabaseAdmin
+    const supabase = getSupabaseAdmin();
+
+    const { data, error } = await supabase
       .from("surveys")
       .select("payload")
       .eq("short_id", id)
       .single();
 
     if (error) {
-      console.error("Supabase /api/survey error:", error);
+      console.error("❌ Supabase /api/survey error:", error);
       return NextResponse.json(
-        {
-          ok: false,
-          error: `Lỗi truy vấn CSDL: ${error.message}`,
-        },
+        { ok: false, error: `Lỗi truy vấn CSDL: ${error.message}` },
         { status: 500 }
       );
     }
 
-    if (!data) {
+    if (!data?.payload) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Không tìm thấy phiếu khảo sát.",
+          error: "Không tìm thấy phiếu khảo sát trong CSDL.",
         },
         { status: 404 }
       );
     }
 
-    // payload chính là JSON Phiếu 60s
     return NextResponse.json(
-      {
-        ok: true,
-        survey: data.payload,
-      },
+      { ok: true, survey: data.payload },
       { status: 200 }
     );
-  } catch (err: unknown) {
-    console.error("Unexpected /api/survey error:", err);
-    const msg =
-      err instanceof Error
-        ? `TypeError: ${err.message}`
-        : String(err);
-
+  } catch (err: any) {
+    console.error("❌ Unexpected /api/survey error:", err);
     return NextResponse.json(
       {
         ok: false,
-        error: `Lỗi truy vấn CSDL: ${msg}`,
+        error: `Lỗi hệ thống: ${err?.message ?? String(err)}`,
       },
       { status: 500 }
     );
