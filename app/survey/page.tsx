@@ -24,6 +24,9 @@ export default function SurveyPage() {
       return;
     }
 
+    // sau if trên, chắc chắn id là string → ép kiểu cho TS
+    const surveyId = id as string;
+
     let cancelled = false;
 
     async function loadSurvey() {
@@ -32,7 +35,7 @@ export default function SurveyPage() {
 
       try {
         const res = await fetch(
-          `/api/survey?id=${encodeURIComponent(id)}`,
+          `/api/survey?id=${encodeURIComponent(surveyId)}`,
           {
             method: "GET",
             headers: { Accept: "application/json" },
