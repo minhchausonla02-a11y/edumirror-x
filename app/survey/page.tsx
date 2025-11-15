@@ -1,101 +1,126 @@
-// app/survey/page.tsx
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
+import { useEffect, useState } from "react";
+import SurveyView, { SurveyV2 } from "@/components/SurveyView";
 
-// Không prerender tĩnh, luôn render động trên server
+type Status = "idle" | "loading" | "loaded" | "error";
+
 export const dynamic = "force-dynamic";
 
-function SurveyPageInner() {
+export default function SurveyPage() {
   const searchParams = useSearchParams();
-  const [survey, setSurvey] = useState<SurveyV2UI | null>(null);
-  const [loading, setLoading] = useState(true);
+  const id = searchParams.get("id");
+
+  const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [survey, setSurvey] = useState<SurveyV2 | null>(null);
 
   useEffect(() => {
-    const id = searchParams.get("id"); // lấy ?id=... từ URL
-
+    // Không có id trong URL
     if (!id) {
-      setError("Thiếu mã phiếu khảo sát.");
-      setLoading(false);
+      setStatus("error");
+      setError("Thiếu mã phiếu khảo sát (id). Hãy quét lại QR hoặc hỏi GV.");
       return;
     }
 
-    const fetchSurvey = async () => {
-      try {
-        const res = await fetch(`/api/survey?id=${encodeURIComponent(id)}`);
-        const data = await res.json();
+    let cancelled = false;
 
-        if (!res.ok || data?.ok === false) {
-          throw new Error(data?.error || `HTTP ${res.status}`);
+    async function loadSurvey() {
+      setStatus("loading");
+      setError(null);
+
+      try {
+        const res = await fetch(
+          `/api/survey?id=${encodeURIComponent(id)}`,
+          {
+            method: "GET",
+            headers: { Accept: "application/json" },
+            cache: "no-store",
+          }
+        );
+
+        let data: any = null;
+        try {
+          data = await res.json();
+        } catch {
+          // Nếu parse JSON lỗi thì bỏ qua, dùng status code
         }
 
-        const s: SurveyV2UI =
-          data.survey || data.survey_v2 || data.payload || data.data;
+        if (!res.ok) {
+          const msg =
+            data?.error ||
+            `Server trả về mã lỗi ${res.status} ${res.statusText}`;
+          throw new Error(msg);
+        }
 
-        setSurvey(s);
-      } catch (e: any) {
-        console.error("Fetch survey error:", e);
-        setError(e?.message || "Không tải được phiếu khảo sát.");
-      } finally {
-        setLoading(false);
+        if (!data?.survey) {
+          throw new Error("Phản hồi từ server không chứa survey.");
+        }
+
+        if (!cancelled) {
+          setSurvey(data.survey as SurveyV2);
+          setStatus("loaded");
+        }
+      } catch (err: any) {
+        console.error("Lỗi tải survey:", err);
+        if (!cancelled) {
+          setStatus("error");
+          setError(err?.message || String(err));
+        }
       }
-    };
+    }
 
-    fetchSurvey();
-  }, [searchParams]);
+    loadSurvey();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
 
   return (
     <div className="min-h-screen bg-white">
-      <main className="mx-auto max-w-4xl px-4 py-8">
-        <h1 className="text-xl font-semibold mb-4">
+      {/* Header đơn giản reuse style chung */}
+      <header className="w-full border-b bg-white/70 backdrop-blur sticky top-0 z-20">
+        <div className="mx-auto max-w-4xl px-6 py-3 flex items-center justify-between">
+          <div className="text-xl font-bold text-indigo-700">
+            EduMirror X
+          </div>
+          <nav className="text-sm text-neutral-600 flex gap-4">
+            <span className="font-medium text-indigo-700">Khảo sát</span>
+          </nav>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-4xl px-6 py-8">
+        <h1 className="text-2xl font-semibold mb-4">
           Phiếu khảo sát sau tiết học
         </h1>
 
-        {loading && (
-          <div className="rounded-xl border border-dashed p-6 text-center text-sm text-neutral-600">
-            Đang tải phiếu khảo sát...
-          </div>
-        )}
-
-        {!loading && error && (
-          <div className="rounded-xl bg-red-50 border border-red-200 p-4 text-center text-sm text-red-700">
+        {/* Trạng thái lỗi */}
+        {status === "error" && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             <div className="font-semibold mb-1">
               Không tải được phiếu khảo sát
             </div>
-            <div>{error}</div>
+            <div>{error || "Đã xảy ra lỗi không xác định."}</div>
           </div>
         )}
 
-        {!loading && !error && survey && (
-          <div className="rounded-2xl border bg-white shadow-sm p-6">
-            <SurveyView survey={survey} />
+        {/* Trạng thái đang tải */}
+        {status === "loading" && (
+          <div className="rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+            Đang tải phiếu khảo sát, vui lòng đợi...
           </div>
+        )}
+
+        {/* Hiển thị phiếu */}
+        {status === "loaded" && survey && (
+          <section className="mt-4 rounded-2xl border bg-white shadow-sm p-6">
+            <SurveyView survey={survey} />
+          </section>
         )}
       </main>
     </div>
-  );
-}
-
-export default function SurveyPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-white">
-          <main className="mx-auto max-w-4xl px-4 py-8">
-            <h1 className="text-xl font-semibold mb-4">
-              Phiếu khảo sát sau tiết học
-            </h1>
-            <div className="rounded-xl border border-dashed p-6 text-center text-sm text-neutral-600">
-              Đang tải phiếu khảo sát...
-            </div>
-          </main>
-        </div>
-      }
-    >
-      <SurveyPageInner />
-    </Suspense>
   );
 }
