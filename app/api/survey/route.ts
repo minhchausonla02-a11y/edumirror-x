@@ -1,43 +1,67 @@
 // app/api/survey/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-// Lấy danh sách survey (ví dụ cho dashboard)
-export async function GET() {
-  // Nếu Supabase CHƯA cấu hình → trả danh sách rỗng nhưng không lỗi build
-  if (!supabaseAdmin) {
-    console.log("📤 Yêu cầu GET /api/survey nhưng Supabase chưa cấu hình.");
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json(
+        { ok: false, error: "Thiếu mã phiếu khảo sát (id)." },
+        { status: 400 }
+      );
+    }
+
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { ok: false, error: "Supabase chưa được cấu hình trên server." },
+        { status: 500 }
+      );
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("surveys")
+      .select("payload")
+      .or(`short_id.eq.${id},id.eq.${id}`)
+      .single();
+
+    if (error) {
+      console.error("Supabase survey fetch error:", error);
+      return NextResponse.json(
+        { ok: false, error: error.message },
+        { status: 500 }
+      );
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { ok: false, error: "Không tìm thấy phiếu khảo sát." },
+        { status: 404 }
+      );
+    }
+
+    // Lúc lưu, ta dùng payload = { survey: surveyData }
+    const payload: any = data.payload || {};
+    const survey = payload.survey || payload.survey_v2 || payload;
+
+    if (!survey) {
+      return NextResponse.json(
+        { ok: false, error: "Dữ liệu phiếu khảo sát không hợp lệ." },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      {
-        ok: true,
-        items: [],
-        message:
-          "Supabase chưa cấu hình, trả danh sách survey rỗng (dùng demo).",
-      },
+      { ok: true, survey },
       { status: 200 }
     );
-  }
-
-  // Có Supabase → lấy dữ liệu thật trong bảng "surveys"
-  const { data, error } = await supabaseAdmin
-    .from("surveys") // nếu bảng tên khác thì sửa lại
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  if (error) {
-    console.error("Lỗi đọc Supabase:", error);
+  } catch (err: any) {
+    console.error("Error in /api/survey:", err);
     return NextResponse.json(
-      { ok: false, items: [], error: error.message },
+      { ok: false, error: err?.message ?? "Unknown error" },
       { status: 500 }
     );
   }
-
-  return NextResponse.json(
-    {
-      ok: true,
-      items: data ?? [],
-    },
-    { status: 200 }
-  );
 }
