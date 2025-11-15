@@ -3,8 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id");
+  const id = req.nextUrl.searchParams.get("id");
 
   if (!id) {
     return NextResponse.json(
@@ -20,28 +19,35 @@ export async function GET(req: NextRequest) {
       .from("surveys")
       .select("payload")
       .eq("short_id", id)
-      .single();
+      .maybeSingle(); // không ném lỗi nếu 0 dòng
 
     if (error) {
       console.error("❌ Supabase /api/survey error:", error);
       return NextResponse.json(
-        { ok: false, error: `Lỗi truy vấn CSDL: ${error.message}` },
+        {
+          ok: false,
+          error: `Lỗi truy vấn CSDL: ${error.message}`,
+        },
         { status: 500 }
       );
     }
 
-    if (!data?.payload) {
+    if (!data) {
+      // Không có dòng nào khớp short_id
       return NextResponse.json(
         {
           ok: false,
-          error: "Không tìm thấy phiếu khảo sát trong CSDL.",
+          error: "Không tìm thấy phiếu khảo sát (id không tồn tại).",
         },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      { ok: true, survey: data.payload },
+      {
+        ok: true,
+        survey: data.payload,
+      },
       { status: 200 }
     );
   } catch (err: any) {
