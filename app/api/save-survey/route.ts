@@ -1,67 +1,70 @@
 // app/api/save-survey/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { nanoid } from "nanoid";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-export const runtime = "nodejs";        // chạy NodeJS, không Edge
-export const dynamic = "force-dynamic"; // không cache cứng
-
-function makeShortId(length: number = 8) {
-  return Math.random().toString(36).slice(2, 2 + length);
-}
+type Body = {
+  payload?: any;
+  id?: string; // nếu frontend có gửi sẵn id thì dùng luôn
+};
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-    const survey = body?.survey;
-
-    if (!survey) {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) {
       return NextResponse.json(
-        { ok: false, error: "Thiếu dữ liệu survey trong body." },
+        {
+          ok: false,
+          error: "Supabase chưa được cấu hình trên server.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const body = (await req.json().catch(() => null)) as Body | null;
+
+    if (!body?.payload) {
+      return NextResponse.json(
+        { ok: false, error: "Thiếu payload phiếu khảo sát." },
         { status: 400 }
       );
     }
 
-    // Nếu CHƯA có Supabase → chỉ tạo shortId để dùng cho QR, không lưu DB
-    if (!supabaseAdmin) {
-      const shortId =
-        survey.shortId || survey.short_id || survey.id || makeShortId(8);
-
-      return NextResponse.json(
-        { ok: true, id: shortId, shortId },
-        { status: 200 }
-      );
-    }
-
-    // Có Supabase → lưu vào bảng "surveys"
+    // Nếu frontend có gửi id thì dùng luôn để khớp với QR,
+    // còn không thì tự generate.
     const shortId =
-      survey.shortId || survey.short_id || makeShortId(8);
+      typeof body.id === "string" && body.id.trim() !== ""
+        ? body.id.trim()
+        : nanoid(8);
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await supabase
       .from("surveys")
       .insert({
         short_id: shortId,
-        payload: { survey },
-        created_at: new Date().toISOString(),
+        payload: body.payload,
       })
-      .select("id, short_id")
+      .select("short_id")
       .single();
 
     if (error) {
-      console.error("Supabase insert error:", error);
+      console.error("Supabase /api/save-survey error:", error);
       return NextResponse.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "Lỗi lưu phiếu khảo sát vào CSDL." },
         { status: 500 }
       );
     }
 
     return NextResponse.json(
-      { ok: true, id: data.id, shortId: data.short_id },
+      {
+        ok: true,
+        id: data?.short_id ?? shortId,
+      },
       { status: 200 }
     );
   } catch (err: any) {
-    console.error("Error in /api/save-survey:", err);
+    console.error("Unexpected /api/save-survey error:", err);
     return NextResponse.json(
-      { ok: false, error: err?.message ?? "Unknown error" },
+      { ok: false, error: String(err?.message ?? err) },
       { status: 500 }
     );
   }

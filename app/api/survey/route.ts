@@ -1,20 +1,11 @@
 // app/api/survey/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseServer } from "@/lib/supabaseServer";
+import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET(req: NextRequest) {
   try {
-    const id = req.nextUrl.searchParams.get("id");
-
-    if (!id) {
-      return NextResponse.json(
-        { ok: false, error: "Thiếu mã phiếu khảo sát." },
-        { status: 400 }
-      );
-    }
-
-    if (!supabaseServer) {
-      // Không thấy ENV → không tạo được client
+    const supabase = getSupabaseAdmin();
+    if (!supabase) {
       return NextResponse.json(
         {
           ok: false,
@@ -25,29 +16,49 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Lấy phiếu từ bảng trong Supabase
-    const { data, error } = await supabaseServer
-      .from("edumirror_surveys")        // tên bảng
-      .select("survey_json")            // cột chứa JSON
-      .eq("short_id", id)               // cột ID ngắn
+    const id = req.nextUrl.searchParams.get("id")?.trim();
+    if (!id) {
+      return NextResponse.json(
+        { ok: false, error: "Thiếu id phiếu khảo sát." },
+        { status: 400 }
+      );
+    }
+
+    const { data, error } = await supabase
+      .from("surveys")
+      .select("payload")
+      .eq("short_id", id)
       .single();
 
-    if (error || !data) {
-      console.error("[/api/survey] Lỗi Supabase:", error);
+    if (error) {
+      console.error("Supabase /api/survey error:", error);
+      return NextResponse.json(
+        { ok: false, error: "Lỗi truy vấn CSDL." },
+        { status: 500 }
+      );
+    }
+
+    if (!data?.payload) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Không tìm thấy phiếu khảo sát hoặc CSDL bị lỗi.",
+          error: "Không tìm thấy phiếu khảo sát trong CSDL.",
         },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ ok: true, survey: data.survey_json });
-  } catch (err: any) {
-    console.error("[/api/survey] Lỗi bất ngờ:", err);
     return NextResponse.json(
-      { ok: false, error: err?.message || "Lỗi không xác định" },
+      {
+        ok: true,
+        survey: data.payload,
+      },
+      { status: 200 }
+    );
+  } catch (err: any) {
+    console.error("Unexpected /api/survey error:", err);
+    return NextResponse.json(
+      { ok: false, error: String(err?.message ?? err) },
       { status: 500 }
     );
   }
