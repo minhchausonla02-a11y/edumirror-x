@@ -1,25 +1,20 @@
 // lib/supabaseAdmin.ts
-import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
-let adminClient: SupabaseClient | null = null;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-export function getSupabaseAdmin() {
-  if (adminClient) return adminClient;
-
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!url || !serviceKey) {
-    console.error("Missing Supabase env on server", {
-      hasUrl: !!url,
-      hasKey: !!serviceKey,
-    });
-    return null;
-  }
-
-  adminClient = createClient(url, serviceKey, {
-    auth: { persistSession: false },
-  });
-
-  return adminClient;
+if (!supabaseUrl) {
+  throw new Error("Missing env NEXT_PUBLIC_SUPABASE_URL");
 }
+
+if (!supabaseServiceRoleKey) {
+  throw new Error("Missing env SUPABASE_SERVICE_ROLE_KEY");
+}
+
+// Client dùng ở server, với Service Role Key
+export const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
+  auth: {
+    persistSession: false,
+  },
+});

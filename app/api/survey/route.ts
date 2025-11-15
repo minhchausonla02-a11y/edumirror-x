@@ -1,34 +1,25 @@
 // app/api/survey/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json(
+      { ok: false, error: "Thiếu tham số id." },
+      { status: 400 }
+    );
+  }
+
   try {
-    const supabase = getSupabaseAdmin();
-    if (!supabase) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "Supabase chưa được cấu hình trên server, không truy xuất được phiếu khảo sát.",
-        },
-        { status: 500 }
-      );
-    }
-
-    const id = req.nextUrl.searchParams.get("id")?.trim();
-    if (!id) {
-      return NextResponse.json(
-        { ok: false, error: "Thiếu id phiếu khảo sát." },
-        { status: 400 }
-      );
-    }
-
-    const { data, error } = await supabase
+    // Lấy phiếu khảo sát theo short_id
+    const { data, error } = await supabaseAdmin
       .from("surveys")
       .select("payload")
       .eq("short_id", id)
-      .maybeSingle(); // khác single(): không xem "không có dòng" là lỗi
+      .single();
 
     if (error) {
       console.error("Supabase /api/survey error:", error);
@@ -45,19 +36,13 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Không tìm thấy phiếu khảo sát trong CSDL.",
+          error: "Không tìm thấy phiếu khảo sát.",
         },
         { status: 404 }
       );
     }
 
-    if (!data.payload) {
-      return NextResponse.json(
-        { ok: false, error: "Phiếu khảo sát không có payload." },
-        { status: 500 }
-      );
-    }
-
+    // payload chính là JSON Phiếu 60s
     return NextResponse.json(
       {
         ok: true,
@@ -65,10 +50,18 @@ export async function GET(req: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("Unexpected /api/survey error:", err);
+    const msg =
+      err instanceof Error
+        ? `TypeError: ${err.message}`
+        : String(err);
+
     return NextResponse.json(
-      { ok: false, error: String(err?.message ?? err) },
+      {
+        ok: false,
+        error: `Lỗi truy vấn CSDL: ${msg}`,
+      },
       { status: 500 }
     );
   }
