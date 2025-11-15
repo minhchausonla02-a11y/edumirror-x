@@ -1,45 +1,44 @@
-import { NextRequest, NextResponse } from "next/server";
+// app/api/save-survey/route.ts
+import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-    const survey = body.survey;
+export async function POST(req: Request) {
+  const body = await req.json();
 
-    if (!survey) {
-      return NextResponse.json(
-        { error: "Thiếu dữ liệu survey để lưu." },
-        { status: 400 }
-      );
-    }
-
-    // Tạo ID ngắn 8 ký tự cho QR
-    const shortId = Math.random().toString(36).slice(2, 10);
-
-    // ─ Lưu vào bảng "surveys"
-    const { data, error } = await supabaseAdmin
-      .from("surveys")
-      .insert({
-        short_id: shortId, // dùng đúng cột short_id
-        payload: survey,   // JSON phiếu khảo sát
-      })
-      .select("short_id")
-      .single();
-
-    if (error || !data) {
-      console.error("Supabase insert error:", error);
-      return NextResponse.json(
-        { error: "Không lưu được phiếu khảo sát." },
-        { status: 500 }
-      );
-    }
-
-    return NextResponse.json({ id: data.short_id });
-  } catch (e: any) {
-    console.error("save-survey route error:", e);
+  // Nếu chưa cấu hình Supabase → chỉ log và trả OK để demo
+  if (!supabaseAdmin) {
+    console.log("📥 Survey nhận được (Supabase CHƯA cấu hình):", body);
     return NextResponse.json(
-      { error: e.message || "Lỗi server khi lưu phiếu khảo sát." },
+      {
+        ok: true,
+        stored: false,
+        message:
+          "Survey nhận được nhưng chưa lưu vào database (Supabase chưa cấu hình).",
+      },
+      { status: 200 }
+    );
+  }
+
+  // Nếu có Supabase → lưu vào bảng 'surveys' (tuỳ bạn đặt tên bảng)
+  const { data, error } = await supabaseAdmin
+    .from("surveys") // nếu bảng tên khác, sửa lại ở đây
+    .insert({
+      payload: body,
+      created_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Lỗi lưu Supabase:", error);
+    return NextResponse.json(
+      { ok: false, stored: false, error: error.message },
       { status: 500 }
     );
   }
+
+  return NextResponse.json(
+    { ok: true, stored: true, data },
+    { status: 200 }
+  );
 }
