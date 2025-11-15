@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+export const runtime = "nodejs";        // chạy NodeJS, không Edge
+export const dynamic = "force-dynamic"; // không cache cứng
+
 function makeShortId(length: number = 8) {
   return Math.random().toString(36).slice(2, 2 + length);
 }
@@ -18,7 +21,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Nếu KHÔNG có Supabase (chưa cấu hình env) → chỉ trả về shortId để dùng QR
+    // Nếu CHƯA có Supabase → chỉ tạo shortId để dùng cho QR, không lưu DB
     if (!supabaseAdmin) {
       const shortId =
         survey.shortId || survey.short_id || survey.id || makeShortId(8);
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Có Supabase → lưu thực sự vào bảng "surveys"
+    // Có Supabase → lưu vào bảng "surveys"
     const shortId =
       survey.shortId || survey.short_id || makeShortId(8);
 

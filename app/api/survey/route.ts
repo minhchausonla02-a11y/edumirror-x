@@ -2,6 +2,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+export const runtime = "nodejs";        // chạy NodeJS
+export const dynamic = "force-dynamic"; // luôn query runtime
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -14,8 +17,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Nếu không có Supabase → báo rõ ràng, KHÔNG crash
     if (!supabaseAdmin) {
+      // Nếu chưa cấu hình Supabase → báo rõ ràng, không crash
       return NextResponse.json(
         {
           ok: false,

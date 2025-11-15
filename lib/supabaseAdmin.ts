@@ -17,5 +17,4 @@ if (supabaseUrl && serviceKey) {
   );
 }
 
-// supabaseAdmin có thể null nếu thiếu env
-export const supabaseAdmin = client;
+export const supabaseAdmin = client; // có thể null
