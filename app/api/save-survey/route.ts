@@ -1,50 +1,32 @@
-// app/api/save-survey/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-
-function generateShortId(length = 8) {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let id = "";
-  for (let i = 0; i < length; i++) {
-    id += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return id;
-}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const survey = body?.survey;
+    const survey = body.survey;
+
     if (!survey) {
       return NextResponse.json(
-        { error: "Thiếu survey trong body." },
+        { error: "Thiếu dữ liệu survey để lưu." },
         { status: 400 }
       );
     }
 
-    // sinh short_id và đảm bảo không trùng (thử vài lần)
-    let shortId = generateShortId();
-    for (let i = 0; i < 5; i++) {
-      const { data: existing } = await supabaseAdmin
-        .from("surveys")
-        .select("id")
-        .eq("short_id", shortId)
-        .maybeSingle();
-      if (!existing) break;
-      shortId = generateShortId();
-    }
+    // Tạo ID ngắn 8 ký tự cho QR
+    const shortId = Math.random().toString(36).slice(2, 10);
 
+    // ─ Lưu vào bảng "surveys"
     const { data, error } = await supabaseAdmin
       .from("surveys")
       .insert({
-        short_id: shortId,
-        payload: survey,
+        short_id: shortId, // dùng đúng cột short_id
+        payload: survey,   // JSON phiếu khảo sát
       })
       .select("short_id")
       .single();
 
-    if (error) {
+    if (error || !data) {
       console.error("Supabase insert error:", error);
       return NextResponse.json(
         { error: "Không lưu được phiếu khảo sát." },
@@ -54,9 +36,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ id: data.short_id });
   } catch (e: any) {
-    console.error("save-survey error:", e);
+    console.error("save-survey route error:", e);
     return NextResponse.json(
-      { error: "Lỗi server khi lưu phiếu khảo sát." },
+      { error: e.message || "Lỗi server khi lưu phiếu khảo sát." },
       { status: 500 }
     );
   }
