@@ -14,9 +14,14 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Nếu không có Supabase → báo rõ ràng, KHÔNG crash
     if (!supabaseAdmin) {
       return NextResponse.json(
-        { ok: false, error: "Supabase chưa được cấu hình trên server." },
+        {
+          ok: false,
+          error:
+            "Supabase chưa được cấu hình trên server, không truy xuất được phiếu khảo sát.",
+        },
         { status: 500 }
       );
     }
@@ -42,7 +47,6 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Lúc lưu, ta dùng payload = { survey: surveyData }
     const payload: any = data.payload || {};
     const survey = payload.survey || payload.survey_v2 || payload;
 
@@ -53,10 +57,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(
-      { ok: true, survey },
-      { status: 200 }
-    );
+    return NextResponse.json({ ok: true, survey }, { status: 200 });
   } catch (err: any) {
     console.error("Error in /api/survey:", err);
     return NextResponse.json(

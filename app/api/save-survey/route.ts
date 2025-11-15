@@ -1,54 +1,64 @@
 // app/api/save-survey/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { nanoid } from "nanoid";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+
+function makeShortId(length: number = 8) {
+  return Math.random().toString(36).slice(2, 2 + length);
+}
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    const survey = body?.survey;
 
-    // Sinh shortId (8 ký tự) nếu client chưa gửi
-    const shortId: string = body.shortId || nanoid(8);
-
-    let stored = false;
-    let dbError: string | null = null;
-
-    // Nếu đã cấu hình Supabase → thử lưu
-    if (supabaseAdmin) {
-      const { error } = await supabaseAdmin
-        .from("surveys")
-        .insert({
-          short_id: shortId,
-          payload: body,
-          created_at: new Date().toISOString(),
-        })
-        .single();
-
-      if (error) {
-        console.error("Supabase insert error:", error);
-        dbError = error.message;
-      } else {
-        stored = true;
-      }
+    if (!survey) {
+      return NextResponse.json(
+        { ok: false, error: "Thiếu dữ liệu survey trong body." },
+        { status: 400 }
+      );
     }
 
-    // Dù có Supabase hay không, vẫn trả về shortId để client tạo QR
+    // Nếu KHÔNG có Supabase (chưa cấu hình env) → chỉ trả về shortId để dùng QR
+    if (!supabaseAdmin) {
+      const shortId =
+        survey.shortId || survey.short_id || survey.id || makeShortId(8);
+
+      return NextResponse.json(
+        { ok: true, id: shortId, shortId },
+        { status: 200 }
+      );
+    }
+
+    // Có Supabase → lưu thực sự vào bảng "surveys"
+    const shortId =
+      survey.shortId || survey.short_id || makeShortId(8);
+
+    const { data, error } = await supabaseAdmin
+      .from("surveys")
+      .insert({
+        short_id: shortId,
+        payload: { survey },
+        created_at: new Date().toISOString(),
+      })
+      .select("id, short_id")
+      .single();
+
+    if (error) {
+      console.error("Supabase insert error:", error);
+      return NextResponse.json(
+        { ok: false, error: error.message },
+        { status: 500 }
+      );
+    }
+
     return NextResponse.json(
-      {
-        ok: true,
-        shortId,
-        stored,
-        error: dbError,
-      },
+      { ok: true, id: data.id, shortId: data.short_id },
       { status: 200 }
     );
   } catch (err: any) {
-    console.error("save-survey error:", err);
+    console.error("Error in /api/save-survey:", err);
     return NextResponse.json(
-      {
-        ok: false,
-        error: err?.message ?? "Unknown error",
-      },
+      { ok: false, error: err?.message ?? "Unknown error" },
       { status: 500 }
     );
   }
