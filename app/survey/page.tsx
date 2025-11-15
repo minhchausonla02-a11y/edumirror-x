@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import SurveyPageClient from "@/components/SurveyPageClient";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2 } from "lucide-react";
+import SurveyView from "@/components/SurveyView";
 
 type SurveyPayload = any;
 
@@ -20,6 +18,7 @@ export default function SurveyPage() {
   // Lấy id từ URL ?id=...
   useEffect(() => {
     if (typeof window === "undefined") return;
+
     const params = new URLSearchParams(window.location.search);
     const rawId = params.get("id");
 
@@ -32,7 +31,7 @@ export default function SurveyPage() {
     setId(rawId);
   }, []);
 
-  // Gọi API lấy phiếu theo id
+  // Gọi API /api/survey?id=...
   useEffect(() => {
     if (!id) return;
 
@@ -49,9 +48,7 @@ export default function SurveyPage() {
 
         if (!res.ok || !("ok" in data) || !data.ok) {
           const msg =
-            !res.ok && (data as any)?.error
-              ? (data as any).error
-              : (data as any)?.error || "Không tải được phiếu khảo sát.";
+            (data as any)?.error || "Không tải được phiếu khảo sát.";
           setError(msg);
           setSurvey(null);
           return;
@@ -82,10 +79,7 @@ export default function SurveyPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="flex flex-col items-center gap-3 text-slate-600">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <p>Đang tải phiếu khảo sát...</p>
-        </div>
+        <p className="text-slate-600">Đang tải phiếu khảo sát...</p>
       </div>
     );
   }
@@ -94,19 +88,24 @@ export default function SurveyPage() {
   if (error || !survey) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Alert variant="destructive" className="max-w-lg">
-          <AlertTitle>Không tải được phiếu khảo sát</AlertTitle>
-          <AlertDescription>{error || "Đã xảy ra lỗi không xác định."}</AlertDescription>
-        </Alert>
+        <div className="max-w-lg border border-red-200 bg-red-50 text-red-700 px-4 py-3 rounded-lg">
+          <div className="font-semibold mb-1">Không tải được phiếu khảo sát</div>
+          <div>{error || "Đã xảy ra lỗi không xác định."}</div>
+        </div>
       </div>
     );
   }
 
-  // ✅ Hiển thị đúng PHIẾU 60s cho học sinh
+  // ✅ Hiển thị phiếu 60 giây sau tiết học
   return (
     <div className="min-h-screen bg-slate-50">
       <main className="max-w-3xl mx-auto px-4 py-10">
-        <SurveyPageClient survey={survey} />
+        <h1 className="text-2xl font-bold mb-6 text-center text-slate-900">
+          Phiếu khảo sát sau tiết học
+        </h1>
+
+        {/* SurveyView là component có sẵn để render nội dung phiếu */}
+        <SurveyView survey={survey} />
       </main>
     </div>
   );
