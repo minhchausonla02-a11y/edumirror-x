@@ -166,7 +166,7 @@ export default function EduMirrorApp() {
         const saveRes = await fetch("/api/save-survey", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ survey: surveyData }),
+          body: JSON.stringify({ payload: surveyData }),
         });
         const saveData = await saveRes.json();
 

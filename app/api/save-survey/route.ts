@@ -1,17 +1,19 @@
-// app/api/save-survey/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
 type Body = {
-  payload?: any;
+  payload?: any;      // chính là cấu trúc phiếu 60s (title, items, ...)
+  shortId?: string;   // mã rút gọn (nếu không gửi thì tự tạo)
 };
 
 export async function POST(req: NextRequest) {
   try {
     const body = (await req.json()) as Body;
 
-    if (!body?.payload) {
+    // CHỈ kiểm tra theo key payload
+    const payload = body.payload;
+    if (!payload) {
       return NextResponse.json(
         { ok: false, error: "Thiếu payload phiếu khảo sát." },
         { status: 400 }
@@ -19,29 +21,26 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = getSupabaseAdmin();
-    const shortId = nanoid(8); // mã ngắn để đưa vào QR
+    const shortId = body.shortId || nanoid(8);
 
     const { error } = await supabase.from("surveys").insert({
       short_id: shortId,
-      payload: body.payload,
+      payload, // lưu nguyên JSON phiếu 60s
     });
 
     if (error) {
-      console.error("❌ Supabase /api/save-survey error:", error);
+      console.error("Supabase insert error:", error);
       return NextResponse.json(
-        { ok: false, error: `Lỗi ghi CSDL: ${error.message}` },
+        { ok: false, error: "Lỗi ghi CSDL: " + error.message },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(
-      { ok: true, id: shortId },
-      { status: 200 }
-    );
+    return NextResponse.json({ ok: true, shortId });
   } catch (err: any) {
-    console.error("❌ Unexpected /api/save-survey error:", err);
+    console.error("save-survey route error:", err);
     return NextResponse.json(
-      { ok: false, error: `Lỗi hệ thống: ${err?.message ?? String(err)}` },
+      { ok: false, error: "Lỗi không xác định khi lưu phiếu." },
       { status: 500 }
     );
   }
