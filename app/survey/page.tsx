@@ -1,18 +1,21 @@
 // app/survey/page.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
 
-export default function SurveyPage() {
+// Không prerender tĩnh, luôn render động trên server
+export const dynamic = "force-dynamic";
+
+function SurveyPageInner() {
   const searchParams = useSearchParams();
   const [survey, setSurvey] = useState<SurveyV2UI | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const id = searchParams.get("id"); // 👈 Lấy id từ URL đúng cách
+    const id = searchParams.get("id"); // lấy ?id=... từ URL
 
     if (!id) {
       setError("Thiếu mã phiếu khảo sát.");
@@ -73,5 +76,26 @@ export default function SurveyPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function SurveyPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-white">
+          <main className="mx-auto max-w-4xl px-4 py-8">
+            <h1 className="text-xl font-semibold mb-4">
+              Phiếu khảo sát sau tiết học
+            </h1>
+            <div className="rounded-xl border border-dashed p-6 text-center text-sm text-neutral-600">
+              Đang tải phiếu khảo sát...
+            </div>
+          </main>
+        </div>
+      }
+    >
+      <SurveyPageInner />
+    </Suspense>
   );
 }
