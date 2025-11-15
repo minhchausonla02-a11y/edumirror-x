@@ -28,23 +28,33 @@ export async function GET(req: NextRequest) {
       .from("surveys")
       .select("payload")
       .eq("short_id", id)
-      .single();
+      .maybeSingle(); // khác single(): không xem "không có dòng" là lỗi
 
     if (error) {
       console.error("Supabase /api/survey error:", error);
       return NextResponse.json(
-        { ok: false, error: "Lỗi truy vấn CSDL." },
+        {
+          ok: false,
+          error: `Lỗi truy vấn CSDL: ${error.message}`,
+        },
         { status: 500 }
       );
     }
 
-    if (!data?.payload) {
+    if (!data) {
       return NextResponse.json(
         {
           ok: false,
           error: "Không tìm thấy phiếu khảo sát trong CSDL.",
         },
         { status: 404 }
+      );
+    }
+
+    if (!data.payload) {
+      return NextResponse.json(
+        { ok: false, error: "Phiếu khảo sát không có payload." },
+        { status: 500 }
       );
     }
 
