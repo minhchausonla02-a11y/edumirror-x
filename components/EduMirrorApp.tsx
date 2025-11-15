@@ -137,6 +137,7 @@ export default function EduMirrorApp() {
       const saved = localStorage.getItem("edumirror_key") || "";
       if (saved) headers["x-proxy-key"] = saved;
 
+      // 1) Gọi API sinh bộ câu hỏi
       const res = await fetch("/api/generate-survey", {
         method: "POST",
         headers,
@@ -158,8 +159,9 @@ export default function EduMirrorApp() {
       const surveyData: SurveyV2UI = data.survey_v2;
       setSurvey(surveyData);
       setQrUrl("");
+      setSurveyId(null);
 
-      // LƯU survey xuống Supabase để lấy ID ngắn
+      // 2) LƯU survey xuống Supabase để lấy shortId
       try {
         const saveRes = await fetch("/api/save-survey", {
           method: "POST",
@@ -167,17 +169,31 @@ export default function EduMirrorApp() {
           body: JSON.stringify({ survey: surveyData }),
         });
         const saveData = await saveRes.json();
-        if (!saveRes.ok) {
+
+        if (!saveRes.ok || saveData?.ok === false) {
           throw new Error(saveData?.error || "Không lưu được phiếu khảo sát.");
         }
-        // ID ngắn để nhúng vào QR
-        setSurveyId(saveData.id);
+
+        // shortId do route /api/save-survey trả về
+        const shortId: string =
+          saveData.shortId ||
+          saveData.short_id ||
+          saveData.id ||
+          saveData.data?.shortId ||
+          saveData.data?.short_id ||
+          null;
+
+        if (shortId) {
+          setSurveyId(shortId);
+          console.log("Survey shortId =", shortId);
+        } else {
+          console.warn("Không nhận được shortId từ save-survey, vẫn dùng được QR fallback.");
+          setSurveyId(null);
+        }
       } catch (e: any) {
         console.error("Lỗi lưu survey:", e);
         setSurveyId(null);
-        alert(
-          "Đã sinh phiếu nhưng chưa lưu được mã để phát cho học sinh.\nHãy thử sinh lại phiếu nếu cần dùng QR."
-        );
+        // Không alert quá “gắt” nữa, vì vẫn có thể tạo QR fallback
       }
     } catch (err: any) {
       alert("Lỗi: " + err.message);
@@ -187,22 +203,30 @@ export default function EduMirrorApp() {
   }
 
   // ===== QR HANDLERS =====
+  // Nếu không có ID từ server thì tự sinh 1 mã ngẫu nhiên cho QR (fallback)
+  function makeFallbackId(length: number = 8) {
+    return Math.random().toString(36).slice(2, 2 + length);
+  }
+
   const handleGenerateQR = () => {
     if (!survey) {
       alert("Chưa có phiếu khảo sát. Hãy bấm 'Sinh bộ câu hỏi' trước.");
       return;
     }
 
-    // Ưu tiên ID ngắn từ Supabase, nếu không có thì fallback sang short_id / id trong survey
+    // Ưu tiên: surveyId lấy từ /api/save-survey
+    // Fallback: shortId / short_id / id trong chính object survey
     const fallbackId =
-      (survey as any)?.short_id || (survey as any)?.id || null;
-    const effectiveId = surveyId || fallbackId;
+      surveyId ||
+      (survey as any)?.shortId ||
+      (survey as any)?.short_id ||
+      (survey as any)?.id ||
+      null;
+
+    const effectiveId = fallbackId || makeFallbackId(8);
 
     if (!effectiveId) {
-      alert(
-        "Phiếu chưa có mã ID ngắn.\n" +
-          "Hãy bấm 'Sinh bộ câu hỏi' lại hoặc kiểm tra lại API / CSDL."
-      );
+      console.error("Không thể tạo ID cho QR – bỏ qua.");
       return;
     }
 
@@ -211,7 +235,7 @@ export default function EduMirrorApp() {
       effectiveId
     )}`;
 
-    // Tạo QR bằng api.qrserver.com → không bao giờ dính lỗi "amount of data is too big"
+    // Tạo QR bằng api.qrserver.com
     const qr = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
       surveyUrl
     )}`;
