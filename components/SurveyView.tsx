@@ -2,7 +2,7 @@
 
 import { SurveyV2, SurveyItem } from "@/data/surveyBank";
 
-// Để chỗ khác trong project vẫn có thể dùng type SurveyV2
+// Cho chỗ khác trong project vẫn có thể dùng type SurveyV2
 export type { SurveyV2 } from "@/data/surveyBank";
 
 function ItemControl({ item }: { item: SurveyItem }) {
@@ -10,7 +10,7 @@ function ItemControl({ item }: { item: SurveyItem }) {
   if (item.type === "single") {
     return (
       <div className="space-y-1">
-        {item.options.map((opt, idx) => (
+        {item.options?.map((opt, idx) => (
           <label
             key={idx}
             className="flex items-start gap-2 text-sm leading-snug"
@@ -31,7 +31,7 @@ function ItemControl({ item }: { item: SurveyItem }) {
   if (item.type === "multi") {
     return (
       <div className="space-y-1">
-        {item.options.map((opt, idx) => (
+        {item.options?.map((opt, idx) => (
           <label
             key={idx}
             className="flex items-start gap-2 text-sm leading-snug"

@@ -38,6 +38,7 @@ export interface SurveyV2 {
   title: string;
   intro?: string;
   items: SurveyItem[];
+  shortId?: string;   // 👈 để lưu mã ID ngắn cho QR
 }
 
 // Phần 3: Hàm sinh Phiếu 60s từ kết quả phân tích giáo án
