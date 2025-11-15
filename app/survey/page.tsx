@@ -2,19 +2,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
 
-export default function SurveyPage({
-  searchParams,
-}: {
-  searchParams: { id?: string };
-}) {
+export default function SurveyPage() {
+  const searchParams = useSearchParams();
   const [survey, setSurvey] = useState<SurveyV2UI | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const id = searchParams?.id;
+    const id = searchParams.get("id"); // 👈 Lấy id từ URL đúng cách
+
     if (!id) {
       setError("Thiếu mã phiếu khảo sát.");
       setLoading(false);
@@ -43,7 +42,7 @@ export default function SurveyPage({
     };
 
     fetchSurvey();
-  }, [searchParams?.id]);
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-white">
