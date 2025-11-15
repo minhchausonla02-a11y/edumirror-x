@@ -1,55 +1,40 @@
 // app/api/save-survey/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { nanoid } from "nanoid";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 type Body = {
   payload?: any;
-  id?: string; // nếu frontend có gửi sẵn id thì dùng luôn
 };
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = getSupabaseAdmin();
-    if (!supabase) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Supabase chưa được cấu hình trên server.",
-        },
-        { status: 500 }
-      );
-    }
-
-    const body = (await req.json().catch(() => null)) as Body | null;
+    const body = (await req.json()) as Body;
 
     if (!body?.payload) {
       return NextResponse.json(
-        { ok: false, error: "Thiếu payload phiếu khảo sát." },
+        { ok: false, error: "Thiếu payload." },
         { status: 400 }
       );
     }
 
-    // Nếu frontend có gửi id thì dùng luôn để khớp với QR,
-    // còn không thì tự generate.
-    const shortId =
-      typeof body.id === "string" && body.id.trim() !== ""
-        ? body.id.trim()
-        : nanoid(8);
+    const short_id = nanoid(8);
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("surveys")
-      .insert({
-        short_id: shortId,
-        payload: body.payload,
-      })
+      .insert([
+        {
+          short_id,
+          payload: body.payload,
+        },
+      ])
       .select("short_id")
       .single();
 
     if (error) {
       console.error("Supabase /api/save-survey error:", error);
       return NextResponse.json(
-        { ok: false, error: "Lỗi lưu phiếu khảo sát vào CSDL." },
+        { ok: false, error: `Lỗi lưu phiếu: ${error.message}` },
         { status: 500 }
       );
     }
@@ -57,14 +42,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: true,
-        id: data?.short_id ?? shortId,
+        id: data.short_id,
       },
       { status: 200 }
     );
   } catch (err: any) {
     console.error("Unexpected /api/save-survey error:", err);
     return NextResponse.json(
-      { ok: false, error: String(err?.message ?? err) },
+      {
+        ok: false,
+        error: err?.message || "Lỗi không xác định",
+      },
       { status: 500 }
     );
   }
