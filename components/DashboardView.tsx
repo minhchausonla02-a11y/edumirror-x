@@ -15,6 +15,44 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // --- State + hàm gọi AI ---
+  const [aiSuggest, setAiSuggest] = useState("");
+  const [loadingAI, setLoadingAI] = useState(false);
+
+  async function handleAI() {
+    if (!stats) {
+      setAiSuggest("Chưa có dữ liệu thống kê để phân tích.");
+      return;
+    }
+
+    try {
+      setLoadingAI(true);
+      setAiSuggest("");
+
+      const res = await fetch("/api/ai-reflect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stats, // số liệu thống kê 60s
+          // sau này nếu có giáo án thì thêm: lessonPlan
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Không gọi được AI phân tích.");
+      }
+
+      const data = await res.json();
+      setAiSuggest(data.result || "Không nhận được phản hồi từ AI.");
+    } catch (err: any) {
+      console.error(err);
+      setAiSuggest("Lỗi: " + (err?.message || "Không phân tích được."));
+    } finally {
+      setLoadingAI(false);
+    }
+  }
+
+  // --- Lấy thống kê từ /api/feedback ---
   useEffect(() => {
     async function load() {
       try {
@@ -23,8 +61,7 @@ export default function DashboardView() {
 
         const res = await fetch("/api/feedback", {
           method: "GET",
-          // tránh cache, để GV xem gần realtime
-          cache: "no-store",
+          cache: "no-store", // tránh cache, gần realtime
         });
 
         if (!res.ok) {
@@ -167,6 +204,25 @@ export default function DashboardView() {
         * Những số liệu này lấy từ API <code>/api/feedback</code> (lưu trên
         Upstash). Mỗi lần HS gửi phiếu 60s, thống kê sẽ được cập nhật.
       </p>
+
+      {/* ---- Gợi ý cải tiến bằng AI ---- */}
+      <div className="mt-6 p-4 border rounded-xl bg-white shadow">
+        <h3 className="font-semibold mb-3">Gợi ý cải tiến bài dạy bằng AI</h3>
+
+        <button
+          onClick={handleAI}
+          disabled={loadingAI}
+          className="px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm hover:bg-indigo-500 disabled:opacity-60"
+        >
+          {loadingAI ? "Đang phân tích..." : "Phân tích & Gợi ý ngay"}
+        </button>
+
+        {aiSuggest && (
+          <div className="mt-4 p-3 border rounded-md bg-neutral-50 whitespace-pre-line text-sm">
+            {aiSuggest}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
