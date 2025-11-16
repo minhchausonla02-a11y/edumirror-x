@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useAppStore } from "@/lib/store";
 import { getClientApiKey } from "@/lib/apiKey";
 
 type FeedbackStats = {
@@ -17,62 +16,10 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Lấy giáo án đang mở trong app (Upload + phân tích)
-  const lessonText = useAppStore((s) => s.lessonText || "");
-
-  // --- Gợi ý AI ---
   const [aiSuggest, setAiSuggest] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
 
-  async function handleAI() {
-    try {
-      setAiSuggest("");
-      setLoadingAI(true);
-
-      // 1) Lấy API Key giống như bên AnalyzePanel / ApiKeyPanel
-      const clientKey = getClientApiKey();
-
-      if (!clientKey || !clientKey.key) {
-        setAiSuggest(
-          "Chưa có API Key. Vui lòng nhập API Key ở góc trên cùng bên phải rồi bấm 'Lưu API Key', sau đó thử lại."
-        );
-        return;
-      }
-
-      if (!stats) {
-        setAiSuggest("Chưa có dữ liệu thống kê 60s để phân tích.");
-        return;
-      }
-
-      // 2) Gọi API /api/ai-reflect
-      const res = await fetch("/api/ai-reflect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          stats,
-          lessonPlan: lessonText,
-          apiKey: clientKey.key,
-          model: clientKey.model ?? "gpt-4o-mini",
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setAiSuggest(data?.error || "Không gọi được AI phân tích.");
-        return;
-      }
-
-      setAiSuggest(data.result || "AI không trả về gợi ý nào.");
-    } catch (err: any) {
-      console.error(err);
-      setAiSuggest(err?.message || "Có lỗi khi gọi AI.");
-    } finally {
-      setLoadingAI(false);
-    }
-  }
-
-  // --- Load thống kê 60s từ /api/feedback ---
+  // ----- Tải số liệu từ /api/feedback -----
   useEffect(() => {
     async function load() {
       try {
@@ -81,7 +28,7 @@ export default function DashboardView() {
 
         const res = await fetch("/api/feedback", {
           method: "GET",
-          cache: "no-store",
+          cache: "no-store", // tránh cache, cho gần realtime
         });
 
         if (!res.ok) {
@@ -101,6 +48,55 @@ export default function DashboardView() {
     load();
   }, []);
 
+  // ----- Gọi AI phân tích -----
+  async function handleAI() {
+    try {
+      setAiSuggest("");
+      setLoadingAI(true);
+
+      // 1) Kiểm tra đã có API Key chưa
+      const apiKey = getClientApiKey();
+      if (!apiKey) {
+        setAiSuggest(
+          "Chưa có API Key. Vui lòng nhập API Key ở góc trên cùng bên phải rồi bấm Lưu API Key."
+        );
+        return;
+      }
+
+      // 2) Kiểm tra có dữ liệu Phiếu 60s không
+      if (!stats || stats.total === 0) {
+        setAiSuggest("Chưa có dữ liệu Phiếu 60s để phân tích.");
+        return;
+      }
+
+      // 3) Gửi stats sang API /api/ai-reflect
+      const res = await fetch("/api/ai-reflect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stats,      // số liệu thống kê 60s
+          lessonPlan: null, // tạm thời chưa gửi giáo án (có thể bổ sung sau)
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Không gọi được AI phân tích.");
+      }
+
+      const data = await res.json();
+      setAiSuggest(
+        data.result || "AI không trả về gợi ý cụ thể. Thử lại sau một lúc nhé."
+      );
+    } catch (err: any) {
+      console.error(err);
+      setAiSuggest("Lỗi: " + (err.message || "Không gọi được AI."));
+    } finally {
+      setLoadingAI(false);
+    }
+  }
+
+  // ----- Trạng thái loading / error -----
   if (loading) {
     return (
       <div className="flex items-center justify-center py-10">
@@ -118,6 +114,7 @@ export default function DashboardView() {
   }
 
   const { understood, notClear, tooFast, needExamples, total } = stats;
+
   const percent = (value: number) =>
     total > 0 ? Math.round((value / total) * 100) : 0;
 
@@ -225,15 +222,8 @@ export default function DashboardView() {
       </p>
 
       {/* ---- Gợi ý cải tiến bằng AI ---- */}
-      <section
-        id="ai"
-        className="mt-6 p-4 border rounded-xl bg-white shadow space-y-3"
-      >
-        <h3 className="font-semibold">Gợi ý cải tiến bài dạy bằng AI</h3>
-        <p className="text-xs text-neutral-500">
-          AI sẽ đọc số liệu Phiếu 60s và (nếu có) trích đoạn giáo án để gợi ý
-          cách điều chỉnh tốc độ, cách giảng và ví dụ minh hoạ cho tiết sau.
-        </p>
+      <div className="mt-6 p-4 border rounded-xl bg-white shadow">
+        <h3 className="font-semibold mb-3">Gợi ý cải tiến bài dạy bằng AI</h3>
 
         <button
           onClick={handleAI}
@@ -244,11 +234,11 @@ export default function DashboardView() {
         </button>
 
         {aiSuggest && (
-          <div className="mt-2 p-3 border rounded-md bg-neutral-50 whitespace-pre-line text-sm">
+          <div className="mt-4 p-3 border rounded-md bg-neutral-50 whitespace-pre-line text-sm">
             {aiSuggest}
           </div>
         )}
-      </section>
+      </div>
     </div>
   );
 }
