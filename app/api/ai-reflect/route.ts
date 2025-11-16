@@ -1,95 +1,69 @@
+// app/api/ai-reflect/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
-
-    const apiKey = body.apiKey as string | undefined;
-    const stats = body.stats as {
-      understood: number;
-      notClear: number;
-      tooFast: number;
-      needExamples: number;
-      total: number;
-    };
-    const lessonPlan = (body.lessonPlan as string | null) || "";
-    const model = (body.model as string | undefined) || "gpt-4o-mini";
+    const { stats, lessonPlan, apiKey, model } = await req.json();
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: "Thiếu API Key, không thể gọi AI." },
+        { error: "Thiếu API key từ client." },
         { status: 400 }
       );
     }
 
-    if (!stats || typeof stats.total !== "number") {
+    if (!stats) {
       return NextResponse.json(
-        { error: "Thiếu dữ liệu thống kê khảo sát." },
+        { error: "Thiếu dữ liệu thống kê 60s." },
         { status: 400 }
       );
     }
 
-    const client = new OpenAI({ apiKey });
+    const client = new OpenAI({
+      apiKey,
+    });
 
-    const summaryStats = `
-Tổng phiếu: ${stats.total}
+    const modelName = model || "gpt-4o-mini";
+
+    const prompt = `
+Anh/chị là một giáo viên giàu kinh nghiệm dạy Toán THPT.
+
+1) Dữ liệu Phiếu 60s (tổng số HS: ${stats.total}):
 - Hiểu bài: ${stats.understood}
 - Chưa rõ nội dung: ${stats.notClear}
 - Tiết dạy hơi nhanh: ${stats.tooFast}
 - Cần thêm ví dụ: ${stats.needExamples}
-    `.trim();
 
-    const lpText =
-      lessonPlan && lessonPlan.length > 0
-        ? lessonPlan.slice(0, 2500) // cắt bớt cho an toàn token
-        : "Chưa cung cấp trích đoạn giáo án.";
-
-    const prompt = `
-Bạn là trợ lý sư phạm giúp giáo viên Toán THPT lớp đông (40–50 HS, vùng khó, nhiều em còn ngại phát biểu).
-
-Dưới đây là **thống kê Phiếu 60s sau tiết học** và **trích đoạn giáo án**:
-
-[THỐNG KÊ PHIẾU 60S]
-${summaryStats}
-
-[GIÁO ÁN / KẾ HOẠCH BÀI DẠY (TÓM TẮT)]
-${lpText}
+2) Trích đoạn giáo án (nếu có):
+${lessonPlan?.slice(0, 3000) || "(không có)"}
 
 Hãy:
-1) Nhận xét nhanh về mức độ hiểu bài của lớp (dựa vào số HS hiểu bài / chưa rõ / thấy nhanh / cần thêm ví dụ).
-2) Chỉ ra 2–3 “điểm nghẽn” chính về sư phạm (tốc độ, ví dụ, hoạt động nhóm, thời gian luyện tập, v.v.).
-3) Đề xuất tối đa 5 gợi ý điều chỉnh rất cụ thể cho TIẾT DẠY SAU, ví dụ:
-   - Thêm hoạt động gì ở bước khởi động / hình thành kiến thức / luyện tập?
-   - Bổ sung ví dụ kiểu gì cho phần học sinh đang yếu?
-   - Điều chỉnh tốc độ / phân nhóm / dùng phiếu học tập như thế nào?
-Trình bày ngắn gọn, dạng gạch đầu dòng, tiếng Việt, hướng tới giáo viên thực hành ngay.
-    `.trim();
+- Nhận xét ngắn gọn về mức độ hiểu bài và tốc độ tiết dạy.
+- Đề xuất 3–5 điều chỉnh cụ thể cho tiết sau (cách giảng, ví dụ, hoạt động nhóm, bài tập về nhà...).
+- Viết gọn, rõ ràng, đánh số từng ý.
+`;
 
     const completion = await client.chat.completions.create({
-      model,
+      model: modelName,
       messages: [
-        {
-          role: "system",
-          content: "Bạn là chuyên gia sư phạm Toán THPT, viết ngắn gọn, thực tế, dễ áp dụng.",
-        },
         {
           role: "user",
           content: prompt,
         },
       ],
-      temperature: 0.5,
+      temperature: 0.3,
     });
 
     const text =
-      completion.choices[0]?.message?.content ||
-      "Không nhận được gợi ý từ mô hình.";
+      completion.choices[0]?.message?.content?.trim() ||
+      "Không nhận được gợi ý từ AI.";
 
     return NextResponse.json({ result: text });
   } catch (err: any) {
-    console.error("AI reflect error:", err);
+    console.error("ai-reflect error", err);
     return NextResponse.json(
-      { error: err.message || "Lỗi server khi gọi AI." },
+      { error: err?.message || "Lỗi khi gọi AI." },
       { status: 500 }
     );
   }
