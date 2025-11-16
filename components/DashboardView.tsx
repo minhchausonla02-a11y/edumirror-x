@@ -1,60 +1,172 @@
 "use client";
-import { useEffect, useState } from "react";
-import type { AggregateSummary } from "@/lib/types";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis } from "recharts";
 
-const COLORS = ["#22c55e","#ef4444","#f59e0b","#6366f1"];
+import { useEffect, useState } from "react";
+
+type FeedbackStats = {
+  understood: number;
+  notClear: number;
+  tooFast: number;
+  needExamples: number;
+  total: number;
+};
 
 export default function DashboardView() {
-  const [agg, setAgg] = useState<AggregateSummary | null>(null);
+  const [stats, setStats] = useState<FeedbackStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
-    const r = await fetch("/api/feedback");
-    setAgg(await r.json());
-  };
-  useEffect(()=>{ load(); const t = setInterval(load, 1500); return ()=>clearInterval(t); },[]);
+  useEffect(() => {
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
 
-  const pieData = [
-    { name:"Hiểu", value: agg?.understood||0 },
-    { name:"Chưa rõ", value: agg?.notClear||0 },
-    { name:"Nhanh quá", value: agg?.tooFast||0 },
-    { name:"Muốn ví dụ", value: agg?.needExamples||0 },
-  ];
+        const res = await fetch("/api/feedback", {
+          method: "GET",
+          // tránh cache, để GV xem gần realtime
+          cache: "no-store",
+        });
+
+        if (!res.ok) {
+          throw new Error("Không lấy được dữ liệu khảo sát");
+        }
+
+        const data = await res.json();
+        setStats(data);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Có lỗi khi tải dữ liệu.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-10">
+        <p className="text-sm text-neutral-500">Đang tải dữ liệu...</p>
+      </div>
+    );
+  }
+
+  if (error || !stats) {
+    return (
+      <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {error || "Không có dữ liệu nào."}
+      </div>
+    );
+  }
+
+  const { understood, notClear, tooFast, needExamples, total } = stats;
+
+  const percent = (value: number) =>
+    total > 0 ? Math.round((value / total) * 100) : 0;
 
   return (
-    <section id="dashboard" className="card p-5 mt-6">
-      <div className="section-title">📈 Dashboard phản hồi</div>
-      {!agg?.total && <div className="subtle">Chưa có phản hồi nào.</div>}
-      {agg?.total ? (
-        <div className="grid-2">
-          <div className="card p-4">
-            <div className="font-medium mb-2">Tỷ lệ tổng quan</div>
-            <div style={{height:260}}>
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={90}>
-                    {pieData.map((_, i) => <Cell key={i} fill={COLORS[i%COLORS.length]} />)}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-          <div className="card p-4">
-            <div className="font-medium mb-2">So sánh nhóm vấn đề</div>
-            <div style={{height:260}}>
-              <ResponsiveContainer>
-                <BarChart data={pieData}>
-                  <XAxis dataKey="name" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="value" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
+    <div className="space-y-6">
+      {/* Tổng quan */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+            Số phiếu 60s
+          </p>
+          <p className="mt-2 text-3xl font-semibold">{total}</p>
         </div>
-      ):null}
-    </section>
+
+        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+            Hiểu bài
+          </p>
+          <p className="mt-1 text-lg font-semibold text-emerald-600">
+            {understood} HS
+          </p>
+          <p className="text-xs text-neutral-500">
+            ≈ {percent(understood)}% lớp cho biết hiểu bài.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+            Cần giảng chậm / rõ hơn
+          </p>
+          <p className="mt-1 text-lg font-semibold text-amber-600">
+            {notClear + tooFast} HS
+          </p>
+          <p className="text-xs text-neutral-500">
+            Gồm {notClear} em chưa rõ + {tooFast} em thấy hơi nhanh.
+          </p>
+        </div>
+
+        <div className="rounded-2xl border bg-white p-4 shadow-sm">
+          <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+            Cần thêm ví dụ
+          </p>
+          <p className="mt-1 text-lg font-semibold text-blue-600">
+            {needExamples} HS
+          </p>
+          <p className="text-xs text-neutral-500">
+            ≈ {percent(needExamples)}% mong muốn thêm ví dụ minh hoạ.
+          </p>
+        </div>
+      </div>
+
+      {/* Thanh biểu đồ đơn giản */}
+      <div className="rounded-2xl border bg-white p-4 shadow-sm">
+        <h2 className="text-sm font-semibold">
+          Phân bố phản hồi trong tiết học gần đây
+        </h2>
+
+        <div className="mt-4 space-y-3">
+          {[
+            {
+              label: "Hiểu bài",
+              value: understood,
+              color: "bg-emerald-500",
+            },
+            {
+              label: "Chưa rõ nội dung",
+              value: notClear,
+              color: "bg-amber-500",
+            },
+            {
+              label: "Tiết dạy hơi nhanh",
+              value: tooFast,
+              color: "bg-orange-500",
+            },
+            {
+              label: "Cần thêm ví dụ",
+              value: needExamples,
+              color: "bg-blue-500",
+            },
+          ].map((row) => {
+            const p = percent(row.value);
+            return (
+              <div key={row.label} className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-medium">{row.label}</span>
+                  <span className="text-neutral-500">
+                    {row.value} HS • {p}%
+                  </span>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-neutral-100">
+                  <div
+                    className={`h-full ${row.color} transition-all`}
+                    style={{ width: `${p}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <p className="text-xs text-neutral-500">
+        * Những số liệu này lấy từ API <code>/api/feedback</code> (lưu trên
+        Upstash). Mỗi lần HS gửi phiếu 60s, thống kê sẽ được cập nhật.
+      </p>
+    </div>
   );
 }
