@@ -1,87 +1,95 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-export const dynamic = "force-dynamic";
-
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { stats, lessonPlan } = body ?? {};
 
-    const apiKeyFromHeader = req.headers.get("x-openai-key");
-    const apiKey = apiKeyFromHeader || process.env.OPENAI_API_KEY;
+    const apiKey = body.apiKey as string | undefined;
+    const stats = body.stats as {
+      understood: number;
+      notClear: number;
+      tooFast: number;
+      needExamples: number;
+      total: number;
+    };
+    const lessonPlan = (body.lessonPlan as string | null) || "";
+    const model = (body.model as string | undefined) || "gpt-4o-mini";
 
     if (!apiKey) {
       return NextResponse.json(
-        { error: "Thiếu API Key cho OpenAI." },
+        { error: "Thiếu API Key, không thể gọi AI." },
         { status: 400 }
       );
     }
 
-    if (!stats) {
+    if (!stats || typeof stats.total !== "number") {
       return NextResponse.json(
-        { error: "Thiếu số liệu thống kê (stats)." },
+        { error: "Thiếu dữ liệu thống kê khảo sát." },
         { status: 400 }
       );
     }
 
     const client = new OpenAI({ apiKey });
 
-    const { understood, notClear, tooFast, needExamples, total } = stats;
+    const summaryStats = `
+Tổng phiếu: ${stats.total}
+- Hiểu bài: ${stats.understood}
+- Chưa rõ nội dung: ${stats.notClear}
+- Tiết dạy hơi nhanh: ${stats.tooFast}
+- Cần thêm ví dụ: ${stats.needExamples}
+    `.trim();
+
+    const lpText =
+      lessonPlan && lessonPlan.length > 0
+        ? lessonPlan.slice(0, 2500) // cắt bớt cho an toàn token
+        : "Chưa cung cấp trích đoạn giáo án.";
 
     const prompt = `
-Bạn là một chuyên gia sư phạm Toán THPT, đang hỗ trợ giáo viên ở trường miền núi lớp đông, học sinh còn rụt rè.
+Bạn là trợ lý sư phạm giúp giáo viên Toán THPT lớp đông (40–50 HS, vùng khó, nhiều em còn ngại phát biểu).
 
-Dưới đây là số liệu ẩn danh từ Phiếu 60 giây sau một tiết học:
-- Tổng số phiếu: ${total}
-- Hiểu bài: ${understood}
-- Chưa rõ nội dung: ${notClear}
-- Tiết dạy hơi nhanh: ${tooFast}
-- Cần thêm ví dụ: ${needExamples}
+Dưới đây là **thống kê Phiếu 60s sau tiết học** và **trích đoạn giáo án**:
 
-Giáo án (tóm tắt / nội dung chính) nếu có:
-${lessonPlan || "(chưa cung cấp cụ thể, hãy tư vấn ở mức tổng quát cho tiết Toán THPT)."}
+[THỐNG KÊ PHIẾU 60S]
+${summaryStats}
 
-Hãy phân tích và trả lời theo cấu trúc ngắn gọn, rõ ràng, dành cho giáo viên bận rộn:
+[GIÁO ÁN / KẾ HOẠCH BÀI DẠY (TÓM TẮT)]
+${lpText}
 
-1) Chẩn đoán lớp:
-   - Nhận xét chung về mức độ hiểu bài, tốc độ dạy, nhu cầu ví dụ minh hoạ.
-   - Nếu số phiếu ít, hãy nhắc giáo viên coi đây là tín hiệu tham khảo.
-
-2) 3–5 đề xuất điều chỉnh cho TIẾT HỌC SAU:
-   - Gợi ý rất cụ thể: ví dụ "dành thêm X phút cho việc nhắc lại định nghĩa", "thêm 1 ví dụ gần gũi với đời sống HS vùng miền núi", "cho HS làm việc theo cặp để hỏi riêng", v.v.
-   - Nhấn mạnh cách giúp HS yếu, ngại phát biểu vẫn có cơ hội hiểu.
-
-3) Gợi ý 1–2 câu hỏi gợi mở để mở đầu hoặc kết thúc tiết sau (dạng câu hỏi cho cả lớp hoặc theo nhóm).
-
-Trả lời bằng tiếng Việt, dạng gạch đầu dòng, ngắn gọn, dễ đọc.
+Hãy:
+1) Nhận xét nhanh về mức độ hiểu bài của lớp (dựa vào số HS hiểu bài / chưa rõ / thấy nhanh / cần thêm ví dụ).
+2) Chỉ ra 2–3 “điểm nghẽn” chính về sư phạm (tốc độ, ví dụ, hoạt động nhóm, thời gian luyện tập, v.v.).
+3) Đề xuất tối đa 5 gợi ý điều chỉnh rất cụ thể cho TIẾT DẠY SAU, ví dụ:
+   - Thêm hoạt động gì ở bước khởi động / hình thành kiến thức / luyện tập?
+   - Bổ sung ví dụ kiểu gì cho phần học sinh đang yếu?
+   - Điều chỉnh tốc độ / phân nhóm / dùng phiếu học tập như thế nào?
+Trình bày ngắn gọn, dạng gạch đầu dòng, tiếng Việt, hướng tới giáo viên thực hành ngay.
     `.trim();
 
     const completion = await client.chat.completions.create({
-      model: "gpt-4o-mini",
+      model,
       messages: [
         {
           role: "system",
-          content:
-            "Bạn là trợ lý sư phạm hỗ trợ giáo viên THPT điều chỉnh bài dạy dựa trên phản hồi ẩn danh của học sinh.",
+          content: "Bạn là chuyên gia sư phạm Toán THPT, viết ngắn gọn, thực tế, dễ áp dụng.",
         },
         {
           role: "user",
           content: prompt,
         },
       ],
-      temperature: 0.7,
+      temperature: 0.5,
     });
 
     const text =
-      completion.choices[0]?.message?.content?.toString() ||
-      "Không nhận được nội dung từ AI.";
+      completion.choices[0]?.message?.content ||
+      "Không nhận được gợi ý từ mô hình.";
 
     return NextResponse.json({ result: text });
   } catch (err: any) {
-    console.error("AI Reflect error:", err);
+    console.error("AI reflect error:", err);
     return NextResponse.json(
-      { error: "Không gọi được AI phân tích." },
+      { error: err.message || "Lỗi server khi gọi AI." },
       { status: 500 }
     );
   }

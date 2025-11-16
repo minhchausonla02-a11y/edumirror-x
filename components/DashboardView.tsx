@@ -16,13 +16,12 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // --- trạng thái cho phần AI ---
   const [aiSuggest, setAiSuggest] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
 
-  // TODO: nếu sau này bạn lưu tóm tắt giáo án ở state chung,
-  // có thể truyền vào đây. Tạm thời để chuỗi rỗng.
-  const lessonPlan = "";
-
+  // Tải thống kê từ /api/feedback (Upstash)
   useEffect(() => {
     async function load() {
       try {
@@ -31,7 +30,7 @@ export default function DashboardView() {
 
         const res = await fetch("/api/feedback", {
           method: "GET",
-          cache: "no-store", // tránh cache để xem gần realtime
+          cache: "no-store",
         });
 
         if (!res.ok) {
@@ -51,47 +50,52 @@ export default function DashboardView() {
     load();
   }, []);
 
+  // --- Gọi AI phân tích ---
   async function handleAI() {
     try {
-      if (!stats) {
-        setAiSuggest("Chưa có dữ liệu phiếu 60s để phân tích.");
-        return;
-      }
+      setLoadingAI(true);
+      setAiError(null);
+      setAiSuggest("");
 
+      // lấy API key đã lưu ở thanh trên cùng
       const apiKey = getClientApiKey();
+
       if (!apiKey) {
-        setAiSuggest(
+        setAiError(
           "Chưa có API Key. Vui lòng nhập API Key ở góc trên cùng bên phải rồi bấm Lưu API Key."
         );
         return;
       }
 
-      setLoadingAI(true);
-      setAiSuggest("");
-      setError(null);
+      if (!stats) {
+        setAiError("Chưa có dữ liệu khảo sát để phân tích.");
+        return;
+      }
 
       const res = await fetch("/api/ai-reflect", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-openai-key": apiKey, // gửi key giống các API khác
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          apiKey,
           stats,
-          lessonPlan,
+          // hiện tại mình chưa truyền giáo án, để trống cũng được.
+          lessonPlan: null,
+          model: "gpt-4o-mini",
         }),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error || "Không gọi được AI phân tích.");
+        throw new Error(
+          data?.error || "Không gọi được AI phân tích. Vui lòng thử lại."
+        );
       }
 
       const data = await res.json();
-      setAiSuggest(data.result || "AI không trả về nội dung.");
+      setAiSuggest(data.result || "AI chưa trả về gợi ý cụ thể.");
     } catch (err: any) {
       console.error(err);
-      setAiSuggest(err.message || "Lỗi: Không gọi được AI phân tích.");
+      setAiError(err.message || "Có lỗi khi gọi AI.");
     } finally {
       setLoadingAI(false);
     }
@@ -124,14 +128,14 @@ export default function DashboardView() {
       <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
           <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-            SỐ PHIẾU 60S
+            Số phiếu 60s
           </p>
           <p className="mt-2 text-3xl font-semibold">{total}</p>
         </div>
 
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
           <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-            HIỂU BÀI
+            Hiểu bài
           </p>
           <p className="mt-1 text-lg font-semibold text-emerald-600">
             {understood} HS
@@ -143,7 +147,7 @@ export default function DashboardView() {
 
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
           <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-            CẦN GIẢNG CHẬM / RÕ HƠN
+            Cần giảng chậm / rõ hơn
           </p>
           <p className="mt-1 text-lg font-semibold text-amber-600">
             {notClear + tooFast} HS
@@ -155,7 +159,7 @@ export default function DashboardView() {
 
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
           <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-            CẦN THÊM VÍ DỤ
+            Cần thêm ví dụ
           </p>
           <p className="mt-1 text-lg font-semibold text-blue-600">
             {needExamples} HS
@@ -222,8 +226,11 @@ export default function DashboardView() {
       </p>
 
       {/* ---- Gợi ý cải tiến bằng AI ---- */}
-      <div className="mt-6 p-4 border rounded-xl bg-white shadow">
-        <h3 className="font-semibold mb-3">Gợi ý cải tiến bài dạy bằng AI</h3>
+      <section
+        id="ai"
+        className="mt-6 p-4 border rounded-xl bg-white shadow space-y-3"
+      >
+        <h3 className="font-semibold">Gợi ý cải tiến bài dạy bằng AI</h3>
 
         <button
           onClick={handleAI}
@@ -233,12 +240,18 @@ export default function DashboardView() {
           {loadingAI ? "Đang phân tích..." : "Phân tích & Gợi ý ngay"}
         </button>
 
+        {aiError && (
+          <p className="text-sm text-red-600 mt-2">
+            {aiError}
+          </p>
+        )}
+
         {aiSuggest && (
-          <div className="mt-4 p-3 border rounded-md bg-neutral-50 whitespace-pre-line text-sm">
+          <div className="mt-3 p-3 border rounded-md bg-neutral-50 whitespace-pre-line text-sm">
             {aiSuggest}
           </div>
         )}
-      </div>
+      </section>
     </div>
   );
 }
