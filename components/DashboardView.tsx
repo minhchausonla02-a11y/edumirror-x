@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getClientApiKey } from "@/lib/apiKey";
 
 type FeedbackStats = {
   understood: number;
@@ -15,44 +16,13 @@ export default function DashboardView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // --- State + hàm gọi AI ---
   const [aiSuggest, setAiSuggest] = useState("");
   const [loadingAI, setLoadingAI] = useState(false);
 
-  async function handleAI() {
-    if (!stats) {
-      setAiSuggest("Chưa có dữ liệu thống kê để phân tích.");
-      return;
-    }
+  // TODO: nếu sau này bạn lưu tóm tắt giáo án ở state chung,
+  // có thể truyền vào đây. Tạm thời để chuỗi rỗng.
+  const lessonPlan = "";
 
-    try {
-      setLoadingAI(true);
-      setAiSuggest("");
-
-      const res = await fetch("/api/ai-reflect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          stats, // số liệu thống kê 60s
-          // sau này nếu có giáo án thì thêm: lessonPlan
-        }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Không gọi được AI phân tích.");
-      }
-
-      const data = await res.json();
-      setAiSuggest(data.result || "Không nhận được phản hồi từ AI.");
-    } catch (err: any) {
-      console.error(err);
-      setAiSuggest("Lỗi: " + (err?.message || "Không phân tích được."));
-    } finally {
-      setLoadingAI(false);
-    }
-  }
-
-  // --- Lấy thống kê từ /api/feedback ---
   useEffect(() => {
     async function load() {
       try {
@@ -61,7 +31,7 @@ export default function DashboardView() {
 
         const res = await fetch("/api/feedback", {
           method: "GET",
-          cache: "no-store", // tránh cache, gần realtime
+          cache: "no-store", // tránh cache để xem gần realtime
         });
 
         if (!res.ok) {
@@ -80,6 +50,52 @@ export default function DashboardView() {
 
     load();
   }, []);
+
+  async function handleAI() {
+    try {
+      if (!stats) {
+        setAiSuggest("Chưa có dữ liệu phiếu 60s để phân tích.");
+        return;
+      }
+
+      const apiKey = getClientApiKey();
+      if (!apiKey) {
+        setAiSuggest(
+          "Chưa có API Key. Vui lòng nhập API Key ở góc trên cùng bên phải rồi bấm Lưu API Key."
+        );
+        return;
+      }
+
+      setLoadingAI(true);
+      setAiSuggest("");
+      setError(null);
+
+      const res = await fetch("/api/ai-reflect", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-openai-key": apiKey, // gửi key giống các API khác
+        },
+        body: JSON.stringify({
+          stats,
+          lessonPlan,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Không gọi được AI phân tích.");
+      }
+
+      const data = await res.json();
+      setAiSuggest(data.result || "AI không trả về nội dung.");
+    } catch (err: any) {
+      console.error(err);
+      setAiSuggest(err.message || "Lỗi: Không gọi được AI phân tích.");
+    } finally {
+      setLoadingAI(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -108,14 +124,14 @@ export default function DashboardView() {
       <div className="grid gap-4 md:grid-cols-4">
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
           <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-            Số phiếu 60s
+            SỐ PHIẾU 60S
           </p>
           <p className="mt-2 text-3xl font-semibold">{total}</p>
         </div>
 
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
           <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-            Hiểu bài
+            HIỂU BÀI
           </p>
           <p className="mt-1 text-lg font-semibold text-emerald-600">
             {understood} HS
@@ -127,7 +143,7 @@ export default function DashboardView() {
 
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
           <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-            Cần giảng chậm / rõ hơn
+            CẦN GIẢNG CHẬM / RÕ HƠN
           </p>
           <p className="mt-1 text-lg font-semibold text-amber-600">
             {notClear + tooFast} HS
@@ -139,7 +155,7 @@ export default function DashboardView() {
 
         <div className="rounded-2xl border bg-white p-4 shadow-sm">
           <p className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-            Cần thêm ví dụ
+            CẦN THÊM VÍ DỤ
           </p>
           <p className="mt-1 text-lg font-semibold text-blue-600">
             {needExamples} HS
