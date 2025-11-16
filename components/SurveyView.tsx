@@ -1,11 +1,14 @@
 "use client";
 
+import { useState, type FormEvent } from "react";
 import { SurveyV2, SurveyItem } from "@/data/surveyBank";
 
 // Cho chỗ khác trong project vẫn có thể dùng type SurveyV2
 export type { SurveyV2 } from "@/data/surveyBank";
 
 function ItemControl({ item }: { item: SurveyItem }) {
+  const name = item.id;
+
   // CÂU CHỌN 1 (single) → radio
   if (item.type === "single") {
     return (
@@ -17,7 +20,8 @@ function ItemControl({ item }: { item: SurveyItem }) {
           >
             <input
               type="radio"
-              name={item.id}
+              name={name}
+              value={opt}
               className="mt-0.5"
             />
             <span>{opt}</span>
@@ -38,6 +42,8 @@ function ItemControl({ item }: { item: SurveyItem }) {
           >
             <input
               type="checkbox"
+              name={name}
+              value={opt}
               className="mt-0.5"
             />
             <span>{opt}</span>
@@ -51,6 +57,7 @@ function ItemControl({ item }: { item: SurveyItem }) {
   if (item.type === "text") {
     return (
       <textarea
+        name={name}
         className="mt-2 w-full rounded-md border border-neutral-300 px-2 py-1 text-sm"
         rows={3}
         maxLength={item.maxLength ?? 300}
@@ -63,8 +70,72 @@ function ItemControl({ item }: { item: SurveyItem }) {
 }
 
 export default function SurveyView({ survey }: { survey: SurveyV2 }) {
+  const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const formData = new FormData(e.currentTarget);
+      const answers: Record<string, any> = {};
+
+      // gom câu trả lời theo item.id
+      survey.items.forEach((item) => {
+        const key = item.id;
+        const values = formData.getAll(key);
+
+        if (values.length === 0) {
+          answers[key] = null;
+        } else if (values.length === 1) {
+          answers[key] = values[0];
+        } else {
+          answers[key] = values;
+        }
+      });
+
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          surveyId: "60s-v1", // <-- sửa ở đây
+          title: survey.title,
+          answers,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error || "Gửi dữ liệu thất bại");
+      }
+
+      setSubmitted(true);
+      e.currentTarget.reset();
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Có lỗi xảy ra, em thử lại sau nhé.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Màn hình cảm ơn sau khi gửi
+  if (submitted) {
+    return (
+      <div className="space-y-3 p-6 rounded-xl bg-white shadow">
+        <h2 className="text-lg font-semibold">Cảm ơn em 💙</h2>
+        <p className="text-sm text-neutral-600">
+          Phiếu 60 giây của em đã được ghi nhận (ẩn danh). Chúc em học tốt!
+        </p>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {/* Tiêu đề + hướng dẫn */}
       <h2 className="text-lg font-semibold">{survey.title}</h2>
       {survey.intro && (
@@ -85,6 +156,22 @@ export default function SurveyView({ survey }: { survey: SurveyV2 }) {
           </li>
         ))}
       </ol>
-    </div>
+
+      {/* Thông báo lỗi nếu có */}
+      {error && (
+        <p className="text-sm text-red-600">
+          {error}
+        </p>
+      )}
+
+      {/* Nút gửi phiếu */}
+      <button
+        type="submit"
+        disabled={loading}
+        className="mt-2 inline-flex items-center justify-center rounded-xl border border-neutral-900 bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-60"
+      >
+        {loading ? "Đang gửi..." : "Gửi phiếu 60 giây"}
+      </button>
+    </form>
   );
 }
