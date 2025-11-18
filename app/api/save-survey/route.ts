@@ -1,85 +1,60 @@
-// app/api/save-survey/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
 
-// Hàm sinh shortId ngẫu nhiên (7 ký tự a-zA-Z0-9)
-function generateShortId(length: number = 7): string {
-  const chars =
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "";
-  for (let i = 0; i < length; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result;
+function genShortId() {
+  // ID ngắn 6–8 ký tự, đủ dùng để phân biệt các bài
+  return Math.random().toString(36).slice(2, 8);
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json().catch(() => null);
+    const body = await req.json();
 
-    if (!body) {
+    // Tuỳ phiên bản cũ, dữ liệu có thể nằm ở body.survey hoặc body.payload
+    const survey = body?.survey ?? body?.payload;
+    if (!survey) {
       return NextResponse.json(
-        { ok: false, error: "Body rỗng, không có dữ liệu phiếu." },
+        { ok: false, error: "Thiếu dữ liệu phiếu khảo sát (survey)." },
         { status: 400 }
       );
     }
 
+    // Nếu FE gửi kèm shortId cũ thì dùng lại, không thì tạo mới
+    let shortId: string =
+      typeof body?.shortId === "string" && body.shortId.trim().length > 0
+        ? body.shortId.trim()
+        : genShortId();
+
     const supabase = getSupabaseAdmin();
 
-    // Payload phiếu khảo sát (SurveyV2) – lấy linh hoạt
-    const surveyPayload =
-      body.survey || body.payload || body.survey_v2 || body;
-
-    // Nếu client đã gửi shortId thì dùng, không thì tự sinh
-    let shortId: string =
-      body.shortId || body.short_id || body.survey_short_id || "";
-
-    if (!shortId) {
-      // Sinh shortId mới, tránh trùng (thử vài lần)
-      for (let i = 0; i < 5; i++) {
-        const candidate = generateShortId(7);
-        const { data, error } = await supabase
-          .from("surveys")
-          .select("id")
-          .eq("short_id", candidate)
-          .maybeSingle();
-
-        if (error) {
-          console.error("Supabase check short_id error:", error);
-          break;
-        }
-        if (!data) {
-          shortId = candidate;
-          break;
-        }
-      }
-
-      if (!shortId) {
-        // fallback nếu lỡ tất cả đều trùng (rất hiếm)
-        shortId = generateShortId(10);
-      }
-    }
-
-    // Lưu phiếu vào bảng `surveys`
-    const { error } = await supabase.from("surveys").insert({
-      short_id: shortId,
-      payload: surveyPayload,
-    });
+    // Lưu / cập nhật vào bảng surveys
+    const { error } = await supabase
+      .from("surveys")
+      .upsert(
+        {
+          short_id: shortId,
+          payload: survey,
+        },
+        { onConflict: "short_id" } // nếu shortId đã tồn tại thì update
+      );
 
     if (error) {
-      console.error("Supabase insert error (surveys):", error);
+      console.error("Supabase save-survey error:", error);
       return NextResponse.json(
-        { ok: false, error: "Lưu phiếu khảo sát (mẫu) thất bại." },
+        { ok: false, error: "Lưu phiếu khảo sát lên Supabase thất bại." },
         { status: 500 }
       );
     }
 
-    // 🔥 Quan trọng: trả về shortId để front-end tạo QR đúng
-    return NextResponse.json({ ok: true, shortId });
+    // ⭐ Quan trọng: luôn trả về shortId cho frontend dùng sinh QR
+    return NextResponse.json({ ok: true, shortId, survey });
   } catch (err: any) {
     console.error("save-survey API error:", err);
     return NextResponse.json(
-      { ok: false, error: err?.message || "Lỗi không xác định." },
+      {
+        ok: false,
+        error: err?.message || "Lỗi không xác định khi lưu phiếu khảo sát.",
+      },
       { status: 500 }
     );
   }
