@@ -1,46 +1,54 @@
+// app/api/save-survey/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { nanoid } from "nanoid";
 import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
-
-type Body = {
-  payload?: any;      // chính là cấu trúc phiếu 60s (title, items, ...)
-  shortId?: string;   // mã rút gọn (nếu không gửi thì tự tạo)
-};
 
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as Body;
+    const body = await req.json().catch(() => null);
 
-    // CHỈ kiểm tra theo key payload
-    const payload = body.payload;
-    if (!payload) {
+    if (!body) {
       return NextResponse.json(
-        { ok: false, error: "Thiếu payload phiếu khảo sát." },
+        { ok: false, error: "Body rỗng, không có dữ liệu phiếu." },
         { status: 400 }
       );
     }
 
     const supabase = getSupabaseAdmin();
-    const shortId = body.shortId || nanoid(8);
 
-    const { error } = await supabase.from("surveys").insert({
-      short_id: shortId,
-      payload, // lưu nguyên JSON phiếu 60s
-    });
+    // Lấy mã phiếu ngắn nếu frontend có gửi kèm
+    const surveyShortId =
+      body.shortId ||
+      body.surveyShortId ||
+      body.survey_short_id ||
+      null;
+
+    // Label lớp nếu có (VD: 12A1)
+    const classLabel = body.classId || body.class_label || null;
+
+    // Nếu frontend đã gói sẵn trong answers thì dùng, không thì lưu cả body
+    const answers = body.answers ?? body;
+
+    const { error } = await supabase
+      .from("survey_responses")
+      .insert({
+        survey_short_id: surveyShortId,
+        class_label: classLabel,
+        answers,
+      });
 
     if (error) {
-      console.error("Supabase insert error:", error);
+      console.error("Supabase insert error (survey_responses):", error);
       return NextResponse.json(
-        { ok: false, error: "Lỗi ghi CSDL: " + error.message },
+        { ok: false, error: "Lưu phiếu khảo sát thất bại." },
         { status: 500 }
       );
     }
 
-    return NextResponse.json({ ok: true, shortId });
+    return NextResponse.json({ ok: true });
   } catch (err: any) {
-    console.error("save-survey route error:", err);
+    console.error("save-survey API error:", err);
     return NextResponse.json(
-      { ok: false, error: "Lỗi không xác định khi lưu phiếu." },
+      { ok: false, error: err?.message || "Lỗi không xác định." },
       { status: 500 }
     );
   }
