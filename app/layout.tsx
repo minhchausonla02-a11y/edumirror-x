@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <div className="font-semibold">EduMirror X</div>
               <nav className="text-sm text-gray-600 flex gap-5">
                 <a href="#upload" className="hover:text-blue-600">Tải giáo án</a>
-                <a href="#survey" className="hover:text-blue-600">Khảo sát</a>
+      
                 <a href="#dashboard" className="hover:text-blue-600">Dashboard</a>
                 <a href="#ai" className="hover:text-blue-600">Gợi ý AI</a>
               </nav>
