@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type FormEvent, useEffect } from "react";
 import { SurveyV2, SurveyItem } from "@/data/surveyBank";
 
 // Cho chỗ khác trong project vẫn có thể dùng type SurveyV2
@@ -73,6 +73,19 @@ export default function SurveyView({ survey }: { survey: SurveyV2 }) {
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [shortId, setShortId] = useState<string | null>(
+    survey.shortId ?? null
+  );
+
+  // Lấy shortId từ URL ?id=... (nếu có)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const fromUrl = params.get("id");
+    if (fromUrl) {
+      setShortId(fromUrl);
+    }
+  }, []);
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -83,10 +96,10 @@ export default function SurveyView({ survey }: { survey: SurveyV2 }) {
       const formData = new FormData(e.currentTarget);
       const answers: Record<string, any> = {};
 
-      // gom câu trả lời theo item.id
+      // Gom câu trả lời theo item.id
       survey.items.forEach((item) => {
         const key = item.id;
-        const values = formData.getAll(key);
+        const values = formData.getAll(key); // FormDataEntryValue[]
 
         if (values.length === 0) {
           answers[key] = null;
@@ -97,19 +110,22 @@ export default function SurveyView({ survey }: { survey: SurveyV2 }) {
         }
       });
 
-      const res = await fetch("/api/feedback", {
+      // Có thể thêm label lớp ở đây nếu sau này bạn muốn cho GV nhập lớp
+      const classLabel: string | null = null;
+
+      const res = await fetch("/api/submit-survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          surveyId: "60s-v1", // <-- sửa ở đây
-          title: survey.title,
+          shortId: shortId ?? survey.shortId ?? null,
+          classLabel,
           answers,
         }),
       });
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error || "Gửi dữ liệu thất bại");
+        throw new Error(data?.error || "Gửi dữ liệu thất bại.");
       }
 
       setSubmitted(true);
