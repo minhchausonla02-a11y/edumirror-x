@@ -4,6 +4,7 @@ import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import ResultsView, { AnalyzeResult } from "@/components/ResultsView";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
+import DashboardView from "@/components/DashboardView";
 
 // Domain production cố định để QR luôn ngắn, không bị dính link preview của Vercel
 const PRODUCTION_ORIGIN = "https://edumirror-x.vercel.app";
@@ -467,6 +468,14 @@ export default function EduMirrorApp() {
               )}
             </section>
           )}
+                    {/* Dashboard phân tích phản hồi từ học sinh */}
+          <section
+            id="dashboard"
+            className="rounded-2xl border bg-white shadow-sm p-6"
+          >
+            <DashboardView />
+          </section>
+
         </main>
       ) : null}
     </div>
