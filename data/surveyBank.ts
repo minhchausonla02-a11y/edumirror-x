@@ -174,13 +174,28 @@ export function buildSurveyFromBank(
       },
 
       // CÂU 6
-      {
-        id: "q6_muddiest",
-        type: "text",
-        maxLength: 300,
-        label:
-          "Câu 6. Viết 1 điều em còn vướng nhất sau tiết học (tối đa 50 từ). Gợi ý: khái niệm, bước giải, ví dụ hoặc phần em thấy khó nhất:"
-      }
+{
+  id: "q6_muddiest",
+  type: "text",
+  maxLength: 300,
+  label:
+    "Câu 6. Viết 1 điều em còn vướng nhất sau tiết học (tối đa 50 từ). Gợi ý: khái niệm, bước giải, ví dụ hoặc phần em thấy khó nhất:"
+},
+
+// CÂU 7
+{
+  id: "q7_emotion",
+  type: "single",
+  label:
+    "Câu 7. Sau tiết học hôm nay, cảm xúc của em là gì? (Chỉ chọn 1 ý)",
+  options: [
+    "😀 Hứng thú – Em cảm thấy thoải mái, dễ hiểu và muốn học tiếp.",
+    "🙂 Bình thường – Em hiểu phần lớn nhưng vẫn còn vài chỗ chưa chắc.",
+    "😐 Hơi căng – Em thấy bài hơi khó hoặc tốc độ hơi nhanh.",
+    "😟 Căng thẳng – Em thấy mình bị quá tải hoặc khó theo kịp bài."
+  ]
+}
+
     ]
   };
 
