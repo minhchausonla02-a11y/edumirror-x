@@ -9,7 +9,12 @@ import DashboardView from "@/components/DashboardView";
 // Domain production cố định để QR luôn ngắn, không bị dính link preview của Vercel
 const PRODUCTION_ORIGIN = "https://edumirror-x.vercel.app";
 
+type TopTab = "upload" | "dashboard" | "ai";
+
 export default function EduMirrorApp() {
+  // ===== STATE TAB TRÊN CÙNG =====
+  const [activeTab, setActiveTab] = useState<TopTab>("upload");
+
   // ===== STATE CHÍNH =====
   const [mounted, setMounted] = useState(false);
   const [apiKey, setApiKey] = useState("");
@@ -36,11 +41,22 @@ export default function EduMirrorApp() {
   const [subject, setSubject] = useState("Toán");
   const [grade, setGrade] = useState("THPT");
 
-  // ===== EFFECT: lấy API key đã lưu =====
+  // ===== EFFECT: lấy API key đã lưu + đọc hash tab =====
   useEffect(() => {
     setMounted(true);
     const k = localStorage.getItem("edumirror_key") || "";
     if (k) setApiKey(k);
+
+    const applyHash = () => {
+      const hash = window.location.hash.replace("#", "");
+      if (hash === "dashboard") setActiveTab("dashboard");
+      else if (hash === "ai") setActiveTab("ai");
+      else setActiveTab("upload");
+    };
+
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
   }, []);
 
   // ===== MASK KEY =====
@@ -49,6 +65,17 @@ export default function EduMirrorApp() {
     if (apiKey.length <= 8) return "********";
     return apiKey.slice(0, 3) + "••••••••" + apiKey.slice(-3);
   }, [apiKey]);
+
+  // ===== ĐỔI TAB =====
+  function switchTab(tab: TopTab) {
+    setActiveTab(tab);
+    if (tab === "upload") {
+      // về tab chính: bỏ hash
+      window.location.hash = "";
+    } else {
+      window.location.hash = `#${tab}`;
+    }
+  }
 
   // ===== HANDLERS =====
   async function handleSaveKey() {
@@ -175,8 +202,7 @@ export default function EduMirrorApp() {
           throw new Error(saveData?.error || "Không lưu được phiếu khảo sát.");
         }
 
-        // shortId do route /api/save-survey trả về
-        const shortId: string =
+        const shortId: string | null =
           saveData.shortId ||
           saveData.short_id ||
           saveData.id ||
@@ -188,13 +214,14 @@ export default function EduMirrorApp() {
           setSurveyId(shortId);
           console.log("Survey shortId =", shortId);
         } else {
-          console.warn("Không nhận được shortId từ save-survey, vẫn dùng được QR fallback.");
+          console.warn(
+            "Không nhận được shortId từ save-survey, vẫn dùng được QR fallback."
+          );
           setSurveyId(null);
         }
       } catch (e: any) {
         console.error("Lỗi lưu survey:", e);
         setSurveyId(null);
-        // Không alert quá “gắt” nữa, vì vẫn có thể tạo QR fallback
       }
     } catch (err: any) {
       alert("Lỗi: " + err.message);
@@ -204,7 +231,6 @@ export default function EduMirrorApp() {
   }
 
   // ===== QR HANDLERS =====
-  // Nếu không có ID từ server thì tự sinh 1 mã ngẫu nhiên cho QR (fallback)
   function makeFallbackId(length: number = 8) {
     return Math.random().toString(36).slice(2, 2 + length);
   }
@@ -215,8 +241,6 @@ export default function EduMirrorApp() {
       return;
     }
 
-    // Ưu tiên: surveyId lấy từ /api/save-survey
-    // Fallback: shortId / short_id / id trong chính object survey
     const fallbackId =
       surveyId ||
       (survey as any)?.shortId ||
@@ -231,12 +255,10 @@ export default function EduMirrorApp() {
       return;
     }
 
-    // URL cho học sinh làm phiếu – RẤT NGẮN, chỉ chứa id
     const surveyUrl = `${PRODUCTION_ORIGIN}/survey?id=${encodeURIComponent(
       effectiveId
     )}`;
 
-    // Tạo QR bằng api.qrserver.com
     const qr = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
       surveyUrl
     )}`;
@@ -261,34 +283,72 @@ export default function EduMirrorApp() {
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="w-full border-b bg-white/70 backdrop-blur sticky top-0 z-20">
-        <div className="mx-auto max-w-6xl px-6 py-3 flex items-center justify-between">
-          <div className="text-2xl font-bold text-indigo-700">EduMirror X</div>
-          <div className="flex items-center gap-3">
-            <input
-              id="apiKeyInput"
-              type="password"
-              defaultValue={apiKey}
-              placeholder="Dán API key rồi Enter"
-              onKeyDown={(e) => e.key === "Enter" && handleSaveKey()}
-              className="border rounded px-3 py-2 w-[340px]"
-            />
-            <select
-              className="border rounded px-3 py-2 h-[40px]"
-              value={model}
-              onChange={(e) => setModel(e.target.value)}
-            >
-              <option value="gpt-4o-mini">GPT-4o mini</option>
-              <option value="gpt-4o">GPT-4o</option>
-            </select>
+        <div className="mx-auto max-w-6xl px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="text-2xl font-bold text-indigo-700">
+              EduMirror X
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                id="apiKeyInput"
+                type="password"
+                defaultValue={apiKey}
+                placeholder="Dán API key rồi Enter"
+                onKeyDown={(e) => e.key === "Enter" && handleSaveKey()}
+                className="border rounded px-3 py-2 w-[340px]"
+              />
+              <select
+                className="border rounded px-3 py-2 h-[40px]"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+              >
+                <option value="gpt-4o-mini">GPT-4o mini</option>
+                <option value="gpt-4o">GPT-4o</option>
+              </select>
+              <button
+                onClick={handleSaveKey}
+                className="rounded bg-neutral-900 text-white px-4 py-2"
+              >
+                Lưu API Key
+              </button>
+              <span className="text-xs text-neutral-500">
+                {apiKey ? "Hợp lệ • " + keyMasked : "Chưa có API Key"}
+              </span>
+            </div>
+          </div>
+
+          {/* Tabs trên cùng */}
+          <div className="mt-3 flex gap-2">
             <button
-              onClick={handleSaveKey}
-              className="rounded bg-neutral-900 text-white px-4 py-2"
+              onClick={() => switchTab("upload")}
+              className={`px-4 py-2 rounded-t-xl border-b-2 text-sm font-medium ${
+                activeTab === "upload"
+                  ? "border-indigo-600 text-indigo-700"
+                  : "border-transparent text-neutral-500 hover:text-neutral-800"
+              }`}
             >
-              Lưu API Key
+              Tải giáo án
             </button>
-            <span className="text-xs text-neutral-500">
-              {apiKey ? "Hợp lệ • " + keyMasked : "Chưa có API Key"}
-            </span>
+            <button
+              onClick={() => switchTab("dashboard")}
+              className={`px-4 py-2 rounded-t-xl border-b-2 text-sm font-medium ${
+                activeTab === "dashboard"
+                  ? "border-indigo-600 text-indigo-700"
+                  : "border-transparent text-neutral-500 hover:text-neutral-800"
+              }`}
+            >
+              Dashboard
+            </button>
+            <button
+              onClick={() => switchTab("ai")}
+              className={`px-4 py-2 rounded-t-xl border-b-2 text-sm font-medium ${
+                activeTab === "ai"
+                  ? "border-indigo-600 text-indigo-700"
+                  : "border-transparent text-neutral-500 hover:text-neutral-800"
+              }`}
+            >
+              Gợi ý AI
+            </button>
           </div>
         </div>
       </header>
@@ -296,186 +356,217 @@ export default function EduMirrorApp() {
       {/* Main */}
       {mounted ? (
         <main className="mx-auto max-w-6xl px-6 py-8 space-y-6">
-          {/* Khối tải/dán giáo án */}
-          <div className="rounded-2xl border bg-white shadow-sm">
-            <div className="border-b px-6 py-4 text-lg font-semibold flex items-center gap-2">
-              <span>📁 Tải giáo án / Dán nội dung</span>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <div className="rounded-xl border border-dashed p-6 bg-neutral-50">
-                <div className="flex items-center gap-3">
-                  <input type="file" onChange={handleFileChange} />
-                  <div className="text-sm text-neutral-600">
-                    Hỗ trợ: <b>.docx</b>, <b>.pdf</b>, <b>.txt</b> (tệp .doc cũ:
-                    vui lòng chuyển sang .docx)
-                  </div>
+          {/* TAB 1: Tải giáo án / sinh phiếu */}
+          {activeTab === "upload" && (
+            <>
+              {/* Khối tải/dán giáo án */}
+              <div className="rounded-2xl border bg-white shadow-sm">
+                <div className="border-b px-6 py-4 text-lg font-semibold flex items-center gap-2">
+                  <span>📁 Tải giáo án / Dán nội dung</span>
                 </div>
-                {chip && (
-                  <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-indigo-50 text-indigo-700 px-3 py-1 text-xs">
-                    {chip}
+
+                <div className="p-6 space-y-4">
+                  <div className="rounded-xl border border-dashed p-6 bg-neutral-50">
+                    <div className="flex items-center gap-3">
+                      <input type="file" onChange={handleFileChange} />
+                      <div className="text-sm text-neutral-600">
+                        Hỗ trợ: <b>.docx</b>, <b>.pdf</b>, <b>.txt</b> (tệp .doc
+                        cũ: vui lòng chuyển sang .docx)
+                      </div>
+                    </div>
+                    {chip && (
+                      <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-indigo-50 text-indigo-700 px-3 py-1 text-xs">
+                        {chip}
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              <textarea
-                className="w-full h-64 border rounded-xl p-4 text-sm"
-                placeholder="Dán giáo án hoặc nội dung văn bản tại đây..."
-                value={lessonText}
-                onChange={(e) => setLessonText(e.target.value)}
-              />
-
-              {/* Khối KT–KN */}
-              <div className="rounded-xl border p-4 bg-white space-y-3">
-                <div className="flex items-center gap-3">
-                  <input
-                    id="ktkn"
-                    type="checkbox"
-                    checked={ktknEnabled}
-                    onChange={(e) => setKtknEnabled(e.target.checked)}
+                  <textarea
+                    className="w-full h-64 border rounded-xl p-4 text-sm"
+                    placeholder="Dán giáo án hoặc nội dung văn bản tại đây..."
+                    value={lessonText}
+                    onChange={(e) => setLessonText(e.target.value)}
                   />
-                  <label htmlFor="ktkn" className="font-medium">
-                    Áp dụng Chuẩn kiến thức – kỹ năng (CTGDPT 2018)
-                  </label>
 
-                  <select
-                    className="ml-4 border rounded px-2 py-1"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                  >
-                    <option>Toán</option>
-                    <option>Vật lí</option>
-                    <option>Hóa học</option>
-                    <option>Sinh học</option>
-                    <option>Ngữ văn</option>
-                  </select>
+                  {/* Khối KT–KN */}
+                  <div className="rounded-xl border p-4 bg-white space-y-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        id="ktkn"
+                        type="checkbox"
+                        checked={ktknEnabled}
+                        onChange={(e) => setKtknEnabled(e.target.checked)}
+                      />
+                      <label htmlFor="ktkn" className="font-medium">
+                        Áp dụng Chuẩn kiến thức – kỹ năng (CTGDPT 2018)
+                      </label>
 
-                  <select
-                    className="border rounded px-2 py-1"
-                    value={grade}
-                    onChange={(e) => setGrade(e.target.value)}
-                  >
-                    <option>THPT</option>
-                    <option>THCS</option>
-                  </select>
-                </div>
+                      <select
+                        className="ml-4 border rounded px-2 py-1"
+                        value={subject}
+                        onChange={(e) => setSubject(e.target.value)}
+                      >
+                        <option>Toán</option>
+                        <option>Vật lí</option>
+                        <option>Hóa học</option>
+                        <option>Sinh học</option>
+                        <option>Ngữ văn</option>
+                      </select>
 
-                <textarea
-                  className="w-full h-24 border rounded p-2 text-sm"
-                  placeholder="Dán khung chuẩn KT–KN (tuỳ chọn)."
-                  value={ktknText}
-                  onChange={(e) => setKtknText(e.target.value)}
-                />
-              </div>
+                      <select
+                        className="border rounded px-2 py-1"
+                        value={grade}
+                        onChange={(e) => setGrade(e.target.value)}
+                      >
+                        <option>THPT</option>
+                        <option>THCS</option>
+                      </select>
+                    </div>
 
-              {/* Nút thao tác */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => {
-                    setLessonText("");
-                    setAnalysis(null);
-                    setSurvey(null);
-                    setSurveyId(null);
-                    setChip("");
-                    setQrUrl("");
-                  }}
-                  className="px-4 py-2 rounded border"
-                >
-                  Xoá
-                </button>
-
-                <button
-                  onClick={handleAnalyze}
-                  disabled={loading}
-                  className="px-4 py-2 rounded bg-indigo-600 text-white disabled:opacity-60"
-                >
-                  {loading ? "Đang phân tích..." : "Phân tích giáo án"}
-                </button>
-
-                <button
-                  onClick={handleGenerateSurvey}
-                  disabled={loading}
-                  className="px-4 py-2 rounded border"
-                >
-                  {loading ? "Đang sinh câu hỏi..." : "Sinh bộ câu hỏi"}
-                </button>
-
-                {analysis && (
-                  <span className="ml-auto inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs">
-                    Đã phân tích: Bài học
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Kết quả phân tích */}
-          {analysis && (
-            <section className="rounded-2xl border bg-white shadow-sm p-6">
-              <div className="mb-3 text-lg font-semibold">
-                🧪 Kết quả phân tích giáo án
-              </div>
-              <ResultsView result={analysis} lessonTitle="bai_hoc" />
-            </section>
-          )}
-
-          {/* Phiếu khảo sát 60s */}
-          {survey && (
-            <section className="rounded-2xl border bg-white shadow-sm p-6">
-              <div className="mb-3 text-lg font-semibold">
-                Xem trước phiếu 60 giây sau tiết học
-              </div>
-
-              <SurveyView survey={survey} />
-
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleGenerateQR}
-                  className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-                >
-                  Tạo mã QR cho học sinh
-                </button>
-
-                {qrUrl && (
-                  <button
-                    type="button"
-                    onClick={handleOpenQRInNewTab}
-                    className="inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-neutral-50"
-                  >
-                    Mở / lưu mã QR để gửi
-                  </button>
-                )}
-              </div>
-
-              {qrUrl && (
-                <div className="mt-4">
-                  <div className="text-xs text-neutral-600 mb-2">
-                    Mã QR cho học sinh (chiếu lên màn hình, HS dùng
-                    Camera/Zalo để quét):
+                    <textarea
+                      className="w-full h-24 border rounded p-2 text-sm"
+                      placeholder="Dán khung chuẩn KT–KN (tuỳ chọn)."
+                      value={ktknText}
+                      onChange={(e) => setKtknText(e.target.value)}
+                    />
                   </div>
-                  <img
-                    src={qrUrl}
-                    alt="QR code phiếu khảo sát"
-                    className="border rounded-xl p-2 bg-white"
-                  />
-                  <p className="mt-2 text-xs text-neutral-500">
-                    Muốn gửi QR cho HS qua Zalo/Facebook: bấm{" "}
-                    <b>“Mở / lưu mã QR để gửi”</b>, lưu ảnh từ tab mới rồi gửi
-                    cho các em.
-                  </p>
+
+                  {/* Nút thao tác */}
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => {
+                        setLessonText("");
+                        setAnalysis(null);
+                        setSurvey(null);
+                        setSurveyId(null);
+                        setChip("");
+                        setQrUrl("");
+                      }}
+                      className="px-4 py-2 rounded border"
+                    >
+                      Xoá
+                    </button>
+
+                    <button
+                      onClick={handleAnalyze}
+                      disabled={loading}
+                      className="px-4 py-2 rounded bg-indigo-600 text-white disabled:opacity-60"
+                    >
+                      {loading ? "Đang phân tích..." : "Phân tích giáo án"}
+                    </button>
+
+                    <button
+                      onClick={handleGenerateSurvey}
+                      disabled={loading}
+                      className="px-4 py-2 rounded border"
+                    >
+                      {loading ? "Đang sinh câu hỏi..." : "Sinh bộ câu hỏi"}
+                    </button>
+
+                    {analysis && (
+                      <span className="ml-auto inline-flex items-center gap-2 rounded-full bg-emerald-50 text-emerald-700 px-3 py-1 text-xs">
+                        Đã phân tích: Bài học
+                      </span>
+                    )}
+                  </div>
                 </div>
+              </div>
+
+              {/* Kết quả phân tích */}
+              {analysis && (
+                <section className="rounded-2xl border bg-white shadow-sm p-6">
+                  <div className="mb-3 text-lg font-semibold">
+                    🧪 Kết quả phân tích giáo án
+                  </div>
+                  <ResultsView result={analysis} lessonTitle="bai_hoc" />
+                </section>
               )}
+
+              {/* Phiếu khảo sát 60s */}
+              {survey && (
+                <section className="rounded-2xl border bg-white shadow-sm p-6">
+                  <div className="mb-3 text-lg font-semibold">
+                    Xem trước phiếu 60 giây sau tiết học
+                  </div>
+
+                  <SurveyView survey={survey} />
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleGenerateQR}
+                      className="inline-flex items-center rounded-lg bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
+                    >
+                      Tạo mã QR cho học sinh
+                    </button>
+
+                    {qrUrl && (
+                      <button
+                        type="button"
+                        onClick={handleOpenQRInNewTab}
+                        className="inline-flex items-center rounded-lg border px-3 py-1.5 text-sm font-medium hover:bg-neutral-50"
+                      >
+                        Mở / lưu mã QR để gửi
+                      </button>
+                    )}
+                  </div>
+
+                  {qrUrl && (
+                    <div className="mt-4">
+                      <div className="text-xs text-neutral-600 mb-2">
+                        Mã QR cho học sinh (chiếu lên màn hình, HS dùng
+                        Camera/Zalo để quét):
+                      </div>
+                      <img
+                        src={qrUrl}
+                        alt="QR code phiếu khảo sát"
+                        className="border rounded-xl p-2 bg-white"
+                      />
+                      <p className="mt-2 text-xs text-neutral-500">
+                        Muốn gửi QR cho HS qua Zalo/Facebook: bấm{" "}
+                        <b>“Mở / lưu mã QR để gửi”</b>, lưu ảnh từ tab mới rồi
+                        gửi cho các em.
+                      </p>
+                    </div>
+                  )}
+                </section>
+              )}
+            </>
+          )}
+
+          {/* TAB 2: Dashboard thống kê sau tiết học */}
+          {activeTab === "dashboard" && (
+            <section className="rounded-2xl border bg-white shadow-sm p-6">
+              <DashboardView />
             </section>
           )}
-                    {/* Dashboard phân tích phản hồi từ học sinh */}
-          <section
-            id="dashboard"
-            className="rounded-2xl border bg-white shadow-sm p-6"
-          >
-            <DashboardView />
-          </section>
 
+          {/* TAB 3: Gợi ý AI (tạm thời đơn giản) */}
+          {activeTab === "ai" && (
+            <section className="rounded-2xl border bg-white shadow-sm p-6 space-y-3">
+              <h2 className="text-lg font-semibold">
+                🤖 Gợi ý AI cho tiết dạy tiếp theo
+              </h2>
+              <p className="text-sm text-neutral-600">
+                Sau khi có dữ liệu từ Dashboard (mức hiểu bài, phần còn yếu,
+                cảm xúc lớp học...), bạn có thể dùng phần này để hỏi AI:{" "}
+              </p>
+              <ul className="list-disc pl-5 text-sm text-neutral-700 space-y-1">
+                <li>
+                  “Học sinh còn yếu phần nào? Hãy gợi ý cách điều chỉnh bài
+                  giảng cho tiết sau.”
+                </li>
+                <li>
+                  “Dựa vào kết quả phiếu 60 giây bài &quot;Tọa độ vectơ&quot;,
+                  hãy đề xuất 3 hoạt động củng cố phù hợp với lớp 12 trường em.”
+                </li>
+              </ul>
+              <p className="text-sm text-neutral-500">
+                (Trong bước nâng cấp tiếp theo, mình có thể tích hợp thêm ô chat
+                AI ngay tại đây.)
+              </p>
+            </section>
+          )}
         </main>
       ) : null}
     </div>
