@@ -129,7 +129,7 @@ function TagList({
 
 export default function DashboardView() {
   const [surveys, setSurveys] = useState<SurveyListItem[]>([]);
-  const [selectedShortId, setSelectedShortId] = useState<string | null>(null);
+  const [selectedShortId, setSelectedShortId] = useState<string>("");
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loadingList, setLoadingList] = useState(true);
   const [loadingSummary, setLoadingSummary] = useState(false);
@@ -155,7 +155,8 @@ export default function DashboardView() {
 
         setSurveys(data.surveys);
         if (data.surveys.length > 0) {
-          setSelectedShortId((prev) => prev ?? data.surveys[0].shortId);
+          setSelectedShortId((prev) => prev || data.surveys[0].shortId);
+
         }
       } catch (err: any) {
         console.error(err);
