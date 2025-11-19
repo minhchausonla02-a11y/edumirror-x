@@ -47,6 +47,7 @@ export default function EduMirrorApp() {
     const k = localStorage.getItem("edumirror_key") || "";
     if (k) setApiKey(k);
 
+    // Hàm xử lý đổi tab khi URL thay đổi (QUAN TRỌNG)
     const applyHash = () => {
       const hash = window.location.hash.replace("#", "");
       if (hash === "dashboard") setActiveTab("dashboard");
@@ -54,7 +55,10 @@ export default function EduMirrorApp() {
       else setActiveTab("upload");
     };
 
+    // Chạy ngay lần đầu
     applyHash();
+
+    // Lắng nghe sự kiện hashchange (khi bấm nút Navbar)
     window.addEventListener("hashchange", applyHash);
     return () => window.removeEventListener("hashchange", applyHash);
   }, []);
@@ -66,12 +70,12 @@ export default function EduMirrorApp() {
     return apiKey.slice(0, 3) + "••••••••" + apiKey.slice(-3);
   }, [apiKey]);
 
-  // ===== ĐỔI TAB =====
+  // ===== ĐỔI TAB (Cập nhật URL Hash để Navbar đồng bộ) =====
   function switchTab(tab: TopTab) {
     setActiveTab(tab);
     if (tab === "upload") {
-      // về tab chính: bỏ hash
-      window.location.hash = "";
+      // về tab chính: bỏ hash hoặc để #upload
+      window.location.hash = "upload"; 
     } else {
       window.location.hash = `#${tab}`;
     }
