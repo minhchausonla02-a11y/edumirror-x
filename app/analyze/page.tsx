@@ -1,12 +1,11 @@
-import ApiKeyPanel from "@/components/ApiKeyPanel";
-import AnalyzePanel from "@/components/AnalyzePanel";
+// app/page.tsx
+import { Suspense } from "react";
+import EduMirrorApp from "@/components/EduMirrorApp";
 
-export default function AnalyzePage() {
+export default function HomePage() {
   return (
-    <main className="max-w-4xl mx-auto p-4 space-y-6">
-      <h1 className="text-2xl font-bold">EduMirror X – Phân tích giáo án (Test nhanh)</h1>
-      <ApiKeyPanel />
-      <AnalyzePanel />
-    </main>
+    <Suspense fallback={<div>Loading EduMirror X...</div>}>
+      <EduMirrorApp />
+    </Suspense>
   );
 }
