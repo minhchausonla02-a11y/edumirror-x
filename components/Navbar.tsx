@@ -1,42 +1,35 @@
 // components/Navbar.tsx
-"use client";
+"use client"; // Bắt buộc để dùng usePathname
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Link from "next/link";
 
 export default function Navbar() {
   const pathname = usePathname();
 
-  // --- LOGIC MỚI: WHITELIST (DANH SÁCH CHO PHÉP) ---
-  // Chỉ hiển thị menu nếu đường dẫn thuộc danh sách các trang giáo viên
-  const isTeacherPage = 
-    pathname === "/" ||                 // Trang chủ
-    pathname?.startsWith("/upload") ||    // Trang tải giáo án
-    pathname?.startsWith("/dashboard") || // Trang Dashboard
-    pathname?.startsWith("/ai-suggest") || // Trang Gợi ý AI
-    pathname?.startsWith("/analyze");      // Trang phân tích (nếu có)
+  // --- LOGIC QUAN TRỌNG: Ẩn Menu nếu đang ở trang khảo sát ---
+  // Nếu đường dẫn bắt đầu bằng "/survey", component này sẽ trả về null (không vẽ gì cả)
+  if (pathname?.startsWith("/survey")) {
+    return null;
+  }
 
+  // Ngược lại, hiển thị Header bình thường
   return (
-    <nav className="p-4 border-b flex justify-between items-center bg-white shadow-sm">
-      {/* Logo luôn hiển thị để bấm về trang chủ */}
-      <Link href="/" className="text-xl font-bold text-blue-700">
-        EduMirror X
-      </Link>
-
-      {/* CHỈ HIỂN THỊ MENU KHI LÀ TRANG GIÁO VIÊN */}
-      {isTeacherPage && (
-        <div className="flex gap-6 text-sm font-medium text-gray-600">
-          <Link href="/upload" className="hover:text-blue-600 transition-colors">
+    <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b">
+      <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="font-semibold text-blue-700">EduMirror X</div>
+        <nav className="text-sm text-gray-600 flex gap-5">
+          <Link href="/#upload" className="hover:text-blue-600">
             Tải giáo án
           </Link>
-          <Link href="/dashboard" className="hover:text-blue-600 transition-colors">
+          <Link href="/dashboard" className="hover:text-blue-600">
             Dashboard
           </Link>
-          <Link href="/ai-suggest" className="hover:text-blue-600 transition-colors">
+          <Link href="/#ai" className="hover:text-blue-600">
             Gợi ý AI
           </Link>
-        </div>
-      )}
-    </nav>
+        </nav>
+      </div>
+    </header>
   );
 }
