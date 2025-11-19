@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import ResultsView, { AnalyzeResult } from "@/components/ResultsView";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
 import DashboardView from "@/components/DashboardView";
+import AISuggestionsView from "@/components/AISuggestionsView";
 
 const PRODUCTION_ORIGIN = "https://edumirror-x.vercel.app";
 
@@ -448,15 +449,17 @@ function EduMirrorContent() {
             </section>
           )}
 
-          {/* TAB 3: AI */}
-          {activeTab === "ai" && (
-            <section className="rounded-2xl border bg-white shadow-sm p-6 space-y-3">
-              <h2 className="text-lg font-semibold">🤖 Gợi ý AI</h2>
-              <p className="text-sm text-neutral-600">
-                Hệ thống sẽ phân tích dữ liệu từ Dashboard để đưa ra gợi ý tại đây.
-              </p>
-            </section>
-          )}
+         {/* TAB 3: Gợi ý AI - Đã nâng cấp */}
+      {activeTab === "ai" && (
+        <section className="rounded-2xl border bg-white shadow-sm p-6">
+          <AISuggestionsView 
+            lessonText={lessonText} // Truyền nội dung bài học
+            analysis={analysis}     // Truyền kết quả phân tích
+            apiKey={apiKey || localStorage.getItem("edumirror_key") || ""} // Truyền Key chuẩn
+            model={model}
+          />
+        </section>
+      )}
         </main>
       ) : null}
     </div>
