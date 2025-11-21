@@ -46,9 +46,36 @@ function SurveyForm() {
   };
 
   const handleSubmit = async () => {
-    setSubmitted(true);
-    // TODO: Gọi API /api/submit-survey để lưu kết quả lên Supabase
-    // await fetch('/api/submit-survey', { body: JSON.stringify({ surveyId, answers }) ... })
+    // 1. Kiểm tra dữ liệu
+    if (!surveyId) {
+      alert("Lỗi: Không tìm thấy ID phiếu. Vui lòng quét lại QR.");
+      return;
+    }
+
+    try {
+      // 2. Gửi dữ liệu lên API Supabase
+      const res = await fetch('/api/submit-survey', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          surveyId: surveyId, 
+          answers: answers 
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Có lỗi xảy ra khi nộp bài");
+      }
+
+      // 3. Nếu thành công -> Chuyển sang màn hình cảm ơn
+      setSubmitted(true);
+
+    } catch (err: any) {
+      console.error("Lỗi nộp bài:", err);
+      alert("⚠️ Không nộp được bài: " + err.message);
+    }
   };
 
   // --- MÀN HÌNH TRẠNG THÁI ---
