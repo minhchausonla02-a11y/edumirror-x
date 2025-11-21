@@ -167,6 +167,8 @@ function EduMirrorContent() {
 
       const surveyData: SurveyV2UI = data.survey_v2;
       setSurvey(surveyData);
+      // MẸO DEMO: Lưu tạm vào LocalStorage
+localStorage.setItem("mock_survey_data", JSON.stringify(surveyData));
       setQrUrl("");
       setSurveyId(null);
 
