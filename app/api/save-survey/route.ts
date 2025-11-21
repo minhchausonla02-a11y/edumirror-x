@@ -1,61 +1,45 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabaseClient";
 
-function genShortId() {
-  // ID ngắn 6–8 ký tự, đủ dùng để phân biệt các bài
-  return Math.random().toString(36).slice(2, 8);
+// Hàm tạo ID ngẫu nhiên 6 ký tự (để không cần cài thêm thư viện nanoid)
+function generateShortId(length = 6) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
 }
 
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
     const body = await req.json();
+    const { payload } = body; // Dữ liệu phiếu khảo sát
 
-    // Tuỳ phiên bản cũ, dữ liệu có thể nằm ở body.survey hoặc body.payload
-    const survey = body?.survey ?? body?.payload;
-    if (!survey) {
-      return NextResponse.json(
-        { ok: false, error: "Thiếu dữ liệu phiếu khảo sát (survey)." },
-        { status: 400 }
-      );
+    if (!payload) {
+      return NextResponse.json({ error: "Không có dữ liệu phiếu" }, { status: 400 });
     }
 
-    // Nếu FE gửi kèm shortId cũ thì dùng lại, không thì tạo mới
-    let shortId: string =
-      typeof body?.shortId === "string" && body.shortId.trim().length > 0
-        ? body.shortId.trim()
-        : genShortId();
+    // Tạo ID ngắn
+    const shortId = generateShortId();
 
-    const supabase = getSupabaseAdmin();
-
-    // Lưu / cập nhật vào bảng surveys
-    const { error } = await supabase
+    // Lưu vào bảng 'surveys' trong Supabase
+    const { data, error } = await supabase
       .from("surveys")
-      .upsert(
-        {
-          short_id: shortId,
-          payload: survey,
-        },
-        { onConflict: "short_id" } // nếu shortId đã tồn tại thì update
-      );
+      .insert([
+        { short_id: shortId, payload: payload }
+      ])
+      .select()
+      .single();
 
     if (error) {
-      console.error("Supabase save-survey error:", error);
-      return NextResponse.json(
-        { ok: false, error: "Lưu phiếu khảo sát lên Supabase thất bại." },
-        { status: 500 }
-      );
+      console.error("Supabase Error:", error);
+      throw error;
     }
 
-    // ⭐ Quan trọng: luôn trả về shortId cho frontend dùng sinh QR
-    return NextResponse.json({ ok: true, shortId, survey });
-  } catch (err: any) {
-    console.error("save-survey API error:", err);
-    return NextResponse.json(
-      {
-        ok: false,
-        error: err?.message || "Lỗi không xác định khi lưu phiếu khảo sát.",
-      },
-      { status: 500 }
-    );
+    // Trả về shortId để tạo QR Code
+    return NextResponse.json({ ok: true, shortId: shortId });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
