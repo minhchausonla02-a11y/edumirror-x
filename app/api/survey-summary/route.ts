@@ -1,138 +1,74 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabaseClient";
 
-export async function GET(req: NextRequest) {
+export const dynamic = "force-dynamic";
+
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const surveyId = searchParams.get("id"); // short_id của phiếu
+
+  if (!surveyId) return NextResponse.json({ error: "Thiếu ID" }, { status: 400 });
+
   try {
-    const { searchParams } = new URL(req.url);
-    const shortId = searchParams.get("shortId") || searchParams.get("id");
-
-    if (!shortId) {
-      return NextResponse.json(
-        { ok: false, error: "Thiếu shortId trong query (?shortId=...)." },
-        { status: 400 }
-      );
-    }
-
-    const supabase = getSupabaseAdmin();
-
-    // Lấy tất cả phiếu thuộc cùng shortId (cùng 1 bài học)
-    const { data, error } = await supabase
+    // 1. Lấy tất cả câu trả lời của phiếu này
+    const { data: responses, error } = await supabase
       .from("survey_responses")
-      .select("answers")
-      .eq("survey_short_id", shortId);
+      .select("answers, created_at")
+      .eq("survey_short_id", surveyId);
 
-    if (error) {
-      console.error("Supabase select error (survey_responses):", error);
-      return NextResponse.json(
-        { ok: false, error: "Không tải được dữ liệu phiếu." },
-        { status: 500 }
-      );
-    }
+    if (error) throw error;
 
-    const responses = (data || []).map((row: any) => row.answers || {});
-    const total = responses.length;
-
-    if (total === 0) {
-      return NextResponse.json({
-        ok: true,
-        shortId,
-        totalResponses: 0,
-        message: "Chưa có học sinh nào gửi phiếu cho QR này.",
-      });
-    }
-
-    // Hàm tiện ích đếm tần suất 1 câu single (radio)
-    function countSingle(questionId: string) {
-      const counts: Record<string, number> = {};
-      for (const ans of responses) {
-        const v = ans[questionId];
-        if (!v || typeof v !== "string") continue;
-        counts[v] = (counts[v] || 0) + 1;
-      }
-      return counts;
-    }
-
-    // Đếm tần suất câu multi (checkbox) – mỗi lựa chọn tính 1 lần
-    function countMulti(questionId: string) {
-      const counts: Record<string, number> = {};
-      for (const ans of responses) {
-        const v = ans[questionId];
-        if (!v) continue;
-
-        if (Array.isArray(v)) {
-          for (const option of v) {
-            if (!option || typeof option !== "string") continue;
-            counts[option] = (counts[option] || 0) + 1;
-          }
-        } else if (typeof v === "string") {
-          // Phòng trường hợp chỉ chọn 1 nhưng lưu thành string
-          counts[v] = (counts[v] || 0) + 1;
-        }
-      }
-      return counts;
-    }
-
-    // Tạo thống kê cho các câu quan trọng
-    const understanding = countSingle("q1_understanding"); // Mức độ hiểu bài
-    const weakParts = countMulti("q2_weak_parts");          // Phần chưa vững
-    const misconceptions = countMulti("q3_misconceptions"); // Chỗ dễ nhầm
-    const pace = countSingle("q4_pace");                    // Tốc độ giảng
-    const nextNeeds = countMulti("q4_needs_next");          // Mong muốn tiết sau
-    const confidence = countSingle("q5_confidence");        // Độ tự tin
-    const emotion = countSingle("q7_emotion");              // Cảm xúc
-
-    // Tạo % cho các câu single (radio)
-    function toPercent(counts: Record<string, number>) {
-      const result: Record<string, number> = {};
-      for (const key of Object.keys(counts)) {
-        result[key] = Math.round((counts[key] * 100) / total);
-      }
-      return result;
-    }
-
-    const summary = {
-      shortId,
-      totalResponses: total,
-
-      understanding: {
-        counts: understanding,
-        percents: toPercent(understanding),
-      },
-
-      pace: {
-        counts: pace,
-        percents: toPercent(pace),
-      },
-
-      confidence: {
-        counts: confidence,
-        percents: toPercent(confidence),
-      },
-
-      emotion: {
-        counts: emotion,
-        percents: toPercent(emotion),
-      },
-
-      weakParts: {
-        counts: weakParts,
-      },
-
-      misconceptions: {
-        counts: misconceptions,
-      },
-
-      nextNeeds: {
-        counts: nextNeeds,
-      },
+    // 2. Khởi tạo bộ đếm
+    const stats = {
+      total: responses.length,
+      sentiment: {} as Record<string, number>,
+      understanding: {} as Record<string, number>,
+      gaps: {} as Record<string, number>,
+      wishes: {} as Record<string, number>,
+      feedbacks: [] as string[]
     };
 
-    return NextResponse.json({ ok: true, summary });
+    // 3. Duyệt qua từng phiếu để cộng dồn
+    responses.forEach((row: any) => {
+      const ans = row.answers;
+
+      // Đếm Cảm xúc (Q1)
+      if (ans.q1_sentiment) {
+        // Chỉ lấy phần text chính (VD: "Hứng thú") bỏ phần mô tả sau dấu |
+        const key = ans.q1_sentiment.split("|")[0].trim();
+        stats.sentiment[key] = (stats.sentiment[key] || 0) + 1;
+      }
+
+      // Đếm Mức hiểu (Q2)
+      if (ans.q2_understanding) {
+        const key = ans.q2_understanding.split(":")[0].trim(); // Lấy "Mức 1", "Mức 2"...
+        stats.understanding[key] = (stats.understanding[key] || 0) + 1;
+      }
+
+      // Đếm Lỗ hổng kiến thức (Q3 - Checkbox nhiều lựa chọn)
+      if (Array.isArray(ans.q3_gaps)) {
+        ans.q3_gaps.forEach((gap: string) => {
+          if (gap !== "Không có, em nắm chắc rồi") {
+             stats.gaps[gap] = (stats.gaps[gap] || 0) + 1;
+          }
+        });
+      }
+
+      // Đếm Mong muốn (Q4 - Checkbox)
+      if (Array.isArray(ans.q4_wishes)) {
+        ans.q4_wishes.forEach((wish: string) => {
+           stats.wishes[wish] = (stats.wishes[wish] || 0) + 1;
+        });
+      }
+
+      // Lấy Feedback (Q5)
+      if (ans.q5_feedback && ans.q5_feedback.trim().length > 0) {
+        stats.feedbacks.push(ans.q5_feedback);
+      }
+    });
+
+    return NextResponse.json({ stats });
   } catch (err: any) {
-    console.error("survey-summary API error:", err);
-    return NextResponse.json(
-      { ok: false, error: err?.message || "Lỗi không xác định." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
