@@ -107,10 +107,12 @@ function SurveyForm() {
       <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 pb-24 pt-12 px-6 rounded-b-[3rem] shadow-xl mb-[-4rem]">
         <div className="max-w-xl mx-auto text-center text-white">
           
-          {/* LOGO CHỈ LÀ TEXT (KHÔNG CÓ LINK) */}
-          <div className="inline-block bg-white/20 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-3 border border-white/30 shadow-sm cursor-default pointer-events-none select-none">
-            EduMirror X • 60s Feedback
-          </div>
+          {/* SỬA LOGO: Dùng thẻ span thuần túy, không có onClick, không có href */}
+<div className="inline-block bg-white/20 backdrop-blur-md px-3 py-1 rounded-full mb-3 border border-white/30 shadow-sm">
+  <span className="text-[10px] font-bold uppercase tracking-wider cursor-default select-none pointer-events-none text-white">
+    EduMirror X • 60s Feedback
+  </span>
+</div>
           
           <h1 className="text-2xl font-bold leading-snug">{survey.title}</h1>
           <p className="mt-2 text-indigo-100 text-xs opacity-90">100% Ẩn danh • Hãy chia sẻ thật lòng nhé!</p>

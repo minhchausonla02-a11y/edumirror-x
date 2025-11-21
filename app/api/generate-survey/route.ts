@@ -58,18 +58,19 @@ export async function POST(req: Request) {
       type: "smart_5_questions",
       title: aiData.lesson_title || "Phản hồi sau tiết học",
       questions: [
-        // SỬA CÂU 1: Ngôn ngữ cụ thể hơn
-        {
-          id: "q1_sentiment",
-          type: "sentiment",
-          text: "Em cảm thấy tiết học hôm nay thế nào?",
-          options: [
-            "🤩 Hứng thú|Em hiểu bài và thấy rất vui", 
-            "🙂 Bình thường|Em nắm được bài, mọi thứ ổn", 
-            "🤯 Hơi căng|Bài hơi khó hoặc giảng hơi nhanh", 
-            "😴 Mệt mỏi|Em khó tập trung hoặc buồn ngủ"
-          ]
-        },
+        // SỬA CÂU 1: Thay từ viết tắt bằng từ đầy đủ
+{
+  id: "q1_sentiment",
+  type: "sentiment",
+  text: "Em cảm thấy tiết học hôm nay thế nào?",
+  options: [
+    "🤩 Hứng thú|Em hiểu bài và thấy rất vui", 
+    "🙂 Bình thường|Em nắm được bài, mọi thứ ổn", 
+    "🤯 Hơi căng|Bài hơi khó hoặc giảng hơi nhanh", 
+    "😴 Mệt mỏi|Em khó tập trung hoặc buồn ngủ"
+  ]
+},
+// ... (Các câu khác giữ nguyên)
         {
           id: "q2_understanding",
           type: "rating",
