@@ -1,4 +1,3 @@
-// components/SurveyView.tsx
 "use client";
 import React from "react";
 
@@ -9,93 +8,75 @@ export interface SurveyV2 {
 }
 
 export default function SurveyView({ survey }: { survey: SurveyV2 }) {
-  if (!survey || !survey.questions) return <div className="text-gray-500 italic">Chưa có dữ liệu phiếu...</div>;
+  if (!survey || !survey.questions) return null;
 
   return (
-    <div className="bg-gray-50 border rounded-xl overflow-hidden max-w-md mx-auto font-sans shadow-sm">
-      {/* Header giả lập điện thoại */}
-      <div className="bg-indigo-600 p-4 text-white text-center">
-        <div className="text-[10px] opacity-80 uppercase tracking-wider">EduMirror X • 60s Feedback</div>
-        <div className="text-lg font-bold mt-1">{survey.title}</div>
-      </div>
+    <div className="mx-auto max-w-[360px] bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl border-[6px] border-gray-800 relative overflow-hidden transform scale-90 origin-top">
+      {/* Màn hình điện thoại */}
+      <div className="bg-[#F8F9FC] rounded-[2rem] overflow-hidden h-[650px] overflow-y-auto no-scrollbar relative scroll-smooth">
+        
+        {/* Header giả lập */}
+        <div className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 p-6 pt-10 pb-16 text-white rounded-b-[2rem] shadow-md">
+          <div className="text-[9px] opacity-80 uppercase tracking-widest font-bold mb-1 text-center">EduMirror X</div>
+          <div className="font-bold text-base leading-tight text-center">{survey.title}</div>
+        </div>
 
-      <div className="p-4 space-y-4">
-        {survey.questions.map((q, idx) => (
-          <div key={q.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-100">
-            {/* Tiêu đề câu hỏi */}
-            <h4 className="font-bold text-gray-800 mb-3 text-sm">
-              <span className="text-indigo-600 mr-1">{idx + 1}.</span> 
-              {q.text}
-            </h4>
-
-            {/* --- RENDER THEO LOẠI CÂU HỎI --- */}
-            
-            {/* Loại 1: Cảm xúc (Sentiment) */}
-            {q.type === "sentiment" && (
-              <div className="grid grid-cols-4 gap-2">
-                {q.options.map((opt: string, i: number) => (
-                  <div key={i} className="flex flex-col items-center justify-center p-2 border rounded bg-gray-50 text-center text-xs opacity-70 grayscale">
-                    <span className="text-xl mb-1">{opt.split(" ")[1] || "😐"}</span>
-                  </div>
-                ))}
+        <div className="px-4 -mt-10 space-y-4 pb-10 relative z-10">
+          {survey.questions.map((q, idx) => (
+            <div key={idx} className="bg-white/90 backdrop-blur p-4 rounded-2xl shadow-sm border border-white">
+              <div className="flex justify-between items-center mb-2">
+                <span className="bg-indigo-100 text-indigo-600 text-[10px] font-bold px-2 py-0.5 rounded-full">Câu {idx + 1}</span>
+                {q.type === "checkbox_dynamic" && <span className="text-[9px] text-orange-500 font-bold flex items-center gap-1">✨ AI</span>}
               </div>
-            )}
+              
+              <h4 className="font-bold text-gray-800 text-xs mb-3 leading-normal">{q.text}</h4>
 
-            {/* Loại 2: Rating (Mức độ hiểu) */}
-            {q.type === "rating" && (
-              <div className="space-y-2">
-                {q.options.map((opt: string, i: number) => (
-                  <div key={i} className="flex items-center gap-3 p-2 border rounded bg-gray-50">
-                    <div className="w-4 h-4 rounded-full border border-gray-300"></div>
-                    <span className="text-sm text-gray-500">{opt}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Loại 3: Kiến thức ĐỘNG (QUAN TRỌNG: Hiển thị nội dung AI sinh ra) */}
-            {q.type === "checkbox_dynamic" && (
-              <div className="space-y-2 bg-orange-50/50 p-3 rounded border border-orange-100">
-                <div className="text-[10px] text-orange-600 font-bold mb-1 uppercase flex items-center gap-1">
-                  🤖 AI Detected Focus:
+              {/* Render xem trước thu gọn */}
+              {q.type === "sentiment" && (
+                <div className="grid grid-cols-2 gap-2">
+                  {q.options.map((o: string, i: number) => (
+                    <div key={i} className="bg-gray-50 rounded-lg p-2 text-center border border-gray-100">
+                      <div className="text-lg">{o.split("|")[0].split(" ")[0]}</div>
+                      <div className="text-[9px] font-bold text-gray-500 mt-1">{o.split("|")[0].split(" ")[1]}</div>
+                    </div>
+                  ))}
                 </div>
-                {q.options.map((opt: string, i: number) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <div className="w-4 h-4 rounded border border-orange-300 bg-white"></div>
-                    <span className="text-sm text-gray-700 font-medium">{opt}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+              )}
 
-            {/* Loại 4: Quiz (QUAN TRỌNG: Hiển thị câu đố AI) */}
-            {q.type === "quiz" && (
-               <div className="space-y-2 bg-blue-50/50 p-3 rounded border border-blue-100">
-                 <div className="text-[10px] text-blue-600 font-bold mb-1 uppercase flex items-center gap-1">
-                  ⚡ 10s Challenge:
+              {q.type === "rating" && (
+                <div className="space-y-1.5">
+                  {q.options.map((o: string, i: number) => (
+                    <div key={i} className="flex items-center gap-2 p-1.5 rounded bg-gray-50 border border-transparent text-[10px] text-gray-600">
+                      <div className="w-2.5 h-2.5 rounded-full border border-gray-300 bg-white"></div>
+                      {o}
+                    </div>
+                  ))}
                 </div>
-                {q.quiz_data?.options.map((opt: string, i: number) => (
-                   <div key={i} className="p-2 bg-white border border-blue-100 rounded text-sm text-gray-600 shadow-sm">
-                     <span className="font-bold text-blue-500 mr-2">{["A", "B", "C", "D"][i]}.</span> {opt}
-                   </div>
-                ))}
-               </div>
-            )}
+              )}
 
-            {/* Loại 5: Text area */}
-            {q.type === "text" && (
-              <textarea 
-                className="w-full border rounded p-2 text-sm h-16 bg-gray-50 resize-none" 
-                placeholder={q.placeholder}
-                disabled
-              />
-            )}
-          </div>
-        ))}
+              {(q.type.includes("checkbox")) && (
+                <div className="space-y-1.5">
+                  {q.options.map((o: string, i: number) => (
+                    <div key={i} className="flex items-center gap-2 p-1.5 rounded bg-purple-50/40 border border-purple-100 text-[10px] text-purple-900">
+                      <div className="w-2.5 h-2.5 rounded border border-purple-300 bg-white"></div>
+                      {o}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {q.type === "text" && (
+                <div className="h-10 bg-gray-50 rounded-lg border border-gray-200 flex items-center px-3 text-[10px] text-gray-400 italic">
+                  Nhập câu trả lời...
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-      <div className="bg-gray-100 p-2 text-center text-[10px] text-gray-400">
-        Màn hình Xem trước (Preview Mode)
-      </div>
+      
+      {/* Thanh Home ảo của iPhone */}
+      <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gray-600 rounded-full opacity-50"></div>
     </div>
   );
 }
