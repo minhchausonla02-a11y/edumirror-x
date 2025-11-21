@@ -51,23 +51,37 @@ export async function POST(req: Request) {
     const rawContent = completion.choices[0].message.content || "{}";
     const aiData = safeParse(rawContent);
 
+    // ... (Code AI xử lý ở trên giữ nguyên) ...
+
     // Cấu trúc phiếu 5 câu chuẩn
     const survey_v2 = {
       type: "smart_5_questions",
       title: aiData.lesson_title || "Phản hồi sau tiết học",
       questions: [
+        // SỬA CÂU 1: Ngôn ngữ cụ thể hơn
         {
           id: "q1_sentiment",
           type: "sentiment",
-          text: "Tiết học hôm nay để lại cho em cảm giác gì?",
-          options: ["🤩 Hứng thú|Hiểu bài", "🙂 Bình thường|Ổn", "🤯 Hơi căng|Khó", "😴 Mệt mỏi|Chán"]
+          text: "Em cảm thấy tiết học hôm nay thế nào?",
+          options: [
+            "🤩 Hứng thú|Em hiểu bài và thấy rất vui", 
+            "🙂 Bình thường|Em nắm được bài, mọi thứ ổn", 
+            "🤯 Hơi căng|Bài hơi khó hoặc giảng hơi nhanh", 
+            "😴 Mệt mỏi|Em khó tập trung hoặc buồn ngủ"
+          ]
         },
         {
           id: "q2_understanding",
           type: "rating",
-          text: "Em đánh giá mức độ hiểu bài của mình?",
-          options: ["Mức 1: Chưa hiểu", "Mức 2: Mơ hồ", "Mức 3: Hiểu tương đối", "Mức 4: Hiểu rõ"]
+          text: "Em tự đánh giá mức độ hiểu bài của mình?",
+          options: [
+            "Mức 1: Em chưa hiểu (Mất gốc)",
+            "Mức 2: Em còn mơ hồ (Cần xem lại)",
+            "Mức 3: Em hiểu sương sương (Làm được bài cơ bản)",
+            "Mức 4: Em hiểu rất rõ (Tự tin làm bài)"
+          ]
         },
+        // ... (Các câu 3, 4, 5 giữ nguyên) ...
         {
           id: "q3_gaps",
           type: "checkbox_dynamic",
