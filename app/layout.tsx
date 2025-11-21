@@ -1,26 +1,24 @@
-// app/layout.tsx
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import { AppProvider } from "@/lib/store";
-import Navbar from "@/components/Navbar"; // 1. Import component mới
 
-export const metadata = { title: "EduMirror X" };
+const inter = Inter({ subsets: ["latin"] });
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export const metadata: Metadata = {
+  title: "EduMirror X",
+  description: "Trợ lý phản chiếu học tập bằng AI",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="vi">
-      <body className="bg-gray-50 text-gray-900">
-        <AppProvider>
-          {/* 2. Thay thế đoạn code header dài dòng cũ bằng dòng này */}
-          <Navbar /> 
-          
-          <main className="max-w-6xl mx-auto px-4 py-8">
-            {children}
-          </main>
-
-          <footer className="text-center text-xs text-gray-500 py-6">
-            © {new Date().getFullYear()} EduMirror X
-          </footer>
-        </AppProvider>
+      <body className={inter.className}>
+        {/* QUAN TRỌNG: Ở đây chỉ để children, KHÔNG ĐƯỢC ĐỂ Navbar hay Header nào cả */}
+        {children}
       </body>
     </html>
   );
