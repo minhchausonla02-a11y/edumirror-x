@@ -1,47 +1,35 @@
-import { NextRequest, NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseAdmin";
+import { NextResponse } from "next/server";
+import { createClient } from '@supabase/supabase-js';
 
-export async function GET(_req: NextRequest) {
+export const dynamic = "force-dynamic";
+
+export async function GET() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
   try {
-    const supabase = getSupabaseAdmin();
-
-    // Lấy tối đa 30 survey gần nhất
+    // Lấy danh sách, nhưng chỉ lấy những phiếu có dữ liệu (không null)
     const { data, error } = await supabase
       .from("surveys")
-      .select("id, short_id, payload, created_at")
+      .select("short_id, payload, created_at")
+      .not("payload", "is", null) // Lọc bỏ phiếu rỗng
       .order("created_at", { ascending: false })
-      .limit(30);
+      .limit(20);
 
-    if (error) {
-      console.error("Supabase list surveys error:", error);
-      return NextResponse.json(
-        { ok: false, error: "Không tải được danh sách phiếu khảo sát." },
-        { status: 500 }
-      );
-    }
+    if (error) throw error;
 
-    // Chuẩn hoá dữ liệu gửi ra FE
-    const surveys = (data || []).map((row: any) => {
-      const payload = row.payload ?? {};
-      const title: string =
-        payload.title ||
-        payload.surveyTitle ||
-        "Phiếu 60s không rõ tiêu đề";
+    // Kiểm tra dữ liệu trước khi trả về
+    const validSurveys = data?.map(s => ({
+        ...s,
+        // Nếu không có tiêu đề thì đặt tên tạm
+        title: s.payload?.title || "Phiếu chưa đặt tên",
+        // Nếu không có ngày thì lấy ngày hiện tại
+        created_at: s.created_at || new Date().toISOString()
+    })) || [];
 
-      return {
-        id: row.id as number,
-        shortId: row.short_id as string,
-        title,
-        createdAt: row.created_at as string,
-      };
-    });
-
-    return NextResponse.json({ ok: true, surveys });
+    return NextResponse.json({ surveys: validSurveys });
   } catch (err: any) {
-    console.error("list-surveys API error:", err);
-    return NextResponse.json(
-      { ok: false, error: err?.message || "Lỗi không xác định." },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
