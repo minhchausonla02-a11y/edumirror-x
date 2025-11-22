@@ -26,17 +26,17 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({ apiKey: finalKey });
 
-    // --- PROMPT MỚI: YÊU CẦU 5-7 Ý ---
+    // --- PROMPT MỚI: CHỈ LẤY 4-5 Ý KHÓ NHẤT ---
     const systemPrompt = `
       Bạn là chuyên gia sư phạm EduMirror. Nhiệm vụ: Phân tích giáo án để tìm ra các "Điểm nóng kiến thức" (Pain points).
       
       Đầu vào: Nội dung bài dạy.
       Yêu cầu đầu ra (JSON):
       1. "lesson_title": Tên bài học ngắn gọn.
-      2. "dynamic_knowledge_gaps": Hãy liệt kê từ 5 đến 7 khái niệm, kỹ năng hoặc dạng bài cụ thể mà học sinh thường gặp khó khăn trong bài này.
-         - Mỗi ý phải ngắn gọn (dưới 12 từ).
-         - Bắt đầu bằng động từ hoặc danh từ (Ví dụ: "Vẽ đồ thị...", "Phân biệt...", "Công thức...").
-         - Sắp xếp theo trình tự bài học.
+      2. "dynamic_knowledge_gaps": Hãy chọn lọc và liệt kê từ 4 đến 5 khái niệm/kỹ năng KHÓ NHẤT mà học sinh thường sai hoặc không hiểu.
+         - Số lượng bắt buộc: Tối thiểu 4, Tối đa 5 ý. (Không được nhiều hơn).
+         - Tiêu chí chọn: Chọn những phần trừu tượng, dễ nhầm lẫn hoặc trọng tâm của bài.
+         - Văn phong: Ngắn gọn (dưới 10 từ/ý), bắt đầu bằng động từ hoặc danh từ.
     `;
 
     const completion = await openai.chat.completions.create({
@@ -45,14 +45,14 @@ export async function POST(req: Request) {
         { role: "system", content: systemPrompt },
         { role: "user", content: `Bài học:\n${content.substring(0, 15000)}` }
       ],
-      temperature: 0.6, // Tăng nhẹ độ sáng tạo để tìm đủ 7 ý
+      temperature: 0.5, // Giảm độ sáng tạo để AI tuân thủ chặt chẽ số lượng
       response_format: { type: "json_object" }
     });
 
     const rawContent = completion.choices[0].message.content || "{}";
     const aiData = safeParse(rawContent);
 
-    // CẤU TRÚC PHIẾU 5 CÂU (Đã cập nhật text chuẩn)
+    // CẤU TRÚC PHIẾU 5 CÂU
     const survey_v2 = {
       type: "smart_5_questions",
       title: aiData.lesson_title || "Phản hồi sau tiết học",
@@ -79,7 +79,7 @@ export async function POST(req: Request) {
             "Mức 4: Em hiểu rất rõ (Tự tin làm bài)"
           ]
         },
-        // CÂU 3: SẼ HIỆN 5-7 LỰA CHỌN TỪ AI
+        // CÂU 3: SẼ HIỆN 4-5 LỰA CHỌN KHÓ NHẤT + 1 LỰA CHỌN "KHÔNG CÓ"
         {
           id: "q3_gaps",
           type: "checkbox_dynamic",
