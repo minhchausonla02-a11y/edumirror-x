@@ -7,29 +7,26 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const surveyId = searchParams.get("id");
 
-  // 1. Kết nối Supabase (Dùng Service Role để đảm bảo quyền đọc full)
+  // Kết nối Supabase (đảm bảo dùng Key có quyền đọc)
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  
-  if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.json({ error: "Chưa cấu hình Supabase Key" }, { status: 500 });
-  }
-
   const supabase = createClient(supabaseUrl, supabaseKey);
 
-  if (!surveyId) return NextResponse.json({ error: "Thiếu ID phiếu" }, { status: 400 });
+  if (!surveyId) return NextResponse.json({ error: "Thiếu ID" }, { status: 400 });
 
   try {
-    // 2. Lấy dữ liệu từ bảng survey_responses
-    // Chỉ lấy cột answers để tiết kiệm băng thông
+    // 1. Lấy dữ liệu trả lời khớp với short_id
     const { data: responses, error } = await supabase
       .from("survey_responses")
       .select("answers")
       .eq("survey_short_id", surveyId);
 
-    if (error) throw error;
+    if (error) {
+        console.error("Lỗi Supabase:", error);
+        throw error;
+    }
 
-    // 3. Chuẩn bị khung chứa số liệu
+    // 2. Khởi tạo bộ đếm
     const stats = {
       total: responses?.length || 0,
       sentiment: {} as Record<string, number>,
@@ -39,60 +36,48 @@ export async function GET(req: Request) {
       feedbacks: [] as string[]
     };
 
-    // 4. Thuật toán Đếm thông minh (Smart Counting Logic)
+    // 3. Duyệt và đếm (Logic mới linh hoạt hơn)
     responses?.forEach((row: any) => {
-      const ans = row.answers;
+      // Một số trường hợp answers bị bọc trong mảng hoặc object khác, ta lấy phần core
+      const ans = row.answers?.answers || row.answers; 
       if (!ans) return;
 
-      // --- Xử lý Cảm xúc (Q1) ---
+      // Đếm Cảm xúc
       if (ans.q1_sentiment) {
-        // Tự động cắt bỏ phần mô tả sau dấu | (Nếu có)
-        // VD: "🤩 Hứng thú | Em thấy vui" -> Lấy "🤩 Hứng thú"
-        const key = ans.q1_sentiment.split("|")[0].trim();
+        const key = ans.q1_sentiment.split("|")[0].trim(); // Lấy icon
         stats.sentiment[key] = (stats.sentiment[key] || 0) + 1;
       }
 
-      // --- Xử lý Hiểu bài (Q2) ---
+      // Đếm Hiểu bài
       if (ans.q2_understanding) {
-        // VD: "Mức 1: Chưa hiểu" -> Lấy "Mức 1" hoặc lấy cả câu đều được
-        // Ở đây ta lấy cả câu nhưng cắt ngắn nếu quá dài
-        let key = ans.q2_understanding;
-        if (key.includes(":")) key = key.split(":")[0].trim(); // Lấy "Mức 1"
+        const key = ans.q2_understanding.split(":")[0].trim(); // Lấy Mức 1...
         stats.understanding[key] = (stats.understanding[key] || 0) + 1;
       }
 
-      // --- Xử lý Điểm nghẽn (Q3 - Mảng) ---
+      // Đếm Điểm nghẽn (Mảng)
       if (Array.isArray(ans.q3_gaps)) {
         ans.q3_gaps.forEach((gap: string) => {
-          if (gap && !gap.includes("Không có")) { // Bỏ qua lựa chọn "Không có"
-             // Cắt ngắn nếu tên kiến thức quá dài để biểu đồ đẹp hơn
-             const cleanGap = gap.length > 50 ? gap.substring(0, 47) + "..." : gap;
-             stats.gaps[cleanGap] = (stats.gaps[cleanGap] || 0) + 1;
+          if (gap && !gap.includes("Không có")) {
+             stats.gaps[gap] = (stats.gaps[gap] || 0) + 1;
           }
         });
       }
 
-      // --- Xử lý Mong muốn (Q4 - Mảng) ---
+      // Đếm Mong muốn (Mảng)
       if (Array.isArray(ans.q4_wishes)) {
         ans.q4_wishes.forEach((wish: string) => {
-           // Lấy icon đầu dòng làm key hiển thị cho gọn, hoặc lấy cả câu
-           // VD: "🐢 Giảng chậm" -> lấy nguyên văn
            stats.wishes[wish] = (stats.wishes[wish] || 0) + 1;
         });
       }
 
-      // --- Xử lý Lời nhắn (Q5) ---
-      if (ans.q5_feedback && typeof ans.q5_feedback === 'string') {
-        const fb = ans.q5_feedback.trim();
-        if (fb.length > 0) stats.feedbacks.push(fb);
+      // Lấy Lời nhắn
+      if (ans.q5_feedback) {
+          stats.feedbacks.push(ans.q5_feedback);
       }
     });
 
-    console.log(`Đã xử lý ${stats.total} phiếu cho ID ${surveyId}`);
     return NextResponse.json({ stats });
-
   } catch (err: any) {
-    console.error("Lỗi Survey Summary:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
