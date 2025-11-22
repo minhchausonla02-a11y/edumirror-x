@@ -7,44 +7,54 @@ export default function DashboardView() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
-  // 1. Tải danh sách phiếu
+  // 1. Tải danh sách phiếu (Dropdown)
   useEffect(() => {
     fetch("/api/list-surveys")
       .then((res) => res.json())
       .then((data) => {
         if (data.surveys && data.surveys.length > 0) {
           setSurveys(data.surveys);
-          // Chọn phiếu mới nhất (đầu tiên)
+          // Tự động chọn phiếu mới nhất nếu chưa chọn
           if (!selectedId) setSelectedId(data.surveys[0].short_id);
         }
       })
       .catch(err => console.error("Lỗi tải danh sách:", err));
   }, []);
 
-  // 2. Hàm tải dữ liệu chi tiết
-  useEffect(() => {
+  // Hàm tải dữ liệu chi tiết
+  const fetchStats = () => {
     if (!selectedId) return;
     setLoading(true);
-    // Thêm timestamp để tránh cache
+    console.log("Đang tải dữ liệu cho ID:", selectedId); // DEBUG
+
+    // Thêm t=... để tránh trình duyệt dùng lại cache cũ
     fetch(`/api/survey-summary?id=${selectedId}&t=${Date.now()}`)
       .then((res) => res.json())
       .then((data) => {
+         console.log("Dữ liệu API trả về:", data); // DEBUG QUAN TRỌNG
          if (data.stats) {
             setStats(data.stats);
+         } else {
+            setStats(null);
          }
       })
-      .catch(err => console.error("Lỗi summary:", err))
+      .catch(err => console.error("Lỗi tải stats:", err))
       .finally(() => setLoading(false));
+  };
+
+  // 2. Gọi hàm tải khi ID thay đổi
+  useEffect(() => {
+    fetchStats();
   }, [selectedId]);
 
-  // Helper: Thanh Progress
+  // Component thanh tiến trình
   const ProgressBar = ({ label, val, total, color }: any) => {
     const pct = total > 0 ? Math.round((val / total) * 100) : 0;
     return (
       <div className="mb-4 last:mb-0 group">
         <div className="flex justify-between text-xs mb-1.5 font-medium text-gray-700">
           <span className="truncate max-w-[75%]" title={label}>{label}</span>
-          <span className="text-gray-900 font-bold">{val} ({pct}%)</span>
+          <span className="text-gray-900 font-bold">{val || 0} ({pct}%)</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
           <div className={`h-2.5 rounded-full ${color} transition-all duration-700 group-hover:opacity-80`} style={{ width: `${pct}%` }}></div>
@@ -53,11 +63,13 @@ export default function DashboardView() {
     );
   };
 
-  // --- PHẦN GIAO DIỆN (RETURN) QUAN TRỌNG ---
+  // Biến kiểm tra để hiển thị giao diện (Chỉ cần stats là object là hiện, kể cả total=0)
+  const showData = stats && typeof stats === 'object';
+
   return (
-    <div className="space-y-8 font-sans animate-fade-in pb-10">
+    <div className="space-y-8 font-sans animate-fade-in pb-12">
       
-      {/* Header & Bộ lọc */}
+      {/* --- HEADER & BỘ LỌC --- */}
       <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
@@ -77,72 +89,83 @@ export default function DashboardView() {
             >
                 {surveys.map(s => (
                 <option key={s.short_id} value={s.short_id}>
-                    {s.payload?.title ? s.payload.title.substring(0, 35) : "Phiếu không tên"}...
+                    {s.payload?.title ? s.payload.title.substring(0, 30) : "Phiếu không tên"}... ({new Date(s.created_at).toLocaleDateString('vi-VN')})
                 </option>
                 ))}
             </select>
             ) : <div className="text-red-500 text-sm p-2">Chưa có phiếu nào.</div>}
+            
+            {/* NÚT LÀM MỚI QUAN TRỌNG */}
+            <button 
+                onClick={fetchStats} 
+                className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 transition-colors border border-indigo-100"
+                title="Làm mới dữ liệu ngay lập tức"
+            >
+                🔄
+            </button>
         </div>
       </div>
 
+      {/* --- NỘI DUNG CHÍNH --- */}
       {loading ? (
         <div className="text-center py-24 text-indigo-500">
             <div className="inline-block w-8 h-8 border-4 border-current border-t-transparent rounded-full animate-spin mb-2"></div>
             <p className="text-sm font-bold">Đang phân tích dữ liệu...</p>
         </div>
-      ) : stats && stats.total > 0 ? (
+      ) : showData ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* 1. THẺ TỔNG QUAN */}
+          {/* 1. TỔNG QUAN */}
           <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-8 rounded-3xl shadow-lg text-white flex flex-col sm:flex-row justify-between items-center relative overflow-hidden">
              <div className="relative z-10 text-center sm:text-left">
                 <div className="text-xs opacity-80 uppercase font-bold tracking-widest mb-1">Tổng phiếu thu về</div>
-                <div className="text-6xl font-bold tracking-tight">{stats.total}</div>
+                <div className="text-6xl font-bold tracking-tight">{stats.total || 0}</div>
              </div>
              <div className="mt-4 sm:mt-0 text-center sm:text-right relative z-10">
                 <div className="text-xs opacity-80 uppercase font-bold tracking-widest mb-2">Cảm xúc chủ đạo</div>
                 <div className="text-3xl font-bold bg-white/20 px-4 py-2 rounded-2xl backdrop-blur-sm inline-block">
-                  {Object.keys(stats.sentiment).length > 0 
+                  {stats.sentiment && Object.keys(stats.sentiment).length > 0 
                     ? Object.entries(stats.sentiment).sort((a:any, b:any) => b[1] - a[1])[0]?.[0] 
                     : "—"}
                 </div>
              </div>
+             {/* Background Decor */}
+             <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-16 -mt-16"></div>
           </div>
 
           {/* 2. CẢM XÚC */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-5 flex items-center gap-2">
+            <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2">
                <span className="bg-pink-100 text-pink-600 p-1.5 rounded-lg text-sm">🎭</span> Cảm xúc
             </h3>
-            {Object.keys(stats.sentiment).length > 0 ? (
+            {stats.sentiment && Object.keys(stats.sentiment).length > 0 ? (
                 Object.entries(stats.sentiment).map(([k, v]) => (
                   <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-pink-500" />
                 ))
             ) : <p className="text-xs text-gray-400 italic text-center py-4">Chưa có dữ liệu</p>}
           </div>
 
-          {/* 3. MỨC ĐỘ HIỂU BÀI */}
+          {/* 3. HIỂU BÀI */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-5 flex items-center gap-2">
+            <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2">
                 <span className="bg-green-100 text-green-600 p-1.5 rounded-lg text-sm">🧠</span> Mức độ hiểu
             </h3>
-            {Object.keys(stats.understanding).length > 0 ? (
+            {stats.understanding && Object.keys(stats.understanding).length > 0 ? (
                 Object.entries(stats.understanding).map(([k, v]) => (
                   <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-emerald-500" />
                 ))
             ) : <p className="text-xs text-gray-400 italic text-center py-4">Chưa có dữ liệu</p>}
           </div>
 
-          {/* 4. ĐIỂM NGHẼN KIẾN THỨC */}
+          {/* 4. ĐIỂM NGHẼN */}
           <div className="bg-white p-6 rounded-3xl border border-red-100 shadow-sm relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-16 h-16 bg-red-50 rounded-bl-full -mr-8 -mt-8"></div>
-            <h3 className="font-bold text-red-600 mb-5 flex items-center gap-2 relative z-10">
+            <h3 className="font-bold text-red-600 mb-6 flex items-center gap-2 relative z-10">
                 <span className="bg-red-100 p-1.5 rounded-lg text-sm">⚠️</span> Điểm nghẽn
             </h3>
             <div className="space-y-3 relative z-10 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-              {Object.keys(stats.gaps).length > 0 ? (
+              {stats.gaps && Object.keys(stats.gaps).length > 0 ? (
                 Object.entries(stats.gaps)
-                  .sort((a:any, b:any) => b[1] - a[1]) // Sắp xếp
+                  .sort((a:any, b:any) => b[1] - a[1])
                   .map(([k, v]: any) => (
                   <div key={k} className="flex justify-between items-center bg-red-50 p-3 rounded-xl border border-red-100">
                     <span className="text-xs font-medium text-gray-800 leading-tight max-w-[80%]">{k}</span>
@@ -166,10 +189,10 @@ export default function DashboardView() {
                 <span className="bg-blue-100 p-1.5 rounded-lg text-sm">💡</span> Mong muốn
             </h3>
             <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-              {Object.keys(stats.wishes).length > 0 ? (
+              {stats.wishes && Object.keys(stats.wishes).length > 0 ? (
                   Object.entries(stats.wishes).map(([k, v]: any) => (
                     <div key={k} className="flex justify-between items-center border-b border-gray-100 pb-2 last:border-0">
-                      <span className="text-xs text-gray-600 font-medium">{k.replace(/[\u{1F600}-\u{1F6FF}]/gu, '')}</span>
+                      <span className="text-xs text-gray-600 font-medium truncate max-w-[85%]">{k.replace(/[\u{1F600}-\u{1F6FF}]/gu, '')}</span>
                       <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{v}</span>
                     </div>
                   ))
@@ -177,14 +200,14 @@ export default function DashboardView() {
             </div>
           </div>
 
-          {/* 6. LỜI NHẮN ẨN DANH */}
+          {/* 6. LỜI NHẮN */}
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm col-span-1 md:col-span-2 lg:col-span-3">
             <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                 <span className="bg-gray-100 text-gray-600 p-1.5 rounded-lg text-sm">💌</span> 
-                Lời nhắn ẩn danh <span className="text-xs font-normal text-gray-400">({stats.feedbacks.length})</span>
+                Lời nhắn ẩn danh <span className="text-xs font-normal text-gray-400">({stats.feedbacks?.length || 0})</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-              {stats.feedbacks.length > 0 ? (
+              {stats.feedbacks && stats.feedbacks.length > 0 ? (
                 stats.feedbacks.map((fb: string, i: number) => (
                   <div key={i} className="bg-gray-50 p-4 rounded-xl text-sm text-gray-600 italic border-l-4 border-indigo-400 shadow-sm">
                     "{fb}"
