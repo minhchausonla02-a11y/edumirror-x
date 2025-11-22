@@ -15,10 +15,10 @@ export async function GET(req: Request) {
   if (!surveyId) return NextResponse.json({ error: "Thiếu ID" }, { status: 400 });
 
   try {
-    // Lấy dữ liệu
+    // Lấy toàn bộ dữ liệu để debug
     const { data: responses, error } = await supabase
       .from("survey_responses")
-      .select("*") // Lấy hết các cột để debug
+      .select("*")
       .eq("survey_short_id", surveyId);
 
     if (error) throw error;
@@ -35,26 +35,30 @@ export async function GET(req: Request) {
     console.log(`🔍 Tìm thấy ${responses?.length} bản ghi cho ID: ${surveyId}`);
 
     responses?.forEach((row: any) => {
-      // --- LOGIC "ĐÀO DỮ LIỆU" THÔNG MINH ---
-      // Thử tìm answers ở nhiều chỗ khác nhau để tránh bị null
+      // --- LOGIC QUAN TRỌNG: TÌM DỮ LIỆU BỊ ẨN ---
       let ans = row.answers;
-      
-      // Trường hợp 1: answers bị bọc trong một object khác tên là answers (lỗi thường gặp)
+
+      // Trường hợp 1: Bị bọc trong answers (Lỗi thường gặp nhất)
       if (ans && ans.answers) ans = ans.answers;
       
-      // Trường hợp 2: Dữ liệu nằm ở cột khác (phòng hờ)
+      // Trường hợp 2: Bị bọc trong payload
       if (!ans && row.payload) ans = row.payload;
 
-      // Nếu vẫn không có dữ liệu hợp lệ thì bỏ qua
-      if (!ans || (!ans.q1_sentiment && !ans.q2_understanding)) {
-          console.log("⚠️ Bản ghi rỗng hoặc sai format:", row);
-          return;
+      // Trường hợp 3: Nếu là chuỗi JSON string thì parse ra
+      if (typeof ans === 'string') {
+          try { ans = JSON.parse(ans); } catch (e) {}
       }
 
-      // Nếu tìm thấy dữ liệu hợp lệ -> Tăng biến đếm tổng
+      // Kiểm tra xem đã lấy đúng chưa (phải có ít nhất 1 trường q1 hoặc q2)
+      if (!ans || (!ans.q1_sentiment && !ans.q2_understanding)) {
+          console.log("⚠️ Bỏ qua dòng rác:", row);
+          return; 
+      }
+
+      // Tăng tổng số phiếu hợp lệ
       stats.total++;
 
-      // --- BẮT ĐẦU ĐẾM ---
+      // --- BẮT ĐẦU ĐẾM (AN TOÀN HƠN) ---
       
       // 1. Cảm xúc
       if (ans.q1_sentiment) {
@@ -72,6 +76,7 @@ export async function GET(req: Request) {
       if (Array.isArray(ans.q3_gaps)) {
         ans.q3_gaps.forEach((gap: string) => {
           if (gap && !gap.includes("Không có")) {
+             // Cắt ngắn bớt nếu quá dài
              const cleanGap = gap.length > 60 ? gap.substring(0, 57) + "..." : gap;
              stats.gaps[cleanGap] = (stats.gaps[cleanGap] || 0) + 1;
           }
