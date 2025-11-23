@@ -13,23 +13,27 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Lấy dữ liệu thống kê từ Dashboard gửi sang
+    // Lấy dữ liệu thống kê từ Dashboard gửi sang (nếu có)
     const savedStats = localStorage.getItem("current_stats");
     if (savedStats) {
       setStats(JSON.parse(savedStats));
     }
   }, []);
 
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatHistory]);
+  // Tự động cuộn xuống khi chat
+  useEffect(() => { 
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); 
+  }, [chatHistory]);
 
-  // Tự động phân tích ngay khi có dữ liệu (hoặc bấm nút)
+  // HÀM 1: KÍCH HOẠT PHÂN TÍCH (Gửi model đi)
   const handleAnalyze = async () => {
     if (!stats) return;
     setLoading(true);
     try {
       const res = await fetch("/api/get-solution", {
         method: "POST",
-        body: JSON.stringify({ stats, lessonText, apiKey,model }) // Gửi cả Stats và Giáo án
+        // 👇 Đã thêm model vào đây
+        body: JSON.stringify({ stats, lessonText, apiKey, model }) 
       });
       const data = await res.json();
       setSolution(data.result);
@@ -40,28 +44,33 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
     }
   };
 
-  // Gửi chat
+  // HÀM 2: GỬI CHAT (Gửi model đi - Đây là chỗ bạn cần sửa nhất)
   const handleSendChat = async () => {
     if (!chatInput.trim()) return;
+    
     const userMsg = chatInput;
+    // Hiện tin nhắn người dùng ngay lập tức
     setChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
     setChatInput("");
     setChatLoading(true);
+
     try {
       const res = await fetch("/api/chat-with-ai", {
         method: "POST",
-        // 👇👇👇 THÊM model VÀO ĐÂY 👇👇👇
+        // 👇 Đã thêm model vào đây (QUAN TRỌNG)
         body: JSON.stringify({ 
             question: userMsg,
             context: { diagnosis: JSON.stringify(stats), currentSolution: solution },
             apiKey,
-            model 
+            model // <--- Gửi model (ví dụ: gpt-4o) sang API
         })
       });
       const data = await res.json();
+      
+      // Hiện câu trả lời của AI
       setChatHistory(prev => [...prev, { role: 'ai', content: data.result }]);
     } catch (e) {
-      setChatHistory(prev => [...prev, { role: 'ai', content: "Lỗi kết nối." }]);
+      setChatHistory(prev => [...prev, { role: 'ai', content: "⚠️ Lỗi kết nối, vui lòng thử lại." }]);
     } finally {
       setChatLoading(false);
     }
@@ -70,32 +79,35 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
   return (
     <div className="space-y-6 animate-fade-in font-sans pb-12">
       
-      {/* Header */}
+      {/* --- PHẦN 1: PHÂN TÍCH & GIẢI PHÁP --- */}
       <div className="bg-white p-6 rounded-3xl border border-indigo-100 shadow-sm flex items-center justify-between">
          <div className="flex items-center gap-4">
             <div className="bg-indigo-100 p-3 rounded-full text-2xl">🤖</div>
             <div>
-                <h2 className="text-xl font-bold text-gray-800">Tư vấn Sư phạm AI (EduMirror+)</h2>
-                <p className="text-sm text-gray-500">Phân tích chuyên sâu 4 tầng: Số liệu - Nguyên nhân - Đối chiếu - Giải pháp</p>
+                <h2 className="text-xl font-bold text-gray-800">Tư vấn Sư phạm AI</h2>
+                <p className="text-sm text-gray-500">
+                    Mode: <span className="font-bold text-indigo-600">{model}</span> • Phân tích chuyên sâu 4 tầng
+                </p>
             </div>
          </div>
+         {/* Nút bấm chỉ hiện khi chưa có giải pháp */}
          {!solution && stats && (
              <button 
                 onClick={handleAnalyze} 
                 disabled={loading}
                 className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:scale-105 transition-all"
              >
-                {loading ? "Đang suy luận..." : "✨ Kích hoạt Phân tích 4 Tầng"}
+                {loading ? "Đang suy luận..." : "✨ Kích hoạt Phân tích"}
              </button>
          )}
       </div>
 
-      {/* NỘI DUNG PHÂN TÍCH 4 TẦNG */}
+      {/* HIỂN THỊ NỘI DUNG GIẢI PHÁP */}
       {solution ? (
         <div className="animate-fade-in-up">
-            <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: solution }}></div>
+            <div className="prose prose-sm max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: solution }}></div>
             
-            <div className="mt-6 text-center">
+            <div className="mt-6 text-center border-t pt-4">
                 <button onClick={() => { setSolution(null); localStorage.removeItem("current_stats"); }} className="text-xs text-gray-400 underline hover:text-red-500">
                     Xóa phân tích này & Làm lại
                 </button>
@@ -103,36 +115,75 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
         </div>
       ) : !stats && (
         <div className="text-center py-20 text-gray-400 bg-gray-50 rounded-3xl border-2 border-dashed">
-            <p>Chưa có dữ liệu từ Dashboard. Vui lòng quay lại Dashboard và bấm "Nhờ AI tư vấn".</p>
+            <p className="text-lg">Chưa có dữ liệu từ Dashboard.</p>
+            <p className="text-xs mt-1">Vui lòng quay lại tab Dashboard và bấm nút "Nhờ AI tư vấn".</p>
         </div>
       )}
 
-      {/* CHATBOT */}
+      {/* --- PHẦN 2: KHUNG CHAT (Chỉ hiện khi đã có giải pháp) --- */}
       {solution && (
           <div className="mt-8 bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden flex flex-col h-[500px]">
+              {/* Header Chat */}
               <div className="bg-gray-900 p-4 text-white flex items-center gap-3">
                   <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">👨‍🏫</div>
-                  <div className="font-bold text-sm">Trợ lý Sư phạm (Hỏi thêm về giải pháp)</div>
+                  <div>
+                      <div className="font-bold text-sm">Trợ lý Sư phạm (Chat)</div>
+                      <div className="text-[10px] text-gray-400">Đang sử dụng: {model}</div>
+                  </div>
               </div>
+
+              {/* Nội dung Chat */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
                   <div className="flex gap-3">
-                      <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-sm">🤖</div>
-                      <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm text-sm border border-gray-200 text-gray-700">
+                      <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-sm flex-shrink-0">🤖</div>
+                      <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm text-sm border border-gray-200 text-gray-700 max-w-[85%]">
                           Em đã phân tích xong. Thầy/cô có muốn hỏi sâu hơn về giải pháp nào không ạ? Ví dụ: "Cho tôi xin slide bài tập mồi".
                       </div>
                   </div>
+
                   {chatHistory.map((msg, idx) => (
                       <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-indigo-100'}`}>{msg.role === 'user' ? 'T' : '🤖'}</div>
-                          <div className={`p-3 rounded-2xl shadow-sm text-sm max-w-[80%] ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-700 rounded-tl-none'}`}>{msg.content}</div>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${msg.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-indigo-100'}`}>
+                              {msg.role === 'user' ? 'T' : '🤖'}
+                          </div>
+                          <div className={`p-3 rounded-2xl shadow-sm text-sm max-w-[85%] ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-700 rounded-tl-none'}`}>
+                              {msg.content}
+                          </div>
                       </div>
                   ))}
-                  {chatLoading && <div className="text-xs text-gray-400 italic ml-12">AI đang viết...</div>}
+
+                  {chatLoading && (
+                      <div className="flex gap-3">
+                          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-sm">🤖</div>
+                          <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-200">
+                              <div className="flex gap-1">
+                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                              </div>
+                          </div>
+                      </div>
+                  )}
                   <div ref={chatEndRef} />
               </div>
+
+              {/* Input Chat */}
               <div className="p-4 border-t bg-white flex gap-2">
-                  <input type="text" className="flex-1 bg-gray-100 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Nhập câu hỏi..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendChat()} />
-                  <button onClick={handleSendChat} disabled={chatLoading} className="bg-indigo-600 text-white w-12 h-12 rounded-xl flex items-center justify-center hover:bg-indigo-700">➤</button>
+                  <input 
+                      type="text" 
+                      className="flex-1 bg-gray-100 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" 
+                      placeholder="Nhập câu hỏi..." 
+                      value={chatInput} 
+                      onChange={(e) => setChatInput(e.target.value)} 
+                      onKeyDown={(e) => e.key === 'Enter' && handleSendChat()} 
+                  />
+                  <button 
+                      onClick={handleSendChat} 
+                      disabled={chatLoading || !chatInput.trim()} 
+                      className="bg-indigo-600 text-white w-12 h-12 rounded-xl flex items-center justify-center hover:bg-indigo-700 disabled:opacity-50 shadow-md transition-all"
+                  >
+                      ➤
+                  </button>
               </div>
           </div>
       )}
