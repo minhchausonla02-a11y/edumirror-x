@@ -49,10 +49,14 @@ export default function DashboardView() {
     finally { setAnalyzing(false); }
   };
 
+ // HÀM CHUYỂN SANG TAB TƯ VẤN (SỬA ĐỔI)
   const goToSolution = () => {
-    if (!aiResult) return;
-    const problemText = aiResult.map((item: any) => `- ${item.category}: ${item.summary}`).join("\n");
-    localStorage.setItem("current_diagnosis", problemText);
+    if (!stats) return;
+
+    // Lưu TOÀN BỘ object stats vào localStorage để bên kia AI có số liệu mà tính %
+    localStorage.setItem("current_stats", JSON.stringify(stats));
+    
+    // Chuyển hướng
     window.location.href = "/?tab=ai&mode=solve";
   };
 

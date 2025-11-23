@@ -1,120 +1,139 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
-export default function AISuggestionsView({ lessonText, analysis, apiKey, model }: any) {
+export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
+  const [stats, setStats] = useState<any>(null);
+  const [solution, setSolution] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<any>(null);
 
-  const handleGetAdvice = async () => {
-    if (!apiKey) { alert("Chưa có API Key"); return; }
+  // Chat State
+  const [chatInput, setChatInput] = useState("");
+  const [chatHistory, setChatHistory] = useState<{role: 'user' | 'ai', content: string}[]>([]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Lấy dữ liệu thống kê từ Dashboard gửi sang
+    const savedStats = localStorage.getItem("current_stats");
+    if (savedStats) {
+      setStats(JSON.parse(savedStats));
+    }
+  }, []);
+
+  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [chatHistory]);
+
+  // Tự động phân tích ngay khi có dữ liệu (hoặc bấm nút)
+  const handleAnalyze = async () => {
+    if (!stats) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/get-ai-suggestions", {
+      const res = await fetch("/api/get-solution", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-proxy-key": apiKey },
-        body: JSON.stringify({ lessonText, analysis, model }),
+        body: JSON.stringify({ stats, lessonText, apiKey }) // Gửi cả Stats và Giáo án
       });
       const data = await res.json();
-      setResult(data.suggestion);
-    } catch (e: any) { alert(e.message); } finally { setLoading(false); }
+      setSolution(data.result);
+    } catch (e) {
+      alert("Lỗi kết nối AI");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!result) {
-    return (
-      <div className="text-center py-16 bg-gradient-to-br from-gray-50 to-indigo-50 rounded-3xl border border-indigo-100">
-        <div className="text-6xl mb-6 animate-bounce">🔮</div>
-        <h3 className="text-2xl font-bold text-gray-800 mb-3">Kích hoạt "Trợ lý Kiến tạo Sư phạm"</h3>
-        <p className="text-gray-600 max-w-lg mx-auto mb-8 text-sm leading-relaxed">
-          Hệ thống sẽ thực hiện 3 tầng xử lý: <br/>
-          <b>1. Soi gương</b> (Phát hiện độ lệch dạy-học) <br/>
-          <b>2. Cứu trợ</b> (Tạo ví dụ & bài tập gỡ rối) <br/>
-          <b>3. Tâm lý</b> (Viết kịch bản điều phối cảm xúc)
-        </p>
-        <button onClick={handleGetAdvice} disabled={loading} 
-          className="px-10 py-4 bg-indigo-600 text-white rounded-full font-bold shadow-xl hover:bg-indigo-700 transition-all transform hover:scale-105 disabled:opacity-70 flex items-center gap-3 mx-auto">
-          {loading ? <span className="animate-spin">⚙️</span> : "✨"} 
-          {loading ? "Đang kiến tạo giải pháp..." : "Bắt đầu Phân tích & Kiến tạo"}
-        </button>
-      </div>
-    );
-  }
+  // Gửi chat
+  const handleSendChat = async () => {
+    if (!chatInput.trim()) return;
+    const userMsg = chatInput;
+    setChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
+    setChatInput("");
+    setChatLoading(true);
+    try {
+      const res = await fetch("/api/chat-with-ai", {
+        method: "POST",
+        body: JSON.stringify({ 
+            question: userMsg,
+            context: { diagnosis: JSON.stringify(stats), currentSolution: solution },
+            apiKey 
+        })
+      });
+      const data = await res.json();
+      setChatHistory(prev => [...prev, { role: 'ai', content: data.result }]);
+    } catch (e) {
+      setChatHistory(prev => [...prev, { role: 'ai', content: "Lỗi kết nối." }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-8 animate-fade-in pb-12">
-      {/* TẦNG 1: SOI GƯƠNG (GAP ANALYSIS) */}
-      <div className="bg-white border-l-4 border-orange-500 shadow-md rounded-r-xl p-6">
-        <h3 className="text-sm font-bold text-orange-600 uppercase tracking-wide mb-4 flex items-center gap-2">
-          🪞 Tầng 1: Soi gương (Gap Analysis)
-        </h3>
-        <div className="flex flex-col md:flex-row gap-6">
-            <div className="flex-1 bg-orange-50 p-4 rounded-lg">
-                <p className="text-xs text-orange-800 font-bold uppercase mb-1">Giáo viên (Kỳ vọng)</p>
-                <p className="text-gray-800 font-medium">"{result.gap_analysis?.teacher_intent}"</p>
-            </div>
-            <div className="flex items-center justify-center text-gray-400">⚡ Độ lệch ⚡</div>
-            <div className="flex-1 bg-red-50 p-4 rounded-lg">
-                <p className="text-xs text-red-800 font-bold uppercase mb-1">Học sinh (Thực tế)</p>
-                <p className="text-gray-800 font-medium">"{result.gap_analysis?.student_reality}"</p>
-            </div>
-        </div>
-        <div className="mt-4 text-sm text-gray-600 italic border-t pt-3">
-            💡 <b>Insight:</b> {result.gap_analysis?.insight}
-        </div>
-      </div>
-
-      {/* TẦNG 2: GÓI CỨU TRỢ (RESCUE KIT) */}
-      <div>
-        <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-4">
-          🛠️ Tầng 2: Gói Cứu Trợ Kiến Thức
-        </h3>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {result.rescue_kit?.map((item: any, idx: number) => (
-                <div key={idx} className="bg-white border border-blue-200 rounded-xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col">
-                    <div className="mb-3">
-                        <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded uppercase">
-                            {item.type === 'metaphor' ? 'Ẩn dụ' : item.type === 'mistake_fix' ? 'Sửa sai' : 'Bài tập'}
-                        </span>
-                    </div>
-                    <h4 className="font-bold text-gray-800 mb-2">{item.title}</h4>
-                    <div className="text-sm text-gray-600 whitespace-pre-line flex-grow">
-                        {item.content}
-                    </div>
-                    <button 
-                        onClick={() => navigator.clipboard.writeText(item.content)}
-                        className="mt-4 text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1 self-start"
-                    >
-                        📋 Copy
-                    </button>
-                </div>
-            ))}
-        </div>
-      </div>
-
-      {/* TẦNG 3: KỊCH BẢN CẢM XÚC (EMOTIONAL SCRIPT) */}
-      <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 text-white shadow-lg">
-        <h3 className="text-sm font-bold uppercase opacity-90 mb-4 flex items-center gap-2">
-          🎭 Tầng 3: Kịch bản Điều phối Cảm xúc
-        </h3>
-        <div className="flex items-start gap-4">
-            <div className="text-4xl bg-white/20 p-3 rounded-full">🗣️</div>
+    <div className="space-y-6 animate-fade-in font-sans pb-12">
+      
+      {/* Header */}
+      <div className="bg-white p-6 rounded-3xl border border-indigo-100 shadow-sm flex items-center justify-between">
+         <div className="flex items-center gap-4">
+            <div className="bg-indigo-100 p-3 rounded-full text-2xl">🤖</div>
             <div>
-                <div className="flex gap-3 mb-2">
-                    <span className="bg-black/30 px-3 py-1 rounded-full text-xs">Mood: {result.emotional_script?.mood_detected}</span>
-                    <span className="bg-white/20 px-3 py-1 rounded-full text-xs">Action: {result.emotional_script?.activity_name}</span>
-                </div>
-                <div className="bg-white/10 p-4 rounded-xl border border-white/20 font-mono text-sm leading-relaxed italic">
-                    "{result.emotional_script?.script_content}"
-                </div>
-                <p className="text-xs mt-2 opacity-80">*Giáo viên có thể dùng đoạn thoại này để mở đầu tiết sau.</p>
+                <h2 className="text-xl font-bold text-gray-800">Tư vấn Sư phạm AI (EduMirror+)</h2>
+                <p className="text-sm text-gray-500">Phân tích chuyên sâu 4 tầng: Số liệu - Nguyên nhân - Đối chiếu - Giải pháp</p>
             </div>
-        </div>
+         </div>
+         {!solution && stats && (
+             <button 
+                onClick={handleAnalyze} 
+                disabled={loading}
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-6 py-3 rounded-xl font-bold shadow-lg hover:scale-105 transition-all"
+             >
+                {loading ? "Đang suy luận..." : "✨ Kích hoạt Phân tích 4 Tầng"}
+             </button>
+         )}
       </div>
 
-      <div className="text-center pt-8">
-        <button onClick={() => setResult(null)} className="text-gray-400 hover:text-gray-600 text-sm underline">
-            Phân tích lại với dữ liệu mới
-        </button>
-      </div>
+      {/* NỘI DUNG PHÂN TÍCH 4 TẦNG */}
+      {solution ? (
+        <div className="animate-fade-in-up">
+            <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: solution }}></div>
+            
+            <div className="mt-6 text-center">
+                <button onClick={() => { setSolution(null); localStorage.removeItem("current_stats"); }} className="text-xs text-gray-400 underline hover:text-red-500">
+                    Xóa phân tích này & Làm lại
+                </button>
+            </div>
+        </div>
+      ) : !stats && (
+        <div className="text-center py-20 text-gray-400 bg-gray-50 rounded-3xl border-2 border-dashed">
+            <p>Chưa có dữ liệu từ Dashboard. Vui lòng quay lại Dashboard và bấm "Nhờ AI tư vấn".</p>
+        </div>
+      )}
+
+      {/* CHATBOT */}
+      {solution && (
+          <div className="mt-8 bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden flex flex-col h-[500px]">
+              <div className="bg-gray-900 p-4 text-white flex items-center gap-3">
+                  <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">👨‍🏫</div>
+                  <div className="font-bold text-sm">Trợ lý Sư phạm (Hỏi thêm về giải pháp)</div>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+                  <div className="flex gap-3">
+                      <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-sm">🤖</div>
+                      <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm text-sm border border-gray-200 text-gray-700">
+                          Em đã phân tích xong. Thầy/cô có muốn hỏi sâu hơn về giải pháp nào không ạ? Ví dụ: "Cho tôi xin slide bài tập mồi".
+                      </div>
+                  </div>
+                  {chatHistory.map((msg, idx) => (
+                      <div key={idx} className={`flex gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-indigo-100'}`}>{msg.role === 'user' ? 'T' : '🤖'}</div>
+                          <div className={`p-3 rounded-2xl shadow-sm text-sm max-w-[80%] ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-700 rounded-tl-none'}`}>{msg.content}</div>
+                      </div>
+                  ))}
+                  {chatLoading && <div className="text-xs text-gray-400 italic ml-12">AI đang viết...</div>}
+                  <div ref={chatEndRef} />
+              </div>
+              <div className="p-4 border-t bg-white flex gap-2">
+                  <input type="text" className="flex-1 bg-gray-100 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Nhập câu hỏi..." value={chatInput} onChange={(e) => setChatInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleSendChat()} />
+                  <button onClick={handleSendChat} disabled={chatLoading} className="bg-indigo-600 text-white w-12 h-12 rounded-xl flex items-center justify-center hover:bg-indigo-700">➤</button>
+              </div>
+          </div>
+      )}
     </div>
   );
 }
