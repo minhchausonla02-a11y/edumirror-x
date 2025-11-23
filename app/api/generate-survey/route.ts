@@ -26,17 +26,13 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({ apiKey: finalKey });
 
-    // --- PROMPT MỚI: CHỈ LẤY 4-5 Ý KHÓ NHẤT ---
+    // PROMPT MỚI: Chỉ yêu cầu AI tìm tên bài và 4 nội dung kiến thức cốt lõi
     const systemPrompt = `
-      Bạn là chuyên gia sư phạm EduMirror. Nhiệm vụ: Phân tích giáo án để tìm ra các "Điểm nóng kiến thức" (Pain points).
-      
+      Bạn là chuyên gia sư phạm. Nhiệm vụ: Phân tích giáo án để tìm ra Cốt lõi bài học.
       Đầu vào: Nội dung bài dạy.
       Yêu cầu đầu ra (JSON):
       1. "lesson_title": Tên bài học ngắn gọn.
-      2. "dynamic_knowledge_gaps": Hãy chọn lọc và liệt kê từ 4 đến 5 khái niệm/kỹ năng KHÓ NHẤT mà học sinh thường sai hoặc không hiểu.
-         - Số lượng bắt buộc: Tối thiểu 4, Tối đa 5 ý. (Không được nhiều hơn).
-         - Tiêu chí chọn: Chọn những phần trừu tượng, dễ nhầm lẫn hoặc trọng tâm của bài.
-         - Văn phong: Ngắn gọn (dưới 10 từ/ý), bắt đầu bằng động từ hoặc danh từ.
+      2. "core_contents": Liệt kê đúng 4 nội dung kiến thức/kỹ năng trọng tâm nhất của bài này (Ngắn gọn, dưới 10 từ/ý).
     `;
 
     const completion = await openai.chat.completions.create({
@@ -45,66 +41,92 @@ export async function POST(req: Request) {
         { role: "system", content: systemPrompt },
         { role: "user", content: `Bài học:\n${content.substring(0, 15000)}` }
       ],
-      temperature: 0.5, // Giảm độ sáng tạo để AI tuân thủ chặt chẽ số lượng
+      temperature: 0.5,
       response_format: { type: "json_object" }
     });
 
     const rawContent = completion.choices[0].message.content || "{}";
     const aiData = safeParse(rawContent);
 
-    // CẤU TRÚC PHIẾU 5 CÂU
+    // --- XÂY DỰNG CẤU TRÚC PHIẾU 6 CÂU CHUẨN ---
     const survey_v2 = {
-      type: "smart_5_questions",
+      type: "edumirror_standard_v2",
       title: aiData.lesson_title || "Phản hồi sau tiết học",
       questions: [
+        // 1. Cảm nhận (Single Choice)
         {
-          id: "q1_sentiment",
-          type: "sentiment",
-          text: "Em cảm thấy tiết học hôm nay thế nào?",
+          id: "q1_feeling",
+          type: "single_choice",
+          text: "1. Cảm nhận chung của em về tiết học hôm nay?",
           options: [
-            "🤩 Hứng thú|Em hiểu bài và thấy rất vui", 
-            "🙂 Bình thường|Em nắm được bài, mọi thứ ổn", 
-            "🤯 Hơi căng|Bài hơi khó hoặc giảng hơi nhanh", 
-            "😴 Mệt mỏi|Em khó tập trung hoặc buồn ngủ"
+            "A1 – Hứng thú 🤩",
+            "A2 – Bình thường 🙂",
+            "A3 – Hơi căng (bài khó/nhanh) 🤯",
+            "A4 – Mệt, khó tập trung 😴"
           ]
         },
+        // 2. Mức độ hiểu (Single Choice)
         {
           id: "q2_understanding",
-          type: "rating",
-          text: "Em tự đánh giá mức độ hiểu bài của mình?",
+          type: "single_choice",
+          text: "2. Em tự đánh giá mức độ hiểu bài của mình?",
           options: [
-            "Mức 1: Em chưa hiểu (Mất gốc)",
-            "Mức 2: Em còn mơ hồ (Cần xem lại)",
-            "Mức 3: Em hiểu sương sương (Làm được bài cơ bản)",
-            "Mức 4: Em hiểu rất rõ (Tự tin làm bài)"
+            "B1 – Chưa hiểu (Mất gốc)",
+            "B2 – Mơ hồ (Cần xem lại)",
+            "B3 – Hiểu cơ bản",
+            "B4 – Hiểu rõ, tự tin làm bài"
           ]
         },
-        // CÂU 3: SẼ HIỆN 4-5 LỰA CHỌN KHÓ NHẤT + 1 LỰA CHỌN "KHÔNG CÓ"
+        // 3. Khó khăn (Multi Choice - Kết hợp AI & Cố định)
         {
-          id: "q3_gaps",
-          type: "checkbox_dynamic",
-          text: "Phần nào làm khó em nhất? (Có thể chọn nhiều)",
+          id: "q3_difficulties",
+          type: "multi_choice",
+          text: "3. Phần làm em gặp khó khăn? (Có thể chọn nhiều)",
           options: [
-            ...(aiData.dynamic_knowledge_gaps || []),
-            "Không có, em nắm chắc rồi"
+            // Nhóm A: Kiến thức (AI sinh)
+            ...(aiData.core_contents || ["Nội dung 1", "Nội dung 2", "Nội dung 3", "Nội dung 4"]),
+            "✅ Em nắm chắc kiến thức này",
+            // Nhóm B: Phương pháp (Cố định)
+            "⚡ Giảng hơi nhanh",
+            "✍️ Không kịp ghi chép",
+            "🔊 Lớp ồn / Khó tập trung",
+            "🙋 Ngại hỏi khi không hiểu"
           ]
         },
+        // 4. Điều chỉnh (Multi Choice)
         {
-          id: "q4_wishes",
-          type: "checkbox_static",
-          text: "Tiết sau thầy/cô nên ưu tiên điều gì?",
+          id: "q4_teacher_adjust",
+          type: "multi_choice",
+          text: "4. Em muốn thầy/cô điều chỉnh gì để dễ hiểu hơn?",
           options: [
-            "🐢 Giảng chậm lại một chút",
-            "💡 Thêm nhiều ví dụ thực tế hơn",
+            "🐢 Giảng chậm hơn",
+            "💡 Thêm ví dụ minh họa/thực tế",
+            "🗺️ Sơ đồ hóa kiến thức (Mindmap)",
             "👥 Cho thảo luận nhóm nhiều hơn",
-            "🗺️ Sơ đồ hóa kiến thức cho dễ nhớ"
+            "🗣️ Nói to - rõ - dễ nghe hơn",
+            "🚩 Kiểm tra nhanh sau từng phần (Checkpoint)"
           ]
         },
+        // 5. Phong cách học (Multi Choice) - MỚI
         {
-          id: "q5_feedback",
+          id: "q5_learning_style",
+          type: "multi_choice",
+          text: "5. Cách học nào giúp em tiếp thu tốt nhất?",
+          options: [
+            "🎧 Nghe giảng & Ghi chép",
+            "📝 Làm bài tập ngay tại lớp",
+            "🌍 Nghe ví dụ thực tế/kể chuyện",
+            "🖼️ Xem sơ đồ/hình ảnh minh họa",
+            "🗣️ Thảo luận/Trao đổi với bạn",
+            "📖 Tự đọc tài liệu có hướng dẫn"
+          ]
+        },
+        // 6. Lời nhắn (Text)
+        {
+          id: "q6_feedback_text",
           type: "text",
-          text: "Lời nhắn gửi bí mật:",
-          placeholder: "Gợi ý: Em muốn thầy giảng lại đoạn nào? Cần thêm ví dụ gì?..."
+          text: "6. Lời nhắn ẩn danh cho thầy/cô:",
+          placeholder: "Có điều gì em chưa hiểu, còn băn khoăn, hay mong muốn tiết sau? Hãy chia sẻ nhé (Các em cứ góp ý thật lòng, phiếu ẩn danh, thầy/cô chỉ dùng để dạy tốt hơn, không để phê bình ai cả.)."
         }
       ]
     };

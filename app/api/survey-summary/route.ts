@@ -7,7 +7,6 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const surveyId = searchParams.get("id");
 
-  // Kết nối
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
   const supabase = createClient(supabaseUrl, supabaseKey);
@@ -15,91 +14,77 @@ export async function GET(req: Request) {
   if (!surveyId) return NextResponse.json({ error: "Thiếu ID" }, { status: 400 });
 
   try {
-    // Lấy toàn bộ dữ liệu để debug
     const { data: responses, error } = await supabase
       .from("survey_responses")
-      .select("*")
+      .select("answers")
       .eq("survey_short_id", surveyId);
 
     if (error) throw error;
 
+    // Cấu trúc thống kê mới cho 6 câu
     const stats = {
       total: 0,
-      sentiment: {} as Record<string, number>,
-      understanding: {} as Record<string, number>,
-      gaps: {} as Record<string, number>,
-      wishes: {} as Record<string, number>,
-      feedbacks: [] as string[]
+      feeling: {} as Record<string, number>,      // Q1
+      understanding: {} as Record<string, number>, // Q2
+      difficulties: {} as Record<string, number>,  // Q3
+      adjustments: {} as Record<string, number>,   // Q4
+      styles: {} as Record<string, number>,        // Q5
+      feedbacks: [] as string[]                    // Q6
     };
 
-    console.log(`🔍 Tìm thấy ${responses?.length} bản ghi cho ID: ${surveyId}`);
-
     responses?.forEach((row: any) => {
-      // --- LOGIC QUAN TRỌNG: TÌM DỮ LIỆU BỊ ẨN ---
       let ans = row.answers;
-
-      // Trường hợp 1: Bị bọc trong answers (Lỗi thường gặp nhất)
+      // Logic tìm dữ liệu lồng nhau
       if (ans && ans.answers) ans = ans.answers;
-      
-      // Trường hợp 2: Bị bọc trong payload
       if (!ans && row.payload) ans = row.payload;
+      if (typeof ans === 'string') { try { ans = JSON.parse(ans); } catch (e) {} }
 
-      // Trường hợp 3: Nếu là chuỗi JSON string thì parse ra
-      if (typeof ans === 'string') {
-          try { ans = JSON.parse(ans); } catch (e) {}
-      }
-
-      // Kiểm tra xem đã lấy đúng chưa (phải có ít nhất 1 trường q1 hoặc q2)
-      if (!ans || (!ans.q1_sentiment && !ans.q2_understanding)) {
-          console.log("⚠️ Bỏ qua dòng rác:", row);
-          return; 
-      }
-
-      // Tăng tổng số phiếu hợp lệ
+      if (!ans) return;
+      
       stats.total++;
 
-      // --- BẮT ĐẦU ĐẾM (AN TOÀN HƠN) ---
-      
-      // 1. Cảm xúc
-      if (ans.q1_sentiment) {
-        const key = ans.q1_sentiment.split("|")[0].trim();
-        stats.sentiment[key] = (stats.sentiment[key] || 0) + 1;
+      // Q1. Cảm nhận (q1_feeling)
+      if (ans.q1_feeling) {
+        const key = ans.q1_feeling.split("–")[1]?.trim() || ans.q1_feeling; // Lấy phần chữ sau dấu gạch
+        stats.feeling[key] = (stats.feeling[key] || 0) + 1;
       }
 
-      // 2. Hiểu bài
+      // Q2. Hiểu bài (q2_understanding)
       if (ans.q2_understanding) {
-        const key = ans.q2_understanding.split(":")[0].trim();
+        const key = ans.q2_understanding.split("–")[0]?.trim(); // Lấy B1, B2...
         stats.understanding[key] = (stats.understanding[key] || 0) + 1;
       }
 
-      // 3. Điểm nghẽn
-      if (Array.isArray(ans.q3_gaps)) {
-        ans.q3_gaps.forEach((gap: string) => {
-          if (gap && !gap.includes("Không có")) {
-             // Cắt ngắn bớt nếu quá dài
-             const cleanGap = gap.length > 60 ? gap.substring(0, 57) + "..." : gap;
-             stats.gaps[cleanGap] = (stats.gaps[cleanGap] || 0) + 1;
-          }
+      // Q3. Khó khăn (q3_difficulties - Multi)
+      if (Array.isArray(ans.q3_difficulties)) {
+        ans.q3_difficulties.forEach((item: string) => {
+           stats.difficulties[item] = (stats.difficulties[item] || 0) + 1;
         });
       }
 
-      // 4. Mong muốn
-      if (Array.isArray(ans.q4_wishes)) {
-        ans.q4_wishes.forEach((wish: string) => {
-           stats.wishes[wish] = (stats.wishes[wish] || 0) + 1;
+      // Q4. Điều chỉnh (q4_teacher_adjust - Multi)
+      if (Array.isArray(ans.q4_teacher_adjust)) {
+        ans.q4_teacher_adjust.forEach((item: string) => {
+           stats.adjustments[item] = (stats.adjustments[item] || 0) + 1;
         });
       }
 
-      // 5. Lời nhắn
-      if (ans.q5_feedback) {
-          stats.feedbacks.push(ans.q5_feedback);
+      // Q5. Phong cách học (q5_learning_style - Multi)
+      if (Array.isArray(ans.q5_learning_style)) {
+        ans.q5_learning_style.forEach((item: string) => {
+           stats.styles[item] = (stats.styles[item] || 0) + 1;
+        });
+      }
+
+      // Q6. Lời nhắn (q6_feedback_text)
+      if (ans.q6_feedback_text) {
+          stats.feedbacks.push(ans.q6_feedback_text);
       }
     });
 
     return NextResponse.json({ stats });
 
   } catch (err: any) {
-    console.error("Lỗi API Summary:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
