@@ -2,49 +2,39 @@
 import { useState, useEffect } from "react";
 
 export default function DashboardView() {
-  // --- STATE QUẢN LÝ DỮ LIỆU DASHBOARD ---
   const [surveys, setSurveys] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-
-  // --- STATE QUẢN LÝ AI PHÂN TÍCH FEEDBACK ---
+  
+  // State cho AI
   const [analyzing, setAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState<any[] | null>(null);
 
-  // 1. Tải danh sách phiếu
+  // 1. Load danh sách
   useEffect(() => {
-    fetch("/api/list-surveys")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.surveys && data.surveys.length > 0) {
+    fetch("/api/list-surveys").then(res => res.json()).then(data => {
+        if (data.surveys?.length > 0) {
           setSurveys(data.surveys);
-          // Chọn phiếu mới nhất nếu chưa chọn
-          if (!selectedId) setSelectedId(data.surveys[0].short_id);
+          if(!selectedId) setSelectedId(data.surveys[0].short_id);
         }
-      })
-      .catch(err => console.error("Lỗi list:", err));
+    });
   }, []);
 
-  // Hàm tải dữ liệu chi tiết
+  // 2. Load chi tiết
   const fetchStats = () => {
     if (!selectedId) return;
     setLoading(true);
-    setAiResult(null); // Reset kết quả AI khi đổi phiếu
-    
+    setAiResult(null);
     fetch(`/api/survey-summary?id=${selectedId}&t=${Date.now()}`)
-      .then((res) => res.json())
-      .then((data) => {
-         if (data.stats) setStats(data.stats);
-         else setStats(null);
-      })
-      .catch(err => console.error("Lỗi stats:", err))
+      .then(res => res.json())
+      .then(data => { if(data.stats) setStats(data.stats); })
       .finally(() => setLoading(false));
   };
 
   useEffect(() => { fetchStats(); }, [selectedId]);
 
-  // --- HÀM 1: GỌI AI PHÂN TÍCH Ý KIẾN ---
+  // Hàm gọi AI (Giữ nguyên logic cũ)
   const analyzeFeedback = async (feedbacks: string[]) => {
     setAnalyzing(true);
     try {
@@ -54,54 +44,29 @@ export default function DashboardView() {
             body: JSON.stringify({ feedbacks, apiKey: savedKey })
         });
         const data = await res.json();
-        
-        if (Array.isArray(data.result)) {
-            setAiResult(data.result);
-        } else {
-            alert("AI trả về dữ liệu không đúng định dạng.");
-        }
-    } catch (e) {
-        alert("Lỗi kết nối AI. Vui lòng kiểm tra API Key.");
-    } finally {
-        setAnalyzing(false);
-    }
+        if (Array.isArray(data.result)) setAiResult(data.result);
+    } catch (e) { alert("Lỗi AI"); } 
+    finally { setAnalyzing(false); }
   };
 
-  // --- HÀM 2: CHUYỂN SANG TAB TƯ VẤN (Mang bệnh án đi khám) ---
   const goToSolution = () => {
     if (!aiResult) return;
-
-    // Chuyển đổi kết quả JSON thành một đoạn văn bản "Bệnh án" dễ đọc để gửi sang tab kia
-    const diagnosisReport = `
-      <h3>KẾT QUẢ PHÂN TÍCH TỪ HỌC SINH:</h3>
-      <ul>
-        ${aiResult.map((item: any) => `
-          <li>
-            <strong>${item.category}</strong> (${item.count} phiếu): ${item.summary}
-            <br/><em>(VD: "${item.original_sample}")</em>
-          </li>
-        `).join('')}
-      </ul>
-    `;
-    
-    // Lưu vào bộ nhớ tạm
-    localStorage.setItem("current_diagnosis", diagnosisReport);
-    
-    // Chuyển hướng sang tab AI (Thêm tham số mode=solve để kích hoạt chế độ giải quyết vấn đề)
+    const problemText = aiResult.map((item: any) => `- ${item.category}: ${item.summary}`).join("\n");
+    localStorage.setItem("current_diagnosis", problemText);
     window.location.href = "/?tab=ai&mode=solve";
   };
 
-  // Helper: Thanh Progress
+  // Helper Progress Bar
   const ProgressBar = ({ label, val, total, color }: any) => {
     const pct = total > 0 ? Math.round((val / total) * 100) : 0;
     return (
-      <div className="mb-4 last:mb-0 group">
-        <div className="flex justify-between text-xs mb-1.5 font-medium text-gray-700">
-          <span className="truncate max-w-[75%]" title={label}>{label}</span>
-          <span className="text-gray-900 font-bold">{val || 0} ({pct}%)</span>
+      <div className="mb-3 group">
+        <div className="flex justify-between text-xs mb-1 font-medium text-gray-700">
+          <span className="truncate max-w-[85%]">{label}</span>
+          <span className="text-gray-900 font-bold">{val} ({pct}%)</span>
         </div>
-        <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-          <div className={`h-2.5 rounded-full ${color} transition-all duration-700 group-hover:opacity-80`} style={{ width: `${pct}%` }}></div>
+        <div className="w-full bg-gray-100 rounded-full h-2">
+          <div className={`h-2 rounded-full ${color}`} style={{ width: `${pct}%` }}></div>
         </div>
       </div>
     );
@@ -110,137 +75,113 @@ export default function DashboardView() {
   const showData = stats && typeof stats === 'object';
 
   return (
-    <div className="space-y-8 font-sans animate-fade-in pb-12">
+    <div className="space-y-6 font-sans animate-fade-in pb-12">
       
-      {/* HEADER */}
-      <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+      {/* Header */}
+      <div className="bg-white p-5 rounded-2xl border shadow-sm flex flex-col md:flex-row justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">📊 Báo cáo lớp học</h2>
-          <p className="text-sm text-gray-500 mt-1">{stats ? `Dữ liệu từ ${stats.total} học sinh` : "Chọn phiếu để xem"}</p>
+          <h2 className="text-lg font-bold text-gray-800">📊 Bức tranh lớp học</h2>
+          <p className="text-xs text-gray-500">{stats ? `Dữ liệu từ ${stats.total} em` : "Chọn phiếu để xem"}</p>
         </div>
-        
-        <div className="flex gap-2 w-full md:w-auto">
-            {surveys.length > 0 ? (
-            <select 
-                className="flex-1 p-3 border rounded-xl text-sm min-w-[200px] bg-gray-50 font-medium outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500"
-                value={selectedId}
-                onChange={(e) => setSelectedId(e.target.value)}
-            >
+        <div className="flex gap-2">
+            <select className="p-2 border rounded-lg text-sm min-w-[200px] bg-gray-50 outline-none"
+                value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
                 {surveys.map(s => (
                 <option key={s.short_id} value={s.short_id}>
-                    {s.payload?.title ? s.payload.title.substring(0, 30) : "Phiếu..."} ({new Date(s.created_at).toLocaleDateString('vi-VN')})
+                    {s.payload?.title?.substring(0, 30)}... ({new Date(s.created_at).toLocaleDateString('vi-VN')})
                 </option>
                 ))}
             </select>
-            ) : <div className="text-red-500 text-sm p-2">Chưa có phiếu nào.</div>}
-            
-            <button onClick={fetchStats} className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 border border-indigo-100" title="Làm mới">🔄</button>
+            <button onClick={fetchStats} className="p-2 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100">🔄</button>
         </div>
       </div>
 
-      {/* NỘI DUNG */}
-      {loading ? (
-        <div className="text-center py-24 text-indigo-500"><p className="text-sm font-bold animate-pulse">Đang tải dữ liệu...</p></div>
-      ) : showData ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {loading ? <div className="text-center py-20 text-indigo-500 animate-pulse font-bold">Đang phân tích...</div> : showData ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           
-          {/* 1. TỔNG QUAN */}
-          <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-8 rounded-3xl shadow-lg text-white flex justify-between items-center relative overflow-hidden">
+          {/* 1. TỔNG QUAN & CẢM XÚC (Q1) */}
+          <div className="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-2xl shadow-lg text-white relative overflow-hidden">
              <div className="relative z-10">
-                <div className="text-xs opacity-80 uppercase font-bold tracking-widest mb-1">Tổng phiếu</div>
-                <div className="text-6xl font-bold">{stats.total || 0}</div>
-             </div>
-             <div className="relative z-10 text-right">
-                <div className="text-xs opacity-80 uppercase font-bold tracking-widest mb-2">Cảm xúc chủ đạo</div>
-                <div className="text-3xl font-bold bg-white/20 px-4 py-2 rounded-2xl backdrop-blur-sm inline-block">
-                  {stats.sentiment && Object.keys(stats.sentiment).length > 0 ? Object.entries(stats.sentiment).sort((a:any, b:any) => b[1] - a[1])[0]?.[0] : "—"}
+                <div className="text-xs opacity-80 uppercase font-bold">Tổng phiếu</div>
+                <div className="text-5xl font-bold mb-4">{stats.total}</div>
+                <div className="text-xs opacity-80 uppercase font-bold">Cảm xúc chủ đạo</div>
+                <div className="text-2xl font-bold mt-1">
+                  {stats.feeling && Object.keys(stats.feeling).length > 0 
+                    ? Object.entries(stats.feeling).sort((a:any, b:any) => b[1] - a[1])[0]?.[0] 
+                    : "—"}
                 </div>
              </div>
-             <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+             <div className="absolute right-0 top-0 h-full w-1/2 bg-white/10 blur-3xl"></div>
           </div>
 
-          {/* 2. CÁC BIỂU ĐỒ (Cảm xúc, Hiểu bài, Điểm nghẽn, Mong muốn) */}
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-6 flex gap-2"><span className="bg-pink-100 p-1 rounded">🎭</span> Cảm xúc</h3>
-            {stats.sentiment && Object.keys(stats.sentiment).length > 0 ? Object.entries(stats.sentiment).map(([k, v]) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-pink-500" />) : <p className="text-xs text-gray-400 italic text-center">Chưa có dữ liệu</p>}
+          {/* 2. MỨC ĐỘ HIỂU BÀI (Q2) */}
+          <div className="bg-white p-5 rounded-2xl border shadow-sm">
+            <h3 className="font-bold text-gray-800 mb-4 text-sm flex gap-2">🧠 Mức độ hiểu bài</h3>
+            {stats.understanding && Object.keys(stats.understanding).length > 0 ? 
+                Object.entries(stats.understanding).map(([k, v]) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-emerald-500" />) 
+                : <p className="text-xs text-gray-400 italic">Chưa có dữ liệu</p>}
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-6 flex gap-2"><span className="bg-green-100 p-1 rounded">🧠</span> Mức độ hiểu</h3>
-            {stats.understanding && Object.keys(stats.understanding).length > 0 ? Object.entries(stats.understanding).map(([k, v]) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-emerald-500" />) : <p className="text-xs text-gray-400 italic text-center">Chưa có dữ liệu</p>}
-          </div>
-
-          <div className="bg-white p-6 rounded-3xl border border-red-100 shadow-sm">
-            <h3 className="font-bold text-red-600 mb-6 flex gap-2"><span className="bg-red-100 p-1 rounded">⚠️</span> Điểm nghẽn</h3>
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-              {stats.gaps && Object.keys(stats.gaps).length > 0 ? Object.entries(stats.gaps).sort((a:any, b:any) => b[1] - a[1]).map(([k, v]: any) => (
-                  <div key={k} className="flex justify-between items-center bg-red-50 p-3 rounded-xl border border-red-100">
-                    <span className="text-xs font-medium text-gray-800 leading-tight max-w-[80%]">{k}</span>
-                    <span className="text-xs font-bold bg-white text-red-600 px-2 py-1 rounded shadow-sm">{v}</span>
+          {/* 3. ĐIỂM NGHẼN KIẾN THỨC (Q3 - Quan trọng) */}
+          <div className="bg-white p-5 rounded-2xl border border-red-100 shadow-sm row-span-2">
+            <h3 className="font-bold text-red-600 mb-4 text-sm flex gap-2">⚠️ Điểm nghẽn (Khó khăn)</h3>
+            <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+              {stats.difficulties && Object.keys(stats.difficulties).length > 0 ? 
+                Object.entries(stats.difficulties).sort((a:any, b:any) => b[1] - a[1]).map(([k, v]: any) => (
+                  <div key={k} className="flex justify-between items-center bg-red-50 p-2.5 rounded-lg border border-red-100">
+                    <span className="text-xs font-medium text-gray-800 leading-snug max-w-[80%]">{k}</span>
+                    <span className="text-xs font-bold bg-white text-red-600 px-2 py-0.5 rounded shadow-sm">{v}</span>
                   </div>
-              )) : <p className="text-xs text-green-600 font-bold text-center py-4">Lớp nắm bài tốt!</p>}
+                )) 
+              : <div className="text-center py-10 text-green-600 text-xs">Tuyệt vời! Không có điểm nghẽn lớn.</div>}
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm">
-            <h3 className="font-bold text-blue-600 mb-6 flex gap-2"><span className="bg-blue-100 p-1 rounded">💡</span> Mong muốn</h3>
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-              {stats.wishes && Object.keys(stats.wishes).length > 0 ? Object.entries(stats.wishes).map(([k, v]: any) => (
-                  <div key={k} className="flex justify-between items-center border-b border-gray-100 pb-2 last:border-0">
-                    <span className="text-xs text-gray-600 font-medium truncate max-w-[85%]">{k.replace(/[\u{1F600}-\u{1F6FF}]/gu, '')}</span>
-                    <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded">{v}</span>
-                  </div>
-              )) : <p className="text-xs text-gray-400 italic text-center py-4">Chưa có dữ liệu</p>}
+          {/* 4. MONG MUỐN ĐIỀU CHỈNH (Q4) */}
+          <div className="bg-white p-5 rounded-2xl border border-blue-100 shadow-sm">
+            <h3 className="font-bold text-blue-600 mb-4 text-sm flex gap-2">💡 Mong muốn điều chỉnh</h3>
+            <div className="max-h-40 overflow-y-auto pr-1">
+                {stats.adjustments && Object.keys(stats.adjustments).length > 0 ? 
+                    Object.entries(stats.adjustments).map(([k, v]: any) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-blue-500" />)
+                    : <p className="text-xs text-gray-400 italic">Chưa có dữ liệu</p>}
             </div>
           </div>
 
-          {/* 6. PHẦN LỜI NHẮN & AI PHÂN TÍCH (ĐOẠN MỚI QUAN TRỌNG) */}
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm col-span-1 md:col-span-2 lg:col-span-3">
+          {/* 5. PHONG CÁCH HỌC (Q5 - MỚI) */}
+          <div className="bg-white p-5 rounded-2xl border border-purple-100 shadow-sm">
+            <h3 className="font-bold text-purple-600 mb-4 text-sm flex gap-2">🎨 Phong cách học ưa thích</h3>
+            <div className="max-h-40 overflow-y-auto pr-1">
+                {stats.styles && Object.keys(stats.styles).length > 0 ? 
+                    Object.entries(stats.styles).map(([k, v]: any) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-purple-500" />)
+                    : <p className="text-xs text-gray-400 italic">Chưa có dữ liệu</p>}
+            </div>
+          </div>
+
+          {/* 6. LỜI NHẮN & AI (Q6) */}
+          <div className="bg-white p-5 rounded-2xl border shadow-sm col-span-1 md:col-span-2 lg:col-span-3">
             <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                    <span className="bg-gray-100 p-1.5 rounded-lg">💌</span> 
-                    Lời nhắn ẩn danh <span className="text-xs font-normal text-gray-400">({stats.feedbacks?.length || 0})</span>
-                </h3>
-                {/* Nút Kích hoạt AI */}
+                <h3 className="font-bold text-gray-800 text-sm">💌 Lời nhắn ({stats.feedbacks?.length || 0})</h3>
                 {stats.feedbacks?.length > 0 && (
-                    <button 
-                        onClick={() => analyzeFeedback(stats.feedbacks)}
-                        disabled={analyzing}
-                        className="text-xs bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-2 rounded-xl shadow hover:scale-105 transition-transform flex items-center gap-2 font-bold"
-                    >
-                        {analyzing ? "Đang đọc..." : "✨ AI Phân tích & Giải mã"}
+                    <button onClick={() => analyzeFeedback(stats.feedbacks)} disabled={analyzing} className="text-xs bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-3 py-1.5 rounded-lg shadow hover:scale-105 transition-all font-bold">
+                        {analyzing ? "Đang đọc..." : "✨ AI Phân tích"}
                     </button>
                 )}
             </div>
 
-            {/* --- HIỂN THỊ KẾT QUẢ AI --- */}
+            {/* Kết quả AI */}
             {aiResult && (
-                <div className="mb-6 bg-indigo-50/60 rounded-2xl border border-indigo-100 overflow-hidden animate-fade-in">
-                    <div className="p-3 bg-indigo-100/50 flex justify-between items-center border-b border-indigo-200">
-                        <span className="text-xs font-bold text-indigo-800 uppercase flex gap-2 items-center">
-                            🤖 Kết quả phân tích nhóm
-                        </span>
-                        <button 
-                            onClick={goToSolution} 
-                            className="text-xs bg-white text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-50 shadow-sm flex items-center gap-1 transition-colors"
-                        >
-                            💡 Nhờ AI tư vấn giải pháp ngay →
-                        </button>
+                <div className="mb-4 bg-indigo-50/50 rounded-xl border border-indigo-100 p-3 animate-fade-in">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-bold text-indigo-800 uppercase">🤖 AI Tổng hợp</span>
+                        <button onClick={goToSolution} className="text-xs bg-white text-indigo-700 border border-indigo-200 px-3 py-1 rounded-lg font-bold shadow-sm">💡 Nhờ AI tư vấn giải pháp →</button>
                     </div>
-                    
-                    <div className="p-4 space-y-3">
+                    <div className="space-y-2">
                         {aiResult.map((item: any, idx: number) => (
-                            <div key={idx} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                                <div className={`w-10 h-10 rounded-lg flex flex-col items-center justify-center flex-shrink-0 ${item.type === 'negative' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                    <span className="text-lg font-bold">{item.count}</span>
-                                </div>
+                            <div key={idx} className="bg-white p-2.5 rounded-lg border border-gray-100 shadow-sm flex gap-3">
+                                <span className="text-lg font-bold text-indigo-200">{item.count}</span>
                                 <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">{item.category}</span>
-                                        {item.type === 'negative' && <span className="text-[9px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded font-bold">Cần chú ý</span>}
-                                    </div>
-                                    <p className="text-sm text-gray-800 font-medium leading-snug">{item.summary}</p>
-                                    <p className="text-xs text-gray-400 italic mt-1 bg-gray-50 inline-block px-1.5 rounded">"Gốc: {item.original_sample}"</p>
+                                    <p className="text-xs font-bold text-gray-700">{item.category}</p>
+                                    <p className="text-xs text-gray-600">{item.summary}</p>
                                 </div>
                             </div>
                         ))}
@@ -248,20 +189,18 @@ export default function DashboardView() {
                 </div>
             )}
 
-            {/* LIST TIN NHẮN GỐC */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
               {stats.feedbacks && stats.feedbacks.length > 0 ? stats.feedbacks.map((fb: string, i: number) => (
-                  <div key={i} className="bg-gray-50 p-3 rounded-xl text-xs text-gray-600 italic border-l-4 border-indigo-400 shadow-sm">"{fb}"</div>
+                  <div key={i} className="bg-gray-50 p-3 rounded-lg text-xs text-gray-600 italic border-l-2 border-gray-300">"{fb}"</div>
               )) : <p className="text-xs text-gray-400 col-span-2 text-center py-4">Chưa có lời nhắn nào.</p>}
             </div>
           </div>
 
         </div>
       ) : (
-        <div className="text-center py-24 bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200">
-            <div className="text-5xl opacity-20 mb-4">📭</div>
-            <h3 className="text-xl font-bold text-gray-400">Chưa có dữ liệu</h3>
-            <p className="text-sm text-gray-400 mt-2">Hãy chọn phiếu khác hoặc đợi phản hồi.</p>
+        <div className="text-center py-20 text-gray-400 bg-gray-50 rounded-3xl border-2 border-dashed">
+            <div className="text-4xl mb-2">📭</div>
+            Chưa có dữ liệu. Hãy chọn phiếu khác.
         </div>
       )}
     </div>
