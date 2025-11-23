@@ -29,7 +29,7 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
     try {
       const res = await fetch("/api/get-solution", {
         method: "POST",
-        body: JSON.stringify({ stats, lessonText, apiKey }) // Gửi cả Stats và Giáo án
+        body: JSON.stringify({ stats, lessonText, apiKey,model }) // Gửi cả Stats và Giáo án
       });
       const data = await res.json();
       setSolution(data.result);
@@ -50,10 +50,12 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
     try {
       const res = await fetch("/api/chat-with-ai", {
         method: "POST",
+        // 👇👇👇 THÊM model VÀO ĐÂY 👇👇👇
         body: JSON.stringify({ 
             question: userMsg,
             context: { diagnosis: JSON.stringify(stats), currentSolution: solution },
-            apiKey 
+            apiKey,
+            model 
         })
       });
       const data = await res.json();

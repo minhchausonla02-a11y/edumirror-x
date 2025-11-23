@@ -7,6 +7,15 @@ import ResultsView, { AnalyzeResult } from "@/components/ResultsView";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
 import DashboardView from "@/components/DashboardView";
 import AISuggestionsView from "@/components/AISuggestionsView";
+// DANH SÁCH MODEL HỖ TRỢ
+const AVAILABLE_MODELS = [
+  { id: "gpt-4o-mini", name: "GPT-4o Mini (Nhanh & Rẻ - Khuyên dùng)" },
+  { id: "gpt-4o", name: "GPT-4o (Thông minh nhất)" },
+  { id: "gpt-4-turbo", name: "GPT-4 Turbo (Logic tốt)" },
+  { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo (Cũ)" },
+  { id: "o1-mini", name: "o1 Mini (Tư duy sâu - Chậm)" },
+  { id: "o1-preview", name: "o1 Preview (Tư duy sâu - Rất mạnh)" },
+];
 
 const PRODUCTION_ORIGIN = "https://edumirror-x.vercel.app"; // Đổi thành domain thật của bạn nếu cần
 

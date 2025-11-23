@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
-export default function DashboardView() {
+export default function DashboardView({ model }: { model?: string }) {
   const [surveys, setSurveys] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [stats, setStats] = useState<any>(null);
@@ -34,19 +34,28 @@ export default function DashboardView() {
 
   useEffect(() => { fetchStats(); }, [selectedId]);
 
-  // Hàm gọi AI (Giữ nguyên logic cũ)
+  // --- HÀM 1: GỌI AI PHÂN TÍCH Ý KIẾN ---
   const analyzeFeedback = async (feedbacks: string[]) => {
     setAnalyzing(true);
     try {
         const savedKey = localStorage.getItem("edumirror_key");
         const res = await fetch("/api/analyze-feedback", {
             method: "POST",
-            body: JSON.stringify({ feedbacks, apiKey: savedKey })
+            // 👇👇👇 THÊM model: model VÀO DÒNG DƯỚI ĐÂY 👇👇👇
+            body: JSON.stringify({ feedbacks, apiKey: savedKey, model: model })
         });
         const data = await res.json();
-        if (Array.isArray(data.result)) setAiResult(data.result);
-    } catch (e) { alert("Lỗi AI"); } 
-    finally { setAnalyzing(false); }
+        
+        if (Array.isArray(data.result)) {
+            setAiResult(data.result);
+        } else {
+            alert("AI trả về dữ liệu không đúng định dạng.");
+        }
+    } catch (e) {
+        alert("Lỗi kết nối AI. Vui lòng kiểm tra API Key.");
+    } finally {
+        setAnalyzing(false);
+    }
   };
 
  // HÀM CHUYỂN SANG TAB TƯ VẤN (SỬA ĐỔI)

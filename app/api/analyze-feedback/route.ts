@@ -6,7 +6,8 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { feedbacks, apiKey } = body;
+    // 👇 LẤY MODEL TỪ BODY (Mặc định gpt-4o-mini)
+    const { feedbacks, apiKey, model = "gpt-4o-mini" } = body;
 
     const finalKey = apiKey || process.env.OPENAI_API_KEY;
     if (!finalKey) return NextResponse.json({ error: "Thiếu API Key" }, { status: 401 });
@@ -17,7 +18,7 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({ apiKey: finalKey });
 
-    // PROMPT: Yêu cầu AI trả về JSON array
+    // PROMPT: Dịch thuật & Gom nhóm
     const prompt = `
       Bạn là chuyên gia phân tích dữ liệu giáo dục.
       
@@ -44,13 +45,12 @@ export async function POST(req: Request) {
     `;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: model, // 👈 QUAN TRỌNG: Dùng biến model
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
     });
 
     let content = response.choices[0].message.content || "[]";
-    // Làm sạch JSON (đề phòng AI trả về markdown)
     content = content.replace(/```json|```/g, "").trim();
     
     return NextResponse.json({ result: JSON.parse(content) });
