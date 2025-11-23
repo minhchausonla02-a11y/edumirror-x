@@ -1,5 +1,10 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+// Thêm những dòng này vào đầu file AISuggestionsView.tsx
+import ReactMarkdown from 'react-markdown';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css'; // Quan trọng: Import CSS để công thức hiện đúng font
 
 export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
   const [stats, setStats] = useState<any>(null);
@@ -146,9 +151,19 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${msg.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-indigo-100'}`}>
                               {msg.role === 'user' ? 'T' : '🤖'}
                           </div>
-                          <div className={`p-3 rounded-2xl shadow-sm text-sm max-w-[85%] ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-700 rounded-tl-none'}`}>
-                              {msg.content}
-                          </div>
+                          <div className={`p-3 rounded-2xl shadow-sm text-sm max-w-[85%] overflow-x-auto ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-700 rounded-tl-none'}`}>
+    {/* SỬ DỤNG REACT MARKDOWN ĐỂ RENDER TOÁN */}
+    <ReactMarkdown
+        remarkPlugins={[remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+            // Tùy chỉnh hiển thị cho đoạn văn để không bị vỡ layout
+            p: ({node, ...props}) => <p className="mb-1 last:mb-0" {...props} />
+        }}
+    >
+        {msg.content}
+    </ReactMarkdown>
+</div>
                       </div>
                   ))}
 
