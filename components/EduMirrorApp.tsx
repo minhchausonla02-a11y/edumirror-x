@@ -8,11 +8,12 @@ import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
 import DashboardView from "@/components/DashboardView";
 import AISuggestionsView from "@/components/AISuggestionsView";
 
-// DANH SÁCH MODEL
+// CẬP NHẬT DANH SÁCH MODEL (CÓ GPT-5.1)
 const AVAILABLE_MODELS = [
-  { id: "gpt-4o-mini", name: "GPT-4o Mini (Nhanh & Rẻ)" },
-  { id: "gpt-4o", name: "GPT-4o (Thông minh nhất)" },
-  { id: "o1-mini", name: "o1 Mini (Tư duy sâu)" },
+  { id: "gpt-5.1", name: "GPT-5.1 (Siêu trí tuệ - Mới nhất)" }, // Đưa lên đầu cho nổi bật
+  { id: "gpt-4o", name: "GPT-4o (Thông minh & Ổn định)" },
+  { id: "gpt-4o-mini", name: "GPT-4o Mini (Tốc độ cao)" },
+  { id: "o1-preview", name: "o1 Preview (Tư duy sâu)" },
 ];
 
 type TopTab = "upload" | "dashboard" | "ai";
