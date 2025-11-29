@@ -141,7 +141,7 @@ ${content.substring(0, 15000)}
         { role: "system", content: "Bạn là một AI trả về JSON." },
         { role: "user", content: prompt }
       ],
-      temperature: 0.2,
+    
       response_format: { type: "json_object" } // Ép trả về JSON chuẩn
     });
 

@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     const response = await openai.chat.completions.create({
       model: model, // 👈 QUAN TRỌNG: Dùng biến model
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.3,
+     
     });
 
     let content = response.choices[0].message.content || "[]";

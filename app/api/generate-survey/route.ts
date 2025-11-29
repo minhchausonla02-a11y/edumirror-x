@@ -64,7 +64,7 @@ export async function POST(req: Request) {
         { role: "system", content: systemPrompt },
         { role: "user", content: `Nội dung bài dạy:\n${content.substring(0, 15000)}` }
       ],
-      temperature: 0.4,
+     
       response_format: { type: "json_object" }
     });
 
