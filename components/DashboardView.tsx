@@ -126,7 +126,7 @@ export default function DashboardView({ model }: { model?: string }) {
       ) : showData ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* 1. TỔNG QUAN */}
+        {/* 1. TỔNG QUAN */}
           <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-8 rounded-3xl shadow-lg text-white flex flex-col sm:flex-row justify-between items-center relative overflow-hidden">
              <div className="relative z-10">
                 <div className="text-xs opacity-80 uppercase font-bold tracking-widest mb-1">Tổng phiếu</div>
@@ -135,17 +135,21 @@ export default function DashboardView({ model }: { model?: string }) {
              <div className="relative z-10 text-right mt-4 sm:mt-0">
                 <div className="text-xs opacity-80 uppercase font-bold tracking-widest mb-2">Cảm xúc chủ đạo</div>
                 <div className="text-3xl font-bold bg-white/20 px-4 py-2 rounded-2xl backdrop-blur-sm inline-block">
-                  {stats.sentiment && Object.keys(stats.sentiment).length > 0 ? Object.entries(stats.sentiment).sort((a:any, b:any) => b[1] - a[1])[0]?.[0] : "—"}
+                  {/* ĐÃ SỬA: Dùng stats.feeling thay vì stats.sentiment */}
+                  {stats.feeling && Object.keys(stats.feeling).length > 0 
+                    ? Object.entries(stats.feeling).sort((a:any, b:any) => b[1] - a[1])[0]?.[0] 
+                    : "—"}
                 </div>
              </div>
              <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-16 -mt-16"></div>
           </div>
 
-          {/* 2. CẢM XÚC (Q1) - ĐÃ CÓ LẠI */}
+          {/* 2. CẢM XÚC (Q1) */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
             <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2"><span className="bg-pink-100 text-pink-600 p-1 rounded text-sm">🎭</span> Cảm xúc</h3>
-            {stats.sentiment && Object.keys(stats.sentiment).length > 0 ? 
-                Object.entries(stats.sentiment).map(([k, v]: any) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-pink-500" />) 
+            {/* ĐÃ SỬA: Dùng stats.feeling đồng bộ */}
+            {stats.feeling && Object.keys(stats.feeling).length > 0 ? 
+                Object.entries(stats.feeling).map(([k, v]: any) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-pink-500" />) 
                 : <EmptyState msg="Chưa có dữ liệu" />}
           </div>
 
