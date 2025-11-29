@@ -11,6 +11,7 @@ import AISuggestionsView from "@/components/AISuggestionsView";
 // CẬP NHẬT DANH SÁCH MODEL (CÓ GPT-5.1)
 const AVAILABLE_MODELS = [
   { id: "gpt-5.1", name: "GPT-5.1 (Siêu trí tuệ - Mới nhất)" }, // Đưa lên đầu cho nổi bật
+  { id: "gpt-5.1-mini", name: "GPT-5.1 Mini (Tiết Kiệm Với Tốc độ ánh sáng)" },
   { id: "gpt-4o", name: "GPT-4o (Thông minh & Ổn định)" },
   { id: "gpt-4o-mini", name: "GPT-4o Mini (Tốc độ cao)" },
   { id: "o1-preview", name: "o1 Preview (Tư duy sâu)" },
