@@ -1,6 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 
+// Component hiển thị khi trống
+function EmptyState({ msg }: { msg: string }) {
+  return <div className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg">{msg}</div>;
+}
+
 export default function DashboardView({ model }: { model?: string }) {
   const [surveys, setSurveys] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
@@ -11,7 +16,7 @@ export default function DashboardView({ model }: { model?: string }) {
   const [analyzing, setAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState<any[] | null>(null);
 
-  // 1. Load list
+  // 1. Tải danh sách
   useEffect(() => {
     fetch("/api/list-surveys")
       .then((res) => res.json())
@@ -24,20 +29,17 @@ export default function DashboardView({ model }: { model?: string }) {
       .catch(err => console.error("Lỗi tải danh sách:", err));
   }, []);
 
-  // 2. Load details
+  // 2. Tải chi tiết
   const fetchStats = () => {
     if (!selectedId) return;
     setLoading(true);
-    setAiResult(null); 
+    setAiResult(null);
     
     fetch(`/api/survey-summary?id=${selectedId}&t=${Date.now()}`)
       .then((res) => res.json())
       .then((data) => {
-         if (data.stats) {
-            setStats(data.stats);
-         } else {
-            setStats(null); // Quan trọng: Reset về null nếu không có dữ liệu
-         }
+         if (data.stats) setStats(data.stats);
+         else setStats(null);
       })
       .catch(err => console.error("Lỗi tải stats:", err))
       .finally(() => setLoading(false));
@@ -45,6 +47,7 @@ export default function DashboardView({ model }: { model?: string }) {
 
   useEffect(() => { fetchStats(); }, [selectedId]);
 
+  // AI Phân tích
   const analyzeFeedback = async (feedbacks: string[]) => {
     setAnalyzing(true);
     try {
@@ -69,7 +72,7 @@ export default function DashboardView({ model }: { model?: string }) {
         `- ${item.category} (${item.count} phiếu): ${item.summary}`
     ).join("\n");
     localStorage.setItem("current_diagnosis", problemText);
-    localStorage.setItem("current_stats", JSON.stringify(stats)); // Lưu thêm stats gốc
+    localStorage.setItem("current_stats", JSON.stringify(stats));
     window.location.href = "/?tab=ai&mode=solve";
   };
 
@@ -78,7 +81,7 @@ export default function DashboardView({ model }: { model?: string }) {
     return (
       <div className="mb-3 group">
         <div className="flex justify-between text-xs mb-1 font-medium text-gray-700">
-          <span className="truncate max-w-[80%]">{label}</span>
+          <span className="truncate max-w-[80%]" title={label}>{label}</span>
           <span className="text-gray-900 font-bold">{val || 0} ({pct}%)</span>
         </div>
         <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
@@ -88,11 +91,12 @@ export default function DashboardView({ model }: { model?: string }) {
     );
   };
 
-  const showData = !!stats; // Chỉ cần stats tồn tại là hiện
+  const showData = !!stats;
 
   return (
     <div className="space-y-8 font-sans animate-fade-in pb-12">
       
+      {/* HEADER */}
       <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">📊 Báo cáo lớp học</h2>
@@ -137,48 +141,42 @@ export default function DashboardView({ model }: { model?: string }) {
              <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-16 -mt-16"></div>
           </div>
 
-          {/* 2. CẢM XÚC */}
+          {/* 2. CẢM XÚC (Q1) - ĐÃ CÓ LẠI */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
             <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2"><span className="bg-pink-100 text-pink-600 p-1 rounded text-sm">🎭</span> Cảm xúc</h3>
             {stats.sentiment && Object.keys(stats.sentiment).length > 0 ? 
-                Object.entries(stats.sentiment).map(([k, v]) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-pink-500" />) 
-                : <div className="text-xs text-gray-400 italic text-center py-4">Chưa có dữ liệu</div>}
+                Object.entries(stats.sentiment).map(([k, v]: any) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-pink-500" />) 
+                : <EmptyState msg="Chưa có dữ liệu" />}
           </div>
 
-          {/* 3. MỨC ĐỘ HIỂU BÀI (BẢN CHUẨN B1-B4) */}
+          {/* 3. MỨC ĐỘ HIỂU (Q2) - SỬA LOGIC SẮP XẾP */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2">
-                <span className="bg-emerald-100 text-emerald-600 p-1.5 rounded-lg text-sm">🧠</span> Mức độ hiểu
-            </h3>
+            <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2"><span className="bg-emerald-100 text-emerald-600 p-1 rounded text-sm">🧠</span> Mức độ hiểu</h3>
             {stats.understanding && Object.keys(stats.understanding).length > 0 ? (
                 Object.entries(stats.understanding)
-                  // Sắp xếp theo mã B1 -> B4
-                  .sort((a:any, b:any) => a[0].localeCompare(b[0]))
-                  .map(([k, v]: any) => {
-                      // Chuẩn hóa key (đề phòng key là cả câu dài "B1 - Chưa hiểu...")
-                      const code = k.split(" ")[0].split("–")[0].trim(); // Lấy "B1", "B2"...
-                      
-                      // Bộ từ điển hiển thị & màu sắc
-                      const map: any = {
-                          "B1": { label: "Chưa hiểu (Mất gốc)", color: "bg-red-500" },
-                          "B2": { label: "Mơ hồ (Cần xem lại)", color: "bg-orange-400" },
-                          "B3": { label: "Hiểu cơ bản", color: "bg-blue-400" },
-                          "B4": { label: "Hiểu rõ (Tự tin)", color: "bg-emerald-500" }
-                      };
-
-                      const info = map[code] || { label: k, color: "bg-gray-400" };
-
-                      return <ProgressBar key={k} label={info.label} val={v} total={stats.total} color={info.color} />;
+                  // Sắp xếp theo thứ tự B1, B2, B3, B4
+                  .sort((a:any, b:any) => {
+                      const order = ["B1", "B2", "B3", "B4"];
+                      // Lấy mã B1, B2 từ chuỗi (VD: "B1 - Chưa hiểu")
+                      const codeA = a[0].split(" ")[0].split("–")[0].trim();
+                      const codeB = b[0].split(" ")[0].split("–")[0].trim();
+                      return order.indexOf(codeA) - order.indexOf(codeB);
                   })
-            ) : <p className="text-xs text-gray-400 italic text-center py-4">Chưa có dữ liệu</p>}
+                  .map(([k, v]: any) => {
+                      const code = k.split(" ")[0].split("–")[0].trim();
+                      const labelMap: Record<string, string> = { "B1": "Chưa hiểu (Mất gốc)", "B2": "Mơ hồ (Cần xem lại)", "B3": "Hiểu sơ (Cơ bản)", "B4": "Hiểu rõ (Tự tin)" };
+                      const colorMap: Record<string, string> = { "B1": "bg-red-500", "B2": "bg-orange-400", "B3": "bg-blue-400", "B4": "bg-emerald-500" };
+                      return <ProgressBar key={k} label={labelMap[code] || k} val={v} total={stats.total} color={colorMap[code] || "bg-gray-400"} />;
+                  })
+            ) : <EmptyState msg="Chưa có dữ liệu" />}
           </div>
 
-          {/* 4. ĐIỂM NGHẼN */}
-          <div className="bg-white p-6 rounded-3xl border border-red-100 shadow-sm relative overflow-hidden">
+          {/* 4. ĐIỂM NGHẼN (Q3) */}
+          <div className="bg-white p-6 rounded-3xl border border-red-100 shadow-sm relative overflow-hidden row-span-2">
             <h3 className="font-bold text-red-600 mb-6 flex items-center gap-2 relative z-10"><span className="bg-red-100 text-red-600 p-1 rounded text-sm">⚠️</span> Điểm nghẽn</h3>
-            <div className="space-y-3 relative z-10 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-              {stats.gaps && Object.keys(stats.gaps).length > 0 ? 
-                Object.entries(stats.gaps).sort((a:any, b:any) => b[1] - a[1]).map(([k, v]: any) => (
+            <div className="space-y-3 relative z-10 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              {stats.difficulties && Object.keys(stats.difficulties).length > 0 ? 
+                Object.entries(stats.difficulties).sort((a:any, b:any) => b[1] - a[1]).map(([k, v]: any) => (
                   <div key={k} className="flex justify-between items-center bg-red-50 p-3 rounded-xl border border-red-100">
                     <span className="text-xs font-medium text-gray-800 leading-snug max-w-[80%]">{k}</span>
                     <span className="text-xs font-bold bg-white text-red-600 px-2 py-1 rounded shadow-sm">{v}</span>
@@ -188,27 +186,27 @@ export default function DashboardView({ model }: { model?: string }) {
             </div>
           </div>
 
-          {/* 5. MONG MUỐN */}
+          {/* 5. MONG MUỐN (Q4) */}
           <div className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm">
             <h3 className="font-bold text-blue-600 mb-6 flex items-center gap-2"><span className="bg-blue-100 text-blue-600 p-1 rounded text-sm">💡</span> Mong muốn</h3>
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
               {stats.adjustments && Object.keys(stats.adjustments).length > 0 ? 
                   Object.entries(stats.adjustments).map(([k, v]: any) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-blue-500" />)
-                  : <div className="text-xs text-gray-400 italic text-center py-4">Chưa có dữ liệu</div>}
+                  : <EmptyState msg="Chưa có dữ liệu" />}
             </div>
           </div>
 
-          {/* 6. PHONG CÁCH HỌC */}
+          {/* 6. PHONG CÁCH HỌC (Q5) - ĐÃ CÓ LẠI */}
           <div className="bg-white p-6 rounded-3xl border border-purple-100 shadow-sm">
             <h3 className="font-bold text-purple-600 mb-6 flex items-center gap-2"><span className="bg-purple-100 text-purple-600 p-1 rounded text-sm">🎨</span> Phong cách học</h3>
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
               {stats.styles && Object.keys(stats.styles).length > 0 ? 
                   Object.entries(stats.styles).map(([k, v]: any) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-purple-500" />)
-                  : <div className="text-xs text-gray-400 italic text-center py-4">Chưa có dữ liệu</div>}
+                  : <EmptyState msg="Chưa có dữ liệu" />}
             </div>
           </div>
 
-          {/* 7. LỜI NHẮN & AI */}
+          {/* 7. LỜI NHẮN & AI (Q6) */}
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm col-span-1 md:col-span-2 lg:col-span-3">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="font-bold text-gray-800 text-sm">💌 Lời nhắn ({stats.feedbacks?.length || 0})</h3>
@@ -224,7 +222,7 @@ export default function DashboardView({ model }: { model?: string }) {
                 <div className="mb-6 bg-indigo-50/60 rounded-2xl border border-indigo-100 overflow-hidden animate-fade-in">
                     <div className="p-3 bg-indigo-100/50 flex justify-between items-center border-b border-indigo-200">
                         <span className="text-xs font-bold text-indigo-800 uppercase">🤖 Kết quả phân tích nhóm</span>
-                        <button onClick={goToSolution} className="text-xs bg-white text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg font-bold shadow-sm hover:bg-indigo-50 transition-colors">
+                        <button onClick={goToSolution} className="text-xs bg-white text-indigo-700 border border-indigo-200 px-3 py-1 rounded-lg font-bold shadow-sm hover:bg-indigo-50 transition-colors">
                             💡 Nhờ AI tư vấn giải pháp ngay →
                         </button>
                     </div>
@@ -251,7 +249,7 @@ export default function DashboardView({ model }: { model?: string }) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
               {stats.feedbacks && stats.feedbacks.length > 0 ? stats.feedbacks.map((fb: string, i: number) => (
                   <div key={i} className="bg-gray-50 p-3 rounded-lg text-xs text-gray-600 italic border-l-2 border-gray-300">"{fb}"</div>
-              )) : <p className="text-xs text-gray-400 col-span-2 text-center py-4">Chưa có lời nhắn nào.</p>}
+              )) : <EmptyState msg="Chưa có lời nhắn nào" />}
             </div>
           </div>
 
