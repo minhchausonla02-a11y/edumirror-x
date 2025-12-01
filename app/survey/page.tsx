@@ -12,6 +12,9 @@ function SurveyForm() {
   const [submitted, setSubmitted] = useState(false);
   const [answers, setAnswers] = useState<Record<string, any>>({});
   const [error, setError] = useState("");
+  
+  // STATE CHỐNG SPAM CLICK
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (!surveyId) return;
@@ -43,12 +46,16 @@ function SurveyForm() {
   };
 
   const handleSubmit = async () => {
+    if (isSubmitting) return; // Chặn nếu đang gửi
     if (!surveyId) return alert("Lỗi ID phiếu");
+    
     // Validate sơ bộ: Cần trả lời ít nhất câu 1 và 2
     if (!answers['q1_feeling'] || !answers['q2_understanding']) {
         alert("Vui lòng chọn Cảm nhận và Mức độ hiểu bài trước khi gửi nhé!");
         return;
     }
+
+    setIsSubmitting(true); // Khóa nút
 
     try {
       const res = await fetch('/api/submit-survey', {
@@ -58,7 +65,10 @@ function SurveyForm() {
       });
       if (!res.ok) throw new Error("Lỗi server");
       setSubmitted(true);
-    } catch (err: any) { alert("⚠️ Lỗi: " + err.message); }
+    } catch (err: any) { 
+        alert("⚠️ Lỗi: " + err.message); 
+        setIsSubmitting(false); // Mở lại nếu lỗi
+    }
   };
 
   if (loading) return <div className="min-h-screen flex items-center justify-center text-indigo-600 font-bold animate-pulse">Đang tải... ⏳</div>;
@@ -117,9 +127,6 @@ function SurveyForm() {
               <div className="space-y-2">
                 {q.options.map((opt: string, i: number) => {
                   const isChecked = (answers[q.id] || []).includes(opt);
-                  // Tách nhóm (nếu là câu 3, từ phương án thứ 5 trở đi là nhóm B)
-                  const isGroupB = q.id === "q3_difficulties" && i >= 5; 
-                  
                   return (
                     <div key={i}>
                         {/* Dòng kẻ phân cách cho câu 3 */}
@@ -146,8 +153,16 @@ function SurveyForm() {
           </div>
         ))}
 
-        <button onClick={handleSubmit} className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-bold text-base shadow-lg hover:shadow-xl active:scale-95 transition-all mt-4">
-          Gửi phiếu 🚀
+        <button 
+            onClick={handleSubmit} 
+            disabled={isSubmitting}
+            className={`w-full py-3.5 rounded-xl font-bold text-base shadow-lg transition-all mt-4 flex items-center justify-center gap-2 ${
+                isSubmitting 
+                ? "bg-gray-300 text-gray-500 cursor-not-allowed" 
+                : "bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:shadow-xl active:scale-95"
+            }`}
+        >
+          {isSubmitting ? "Đang gửi..." : "Gửi phiếu 🚀"}
         </button>
         <div className="h-8"></div>
       </div>
