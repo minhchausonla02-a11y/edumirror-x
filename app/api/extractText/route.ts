@@ -5,12 +5,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60; 
 
-// --- POLYFILL ĐỂ SỬA LỖI DOMMATRIX ---
-// (Giả lập DOMMatrix cho môi trường Node.js nếu chưa có)
+// --- 💉 POLYFILL CHO PDF-PARSE ---
+// Giả lập DOMMatrix nếu nó chưa tồn tại (Để chạy được trên Vercel)
 if (typeof global.DOMMatrix === 'undefined') {
     (global as any).DOMMatrix = class DOMMatrix {
         public a = 1; public b = 0; public c = 0; public d = 1; public e = 0; public f = 0;
         constructor() {}
+        // Thêm các phương thức giả nếu cần, nhưng thường constructor là đủ để init
     };
 }
 
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
     // --- 1. XỬ LÝ FILE PDF ---
     if (fileName.endsWith(".pdf")) {
       try {
-        // Dùng require thay vì import để đảm bảo thứ tự chạy sau Polyfill
+        // Dùng require thay vì import tĩnh để đảm bảo nó chạy SAU khi đã polyfill
         const pdfParse = require("pdf-parse");
         
         const data = await pdfParse(buffer);
@@ -43,9 +44,8 @@ export async function POST(req: Request) {
         }
       } catch (e: any) {
         console.error("❌ Lỗi chi tiết đọc PDF:", e);
-        // Gợi ý giải pháp nếu lỗi vẫn xảy ra
         return NextResponse.json({ 
-            error: `Không đọc được PDF. Lỗi: ${e.message}. (Thử chuyển file sang Word rồi upload lại)` 
+            error: `Không đọc được PDF. Lỗi: ${e.message}. (Gợi ý: Thử chuyển file sang Word rồi upload lại nếu vẫn lỗi)` 
         }, { status: 500 });
       }
     } 
