@@ -1,18 +1,32 @@
 import { NextResponse } from "next/server";
 
-// Cấu hình bắt buộc
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 60; 
+export const maxDuration = 60;
 
-// --- 💉 POLYFILL CHO PDF-PARSE ---
-// Giả lập DOMMatrix nếu nó chưa tồn tại (Để chạy được trên Vercel)
-if (typeof global.DOMMatrix === 'undefined') {
-    (global as any).DOMMatrix = class DOMMatrix {
-        public a = 1; public b = 0; public c = 0; public d = 1; public e = 0; public f = 0;
-        constructor() {}
-        // Thêm các phương thức giả nếu cần, nhưng thường constructor là đủ để init
-    };
+// === POLYFILLS CHO pdf-parse TRÊN VERCEL ===
+if (typeof (global as any).navigator === "undefined") {
+  (global as any).navigator = { userAgent: "node" };
+}
+
+if (typeof (global as any).window === "undefined") {
+  (global as any).window = {};
+}
+
+if (typeof (global as any).document === "undefined") {
+  (global as any).document = {
+    createElement: () => ({ getContext: () => null }),
+  };
+}
+
+if (typeof (global as any).DOMParser === "undefined") {
+  (global as any).DOMParser = class DOMParser {};
+}
+
+if (typeof (global as any).DOMMatrix === "undefined") {
+  (global as any).DOMMatrix = class DOMMatrix {
+    constructor() {}
+  };
 }
 
 export async function POST(req: Request) {
@@ -28,54 +42,55 @@ export async function POST(req: Request) {
     const fileName = file.name.toLowerCase();
     let text = "";
 
-    console.log(`📂 Đang xử lý file: ${fileName}, Kích thước: ${buffer.length} bytes`);
+    console.log(`📄 Đang xử lý file: ${fileName}`);
 
-    // --- 1. XỬ LÝ FILE PDF ---
+    // === PDF ===
     if (fileName.endsWith(".pdf")) {
       try {
-        // Dùng require thay vì import tĩnh để đảm bảo nó chạy SAU khi đã polyfill
         const pdfParse = require("pdf-parse");
-        
         const data = await pdfParse(buffer);
-        text = data.text;
-        
-        if (!text || text.trim().length === 0) {
-           throw new Error("File PDF rỗng hoặc là file ảnh scan (không có text).");
+
+        if (!data.text || data.text.trim().length === 0) {
+          throw new Error("File PDF không có text (có thể là bản scan).");
         }
-      } catch (e: any) {
-        console.error("❌ Lỗi chi tiết đọc PDF:", e);
-        return NextResponse.json({ 
-            error: `Không đọc được PDF. Lỗi: ${e.message}. (Gợi ý: Thử chuyển file sang Word rồi upload lại nếu vẫn lỗi)` 
-        }, { status: 500 });
+
+        text = data.text;
+      } catch (err: any) {
+        console.error("PDF ERROR:", err);
+        return NextResponse.json(
+          { error: "Không đọc được PDF. (Gợi ý: chuyển sang Word rồi upload lại)." },
+          { status: 500 }
+        );
       }
-    } 
-    
-    // --- 2. XỬ LÝ FILE WORD (.docx / .doc) ---
+    }
+
+    // === DOC/DOCX ===
     else if (fileName.endsWith(".docx") || fileName.endsWith(".doc")) {
       try {
         const mammoth = require("mammoth");
-        const result = await mammoth.extractRawText({ buffer: buffer });
+        const result = await mammoth.extractRawText({ buffer });
         text = result.value;
-      } catch (e: any) {
-        console.error("❌ Lỗi đọc Word:", e);
-        return NextResponse.json({ error: "File Word bị lỗi cấu trúc." }, { status: 500 });
+      } catch {
+        return NextResponse.json(
+          { error: "Không đọc được file Word." },
+          { status: 500 }
+        );
       }
-    } 
-    
-    // --- 3. XỬ LÝ FILE TEXT ---
-    else if (fileName.endsWith(".txt")) {
-      text = buffer.toString("utf-8");
-    } 
-    
-    else {
-      return NextResponse.json({ error: "Định dạng file không hỗ trợ. Chỉ nhận .pdf, .docx, .txt" }, { status: 400 });
     }
 
-    // Trả về kết quả
-    return NextResponse.json({ text: text.trim() });
+    // === TXT ===
+    else if (fileName.endsWith(".txt")) {
+      text = buffer.toString("utf8");
+    } else {
+      return NextResponse.json(
+        { error: "Chỉ hỗ trợ .pdf, .docx, .doc, .txt" },
+        { status: 400 }
+      );
+    }
 
-  } catch (error: any) {
-    console.error("🚨 EXTRACT_ERROR:", error);
-    return NextResponse.json({ error: error.message || "Lỗi hệ thống xử lý file" }, { status: 500 });
+    return NextResponse.json({ text: text.trim() });
+  } catch (err: any) {
+    console.error("SERVER ERROR:", err);
+    return NextResponse.json({ error: "Lỗi hệ thống." }, { status: 500 });
   }
 }
