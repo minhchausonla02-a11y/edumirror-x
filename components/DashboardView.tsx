@@ -1,9 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 
-// Component hiển thị khi trống
 function EmptyState({ msg }: { msg: string }) {
-  return <div className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg">{msg}</div>;
+  return <div className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">{msg}</div>;
 }
 
 export default function DashboardView({ model }: { model?: string }) {
@@ -15,21 +14,31 @@ export default function DashboardView({ model }: { model?: string }) {
   // AI State
   const [analyzing, setAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState<any[] | null>(null);
+  const [deleting, setDeleting] = useState(false); // State cho nút xóa
 
-  // 1. Tải danh sách
-  useEffect(() => {
+  // 1. Tải danh sách phiếu
+  const fetchSurveys = () => {
     fetch("/api/list-surveys")
       .then((res) => res.json())
       .then((data) => {
         if (data.surveys && data.surveys.length > 0) {
           setSurveys(data.surveys);
-          if (!selectedId) setSelectedId(data.surveys[0].short_id);
+          // Nếu chưa chọn hoặc ID cũ không còn tồn tại -> Chọn cái đầu tiên
+          if (!selectedId || !data.surveys.find((s:any) => s.short_id === selectedId)) {
+              setSelectedId(data.surveys[0].short_id);
+          }
+        } else {
+            setSurveys([]);
+            setSelectedId("");
+            setStats(null);
         }
       })
       .catch(err => console.error("Lỗi tải danh sách:", err));
-  }, []);
+  };
 
-  // 2. Tải chi tiết
+  useEffect(() => { fetchSurveys(); }, []);
+
+  // 2. Tải chi tiết thống kê
   const fetchStats = () => {
     if (!selectedId) return;
     setLoading(true);
@@ -47,7 +56,25 @@ export default function DashboardView({ model }: { model?: string }) {
 
   useEffect(() => { fetchStats(); }, [selectedId]);
 
-  // AI Phân tích
+  // --- XÓA PHIẾU ---
+  const handleDelete = async () => {
+      if (!selectedId) return;
+      if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn phiếu này?")) return;
+
+      setDeleting(true);
+      try {
+          const res = await fetch(`/api/delete-survey?id=${selectedId}`, { method: "DELETE" });
+          if (res.ok) {
+              alert("Đã xóa thành công!");
+              fetchSurveys(); // Tải lại danh sách
+          } else {
+              alert("Lỗi khi xóa phiếu.");
+          }
+      } catch (e) { alert("Lỗi kết nối server."); } 
+      finally { setDeleting(false); }
+  };
+
+  // --- AI PHÂN TÍCH ---
   const analyzeFeedback = async (feedbacks: string[]) => {
     setAnalyzing(true);
     try {
@@ -58,19 +85,14 @@ export default function DashboardView({ model }: { model?: string }) {
         });
         const data = await res.json();
         if (Array.isArray(data.result)) setAiResult(data.result);
-        else alert("AI trả về dữ liệu không đúng định dạng.");
-    } catch (e) {
-        alert("Lỗi kết nối AI.");
-    } finally {
-        setAnalyzing(false);
-    }
+        else alert("AI trả về dữ liệu lỗi.");
+    } catch (e) { alert("Lỗi kết nối AI."); } 
+    finally { setAnalyzing(false); }
   };
 
   const goToSolution = () => {
     if (!aiResult) return;
-    const problemText = aiResult.map((item: any) => 
-        `- ${item.category} (${item.count} phiếu): ${item.summary}`
-    ).join("\n");
+    const problemText = aiResult.map((item: any) => `- ${item.category}: ${item.summary}`).join("\n");
     localStorage.setItem("current_diagnosis", problemText);
     localStorage.setItem("current_stats", JSON.stringify(stats));
     window.location.href = "/?tab=ai&mode=solve";
@@ -100,24 +122,25 @@ export default function DashboardView({ model }: { model?: string }) {
       <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">📊 Báo cáo lớp học</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            {stats ? `Dữ liệu từ ${stats.total} học sinh` : "Chọn phiếu để xem"}
-          </p>
+          <p className="text-sm text-gray-500 mt-1">{stats ? `Dữ liệu từ ${stats.total} học sinh` : "Chọn phiếu để xem"}</p>
         </div>
-        <div className="flex gap-2 w-full md:w-auto">
+        <div className="flex gap-2 w-full md:w-auto items-center">
             {surveys.length > 0 ? (
-            <select 
-                className="flex-1 p-3 border rounded-xl text-sm min-w-[200px] bg-gray-50 font-medium outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500"
-                value={selectedId} onChange={(e) => setSelectedId(e.target.value)}
-            >
-                {surveys.map(s => (
-                <option key={s.short_id} value={s.short_id}>
-                    {s.payload?.title ? s.payload.title.substring(0, 30) : "Phiếu..."} ({new Date(s.created_at).toLocaleDateString('vi-VN')})
-                </option>
-                ))}
-            </select>
+            <>
+                <select 
+                    className="flex-1 p-3 border rounded-xl text-sm min-w-[200px] bg-gray-50 font-medium outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500"
+                    value={selectedId} onChange={(e) => setSelectedId(e.target.value)}
+                >
+                    {surveys.map(s => (
+                    <option key={s.short_id} value={s.short_id}>
+                        {s.payload?.title ? s.payload.title.substring(0, 30) : "Phiếu..."} ({new Date(s.created_at).toLocaleDateString('vi-VN')})
+                    </option>
+                    ))}
+                </select>
+                <button onClick={fetchStats} className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 border border-indigo-100" title="Làm mới">🔄</button>
+                <button onClick={handleDelete} disabled={deleting} className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 border border-red-100 transition-colors" title="Xóa phiếu này">{deleting ? "..." : "🗑️"}</button>
+            </>
             ) : <div className="text-red-500 text-sm p-2">Chưa có phiếu nào.</div>}
-            <button onClick={fetchStats} className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 border border-indigo-100" title="Làm mới">🔄</button>
         </div>
       </div>
 
@@ -126,8 +149,8 @@ export default function DashboardView({ model }: { model?: string }) {
       ) : showData ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-        {/* 1. TỔNG QUAN */}
-          <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-8 rounded-3xl shadow-lg text-white flex flex-col sm:flex-row justify-between items-center relative overflow-hidden">
+          {/* 1. TỔNG QUAN */}
+          <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-3xl shadow-lg text-white flex flex-col sm:flex-row justify-between items-center relative overflow-hidden">
              <div className="relative z-10">
                 <div className="text-xs opacity-80 uppercase font-bold tracking-widest mb-1">Tổng phiếu</div>
                 <div className="text-6xl font-bold tracking-tight">{stats.total || 0}</div>
@@ -135,37 +158,26 @@ export default function DashboardView({ model }: { model?: string }) {
              <div className="relative z-10 text-right mt-4 sm:mt-0">
                 <div className="text-xs opacity-80 uppercase font-bold tracking-widest mb-2">Cảm xúc chủ đạo</div>
                 <div className="text-3xl font-bold bg-white/20 px-4 py-2 rounded-2xl backdrop-blur-sm inline-block">
-                  {/* ĐÃ SỬA: Dùng stats.feeling thay vì stats.sentiment */}
-                  {stats.feeling && Object.keys(stats.feeling).length > 0 
-                    ? Object.entries(stats.feeling).sort((a:any, b:any) => b[1] - a[1])[0]?.[0] 
-                    : "—"}
+                  {stats.feeling && Object.keys(stats.feeling).length > 0 ? Object.entries(stats.feeling).sort((a:any, b:any) => b[1] - a[1])[0]?.[0] : "—"}
                 </div>
              </div>
              <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-16 -mt-16"></div>
           </div>
 
-          {/* 2. CẢM XÚC (Q1) */}
+          {/* 2. CẢM XÚC */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
             <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2"><span className="bg-pink-100 text-pink-600 p-1 rounded text-sm">🎭</span> Cảm xúc</h3>
-            {/* ĐÃ SỬA: Dùng stats.feeling đồng bộ */}
             {stats.feeling && Object.keys(stats.feeling).length > 0 ? 
                 Object.entries(stats.feeling).map(([k, v]: any) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-pink-500" />) 
                 : <EmptyState msg="Chưa có dữ liệu" />}
           </div>
 
-          {/* 3. MỨC ĐỘ HIỂU (Q2) - SỬA LOGIC SẮP XẾP */}
+          {/* 3. MỨC ĐỘ HIỂU */}
           <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
             <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2"><span className="bg-emerald-100 text-emerald-600 p-1 rounded text-sm">🧠</span> Mức độ hiểu</h3>
             {stats.understanding && Object.keys(stats.understanding).length > 0 ? (
                 Object.entries(stats.understanding)
-                  // Sắp xếp theo thứ tự B1, B2, B3, B4
-                  .sort((a:any, b:any) => {
-                      const order = ["B1", "B2", "B3", "B4"];
-                      // Lấy mã B1, B2 từ chuỗi (VD: "B1 - Chưa hiểu")
-                      const codeA = a[0].split(" ")[0].split("–")[0].trim();
-                      const codeB = b[0].split(" ")[0].split("–")[0].trim();
-                      return order.indexOf(codeA) - order.indexOf(codeB);
-                  })
+                  .sort((a:any, b:any) => a[0].localeCompare(b[0]))
                   .map(([k, v]: any) => {
                       const code = k.split(" ")[0].split("–")[0].trim();
                       const labelMap: Record<string, string> = { "B1": "Chưa hiểu (Mất gốc)", "B2": "Mơ hồ (Cần xem lại)", "B3": "Hiểu sơ (Cơ bản)", "B4": "Hiểu rõ (Tự tin)" };
@@ -175,7 +187,7 @@ export default function DashboardView({ model }: { model?: string }) {
             ) : <EmptyState msg="Chưa có dữ liệu" />}
           </div>
 
-          {/* 4. ĐIỂM NGHẼN (Q3) */}
+          {/* 4. ĐIỂM NGHẼN */}
           <div className="bg-white p-6 rounded-3xl border border-red-100 shadow-sm relative overflow-hidden row-span-2">
             <h3 className="font-bold text-red-600 mb-6 flex items-center gap-2 relative z-10"><span className="bg-red-100 text-red-600 p-1 rounded text-sm">⚠️</span> Điểm nghẽn</h3>
             <div className="space-y-3 relative z-10 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
@@ -190,7 +202,7 @@ export default function DashboardView({ model }: { model?: string }) {
             </div>
           </div>
 
-          {/* 5. MONG MUỐN (Q4) */}
+          {/* 5. MONG MUỐN */}
           <div className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm">
             <h3 className="font-bold text-blue-600 mb-6 flex items-center gap-2"><span className="bg-blue-100 text-blue-600 p-1 rounded text-sm">💡</span> Mong muốn</h3>
             <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
@@ -200,7 +212,7 @@ export default function DashboardView({ model }: { model?: string }) {
             </div>
           </div>
 
-          {/* 6. PHONG CÁCH HỌC (Q5) - ĐÃ CÓ LẠI */}
+          {/* 6. PHONG CÁCH HỌC (ĐÃ BỔ SUNG) */}
           <div className="bg-white p-6 rounded-3xl border border-purple-100 shadow-sm">
             <h3 className="font-bold text-purple-600 mb-6 flex items-center gap-2"><span className="bg-purple-100 text-purple-600 p-1 rounded text-sm">🎨</span> Phong cách học</h3>
             <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
@@ -210,7 +222,7 @@ export default function DashboardView({ model }: { model?: string }) {
             </div>
           </div>
 
-          {/* 7. LỜI NHẮN & AI (Q6) */}
+          {/* 7. LỜI NHẮN & AI */}
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm col-span-1 md:col-span-2 lg:col-span-3">
             <div className="flex justify-between items-center mb-4">
                 <h3 className="font-bold text-gray-800 text-sm">💌 Lời nhắn ({stats.feedbacks?.length || 0})</h3>
@@ -221,7 +233,6 @@ export default function DashboardView({ model }: { model?: string }) {
                 )}
             </div>
 
-            {/* Kết quả AI */}
             {aiResult && (
                 <div className="mb-6 bg-indigo-50/60 rounded-2xl border border-indigo-100 overflow-hidden animate-fade-in">
                     <div className="p-3 bg-indigo-100/50 flex justify-between items-center border-b border-indigo-200">
