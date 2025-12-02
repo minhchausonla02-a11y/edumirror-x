@@ -1,20 +1,18 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+// Thêm những dòng này vào đầu file AISuggestionsView.tsx
 import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
-import 'katex/dist/katex.min.css'; // Import CSS toán học
+import 'katex/dist/katex.min.css'; // Quan trọng: Import CSS để công thức hiện đúng font
+
 
 export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
-  
-  // Hàm xử lý LaTeX: Biến \[...\] thành $$...$$ và \(...\) thành $...$
   const preprocessLaTeX = (content: string) => {
-    if (!content) return "";
-    const blockRep = content.replace(/\\\[(.*?)\\\]/gs, '$$$1$$');
-    const inlineRep = blockRep.replace(/\\\((.*?)\\\)/gs, '$$$1$$');
-    return inlineRep;
-  };
-
+  const blockRep = content.replace(/\\\[(.*?)\\\]/gs, '$$$1$$');
+  const inlineRep = blockRep.replace(/\\\((.*?)\\\)/gs, '$$$1$$');
+  return inlineRep;
+};
   const [stats, setStats] = useState<any>(null);
   const [solution, setSolution] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,22 +24,26 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
   const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Lấy dữ liệu thống kê từ Dashboard gửi sang (nếu có)
     const savedStats = localStorage.getItem("current_stats");
     if (savedStats) {
       setStats(JSON.parse(savedStats));
     }
   }, []);
 
+  // Tự động cuộn xuống khi chat
   useEffect(() => { 
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); 
   }, [chatHistory]);
 
+  // HÀM 1: KÍCH HOẠT PHÂN TÍCH (Gửi model đi)
   const handleAnalyze = async () => {
     if (!stats) return;
     setLoading(true);
     try {
       const res = await fetch("/api/get-solution", {
         method: "POST",
+        // 👇 Đã thêm model vào đây
         body: JSON.stringify({ stats, lessonText, apiKey, model }) 
       });
       const data = await res.json();
@@ -53,10 +55,12 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
     }
   };
 
+  // HÀM 2: GỬI CHAT (Gửi model đi - Đây là chỗ bạn cần sửa nhất)
   const handleSendChat = async () => {
     if (!chatInput.trim()) return;
     
     const userMsg = chatInput;
+    // Hiện tin nhắn người dùng ngay lập tức
     setChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
     setChatInput("");
     setChatLoading(true);
@@ -64,17 +68,20 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
     try {
       const res = await fetch("/api/chat-with-ai", {
         method: "POST",
+        // 👇 Đã thêm model vào đây (QUAN TRỌNG)
         body: JSON.stringify({ 
             question: userMsg,
             context: { diagnosis: JSON.stringify(stats), currentSolution: solution },
             apiKey,
-            model 
+            model // <--- Gửi model (ví dụ: gpt-4o) sang API
         })
       });
       const data = await res.json();
+      
+      // Hiện câu trả lời của AI
       setChatHistory(prev => [...prev, { role: 'ai', content: data.result }]);
     } catch (e) {
-      setChatHistory(prev => [...prev, { role: 'ai', content: "⚠️ Lỗi kết nối." }]);
+      setChatHistory(prev => [...prev, { role: 'ai', content: "⚠️ Lỗi kết nối, vui lòng thử lại." }]);
     } finally {
       setChatLoading(false);
     }
@@ -94,6 +101,7 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                 </p>
             </div>
          </div>
+         {/* Nút bấm chỉ hiện khi chưa có giải pháp */}
          {!solution && stats && (
              <button 
                 onClick={handleAnalyze} 
@@ -105,20 +113,10 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
          )}
       </div>
 
-      {/* HIỂN THỊ NỘI DUNG GIẢI PHÁP (Cũng hỗ trợ Math) */}
+      {/* HIỂN THỊ NỘI DUNG GIẢI PHÁP */}
       {solution ? (
         <div className="animate-fade-in-up">
-            <div className="prose prose-sm max-w-none text-gray-800 bg-white p-6 rounded-2xl border border-green-100 shadow-sm">
-                {/* Dùng ReactMarkdown cho cả phần giải pháp nếu AI trả về markdown */}
-                <ReactMarkdown
-                    remarkPlugins={[remarkMath]}
-                    rehypePlugins={[rehypeKatex]}
-                    components={{ p: ({node, ...props}) => <p className="mb-3" {...props} /> }}
-                >
-                    {preprocessLaTeX(solution)} 
-                </ReactMarkdown>
-                {/* Fallback nếu solution là HTML thuần: dangerouslySetInnerHTML (nhưng nên ưu tiên Markdown) */}
-            </div>
+            <div className="prose prose-sm max-w-none text-gray-800" dangerouslySetInnerHTML={{ __html: solution }}></div>
             
             <div className="mt-6 text-center border-t pt-4">
                 <button onClick={() => { setSolution(null); localStorage.removeItem("current_stats"); }} className="text-xs text-gray-400 underline hover:text-red-500">
@@ -133,9 +131,10 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
         </div>
       )}
 
-      {/* --- PHẦN 2: KHUNG CHAT (FULL MATH SUPPORT) --- */}
+      {/* --- PHẦN 2: KHUNG CHAT (Chỉ hiện khi đã có giải pháp) --- */}
       {solution && (
           <div className="mt-8 bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden flex flex-col h-[500px]">
+              {/* Header Chat */}
               <div className="bg-gray-900 p-4 text-white flex items-center gap-3">
                   <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">👨‍🏫</div>
                   <div>
@@ -144,11 +143,12 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                   </div>
               </div>
 
+              {/* Nội dung Chat */}
               <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
                   <div className="flex gap-3">
                       <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-sm flex-shrink-0">🤖</div>
                       <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm text-sm border border-gray-200 text-gray-700 max-w-[85%]">
-                          Em đã phân tích xong. Thầy/cô có muốn hỏi sâu hơn về giải pháp nào không ạ?
+                          Em đã phân tích xong. Thầy/cô có muốn hỏi sâu hơn về giải pháp nào không ạ? Ví dụ: "Cho tôi xin slide bài tập mồi".
                       </div>
                   </div>
 
@@ -157,28 +157,36 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                           <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${msg.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-indigo-100'}`}>
                               {msg.role === 'user' ? 'T' : '🤖'}
                           </div>
-                          
-                          {/* --- KHU VỰC HIỂN THỊ TIN NHẮN CÓ CÔNG THỨC TOÁN --- */}
-                          <div className={`p-3 rounded-2xl shadow-sm text-sm max-w-[85%] overflow-x-auto ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-700 rounded-tl-none'}`}>
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkMath]}
-                                    rehypePlugins={[rehypeKatex]}
-                                    components={{
-                                        p: ({node, ...props}) => <p className="mb-1 last:mb-0" {...props} />
-                                    }}
-                                >
-                                    {preprocessLaTeX(msg.content)}
-                                </ReactMarkdown>
-                          </div>
+                   <div className={`p-3 rounded-2xl shadow-sm text-sm max-w-[85%] overflow-x-auto ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-white border border-gray-200 text-gray-700 rounded-tl-none'}`}>
+    <ReactMarkdown
+        remarkPlugins={[remarkMath]}
+        rehypePlugins={[rehypeKatex]}
+        components={{
+            p: ({node, ...props}) => <p className="mb-1 last:mb-0" {...props} />
+        }}
+    >
+        {preprocessLaTeX(msg.content)}
+    </ReactMarkdown>
+</div>
                       </div>
                   ))}
-                  
+
                   {chatLoading && (
-                      <div className="text-xs text-gray-400 italic ml-12 animate-pulse">AI đang viết...</div>
+                      <div className="flex gap-3">
+                          <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center text-sm">🤖</div>
+                          <div className="bg-white p-3 rounded-2xl rounded-tl-none shadow-sm border border-gray-200">
+                              <div className="flex gap-1">
+                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
+                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                                  <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                              </div>
+                          </div>
+                      </div>
                   )}
                   <div ref={chatEndRef} />
               </div>
 
+              {/* Input Chat */}
               <div className="p-4 border-t bg-white flex gap-2">
                   <input 
                       type="text" 
