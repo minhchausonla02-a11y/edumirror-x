@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    // Lấy model từ body (Mặc định gpt-4o-mini)
+    // Lấy model từ body (Mặc định gpt-4o-mini nếu client không gửi)
     const { feedbacks, apiKey, model = "gpt-4o-mini" } = body;
 
     const finalKey = apiKey || process.env.OPENAI_API_KEY;
@@ -18,52 +18,47 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({ apiKey: finalKey });
 
-// --- PROMPT MỚI: SIÊU BỘ LỌC SƯ PHẠM ---
+    // --- PROMPT: BỘ LỌC SƯ PHẠM & DỊCH THUẬT GEN Z ---
     const prompt = `
-      Bạn là Chuyên gia Kiểm định Chất lượng Giáo dục.
-      Nhiệm vụ: Lọc và Phân tích phản hồi của học sinh.
+      Bạn là Trợ lý Thư ký Hội đồng Giáo dục (EduMirror AI).
       
-      QUY TẮC LỌC (Rất quan trọng):
-      Chỉ giữ lại các phản hồi thuộc 3 nhóm sau:
-      1. **Kiến thức:** (VD: "Chưa hiểu bài", "Khó quá", "Giảng lại phần X").
-      2. **Phương pháp:** (VD: "Giảng nhanh", "Cần ví dụ", "Ồn ào").
-      3. **Cảm xúc học tập:** (VD: "Hứng thú", "Chán", "Buồn ngủ").
-      
-      LOẠI BỎ NGAY LẬP TỨC (Không đưa vào báo cáo):
-      - Spam, vô nghĩa ("hdhd", "...", "123").
-      - Tên riêng không rõ ngữ cảnh ("Thìn Lò", "Tuấn Anh").
-      - Nhận xét ngoại hình/đời tư ("Thầy đẹp trai", "Cô xinh").
-      - Lời chào xã giao ("Em chào thầy", "Hi").
+      NHIỆM VỤ:
+      Tổng hợp các phản hồi ẩn danh của học sinh sau tiết học thành một báo cáo ngắn gọn, súc tích cho giáo viên.
 
-      SAU KHI LỌC:
-      - Dịch tiếng lóng Gen Z sang tiếng Việt chuẩn.
-      - Gom nhóm các ý kiến trùng lặp.
-      - Đếm số lượng.
+      1. QUY TẮC LỌC (FILTERING):
+         - LOẠI BỎ NGAY: Các câu vô nghĩa ("...", "asdf"), Spam ("Thìn Lò", "Phong xướng"), Nhận xét ngoại hình không liên quan ("Thầy đẹp trai"), hoặc lời chào xã giao.
+         - GIỮ LẠI: Các ý kiến về Kiến thức, Phương pháp dạy, Tốc độ, Cảm xúc học tập.
 
-      DANH SÁCH INPUT:
+      2. XỬ LÝ NGÔN NGỮ:
+         - "Dịch" tiếng lóng Gen Z (vd: "khum", "cuốn", "lag", "xỉu") sang tiếng Việt phổ thông, chuẩn mực.
+         - Gom nhóm các ý kiến trùng lặp.
+         - Viết lại nội dung tóm tắt bằng ngôn ngữ sư phạm, nhẹ nhàng.
+
+      DANH SÁCH PHẢN HỒI GỐC:
       ${JSON.stringify(feedbacks)}
 
-      YÊU CẦU OUTPUT (JSON Array thuần túy):
+      YÊU CẦU ĐẦU RA (JSON Array thuần túy, KHÔNG markdown):
       [
         {
-          "category": "Tên nhóm vấn đề",
-          "summary": "Mô tả nội dung (Đã chuẩn hóa)",
-          "count": Số lượng,
-          "type": "negative" | "positive" | "neutral" | "question",
-          "original_sample": "Trích dẫn 1 câu gốc (đã được lọc)"
+          "category": "Nhãn ngắn gọn (VD: 'Kiến thức', 'Phương pháp', 'Lời khen', 'Góp ý')",
+          "summary": "Nội dung tóm tắt (Viết một câu hoàn chỉnh. VD: 'Học sinh thấy bài giảng hơi nhanh, chưa chép kịp.')",
+          "count": Số lượng phiếu,
+          "type": "negative" (nếu là vấn đề) | "positive" (nếu là khen) | "neutral" (nếu là hỏi/đề xuất),
+          "original_sample": "Trích dẫn nguyên văn 1 câu gốc để làm bằng chứng"
         }
       ]
+      
+      Sắp xếp theo số lượng giảm dần. Nếu lọc xong không còn gì thì trả về [].
     `;
 
-    // Gọi OpenAI (Đã bỏ temperature để tương thích tốt với mọi model kể cả o1)
     const response = await openai.chat.completions.create({
-      model: model, 
+      model: model, // Sử dụng đúng model người dùng chọn (gpt-5.1, o1, 4o...)
       messages: [{ role: "user", content: prompt }],
-      // Không để temperature ở đây để tránh lỗi với model o1
+      // LƯU Ý: Không cài đặt 'temperature' ở đây để tương thích với dòng model o1/gpt-5
     });
 
     let content = response.choices[0].message.content || "[]";
-    // Làm sạch JSON phòng trường hợp AI trả về markdown
+    // Làm sạch JSON phòng trường hợp AI trả về markdown code block
     content = content.replace(/```json|```/g, "").trim();
     
     return NextResponse.json({ result: JSON.parse(content) });
