@@ -18,43 +18,41 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({ apiKey: finalKey });
 
-    // --- PROMPT MẠNH: LỌC RÁC + DỊCH GEN Z + GOM NHÓM ---
+// --- PROMPT MỚI: SIÊU BỘ LỌC SƯ PHẠM ---
     const prompt = `
-      Bạn là chuyên gia phân tích dữ liệu giáo dục.
+      Bạn là Chuyên gia Kiểm định Chất lượng Giáo dục.
+      Nhiệm vụ: Lọc và Phân tích phản hồi của học sinh.
       
-      NHIỆM VỤ CỦA BẠN GỒM 2 BƯỚC:
+      QUY TẮC LỌC (Rất quan trọng):
+      Chỉ giữ lại các phản hồi thuộc 3 nhóm sau:
+      1. **Kiến thức:** (VD: "Chưa hiểu bài", "Khó quá", "Giảng lại phần X").
+      2. **Phương pháp:** (VD: "Giảng nhanh", "Cần ví dụ", "Ồn ào").
+      3. **Cảm xúc học tập:** (VD: "Hứng thú", "Chán", "Buồn ngủ").
+      
+      LOẠI BỎ NGAY LẬP TỨC (Không đưa vào báo cáo):
+      - Spam, vô nghĩa ("hdhd", "...", "123").
+      - Tên riêng không rõ ngữ cảnh ("Thìn Lò", "Tuấn Anh").
+      - Nhận xét ngoại hình/đời tư ("Thầy đẹp trai", "Cô xinh").
+      - Lời chào xã giao ("Em chào thầy", "Hi").
 
-      BƯỚC 1: LỌC DỮ LIỆU (FILTERING)
-      - Loại bỏ ngay lập tức các phản hồi thuộc loại:
-        + Vô nghĩa (VD: "asdf", "...", "hjhj", "ok").
-        + Spam, đùa cợt nhảm nhí không liên quan bài học (VD: "Thìn Lò", "Phong xướng", tên riêng, "đói bụng quá").
-        + Lời lẽ thiếu văn hóa.
-      - Giữ lại các phản hồi:
-        + Khen ngợi/Chê trách về bài học/giáo viên.
-        + Câu hỏi về kiến thức.
-        + Góp ý về phương pháp dạy.
-        + Biểu đạt cảm xúc học tập.
-
-      BƯỚC 2: PHÂN TÍCH & GOM NHÓM (CLUSTERING)
-      - Với các phản hồi ĐÃ ĐƯỢC LỌC, hãy dịch tiếng lóng Gen Z sang tiếng Việt chuẩn.
-      - Gom nhóm các ý kiến trùng lặp nội dung.
+      SAU KHI LỌC:
+      - Dịch tiếng lóng Gen Z sang tiếng Việt chuẩn.
+      - Gom nhóm các ý kiến trùng lặp.
       - Đếm số lượng.
 
       DANH SÁCH INPUT:
       ${JSON.stringify(feedbacks)}
 
-      YÊU CẦU OUTPUT (JSON Array thuần túy, không markdown):
+      YÊU CẦU OUTPUT (JSON Array thuần túy):
       [
         {
-          "category": "Tên nhóm vấn đề (Ngắn gọn)",
+          "category": "Tên nhóm vấn đề",
           "summary": "Mô tả nội dung (Đã chuẩn hóa)",
-          "count": Số lượng phiếu,
+          "count": Số lượng,
           "type": "negative" | "positive" | "neutral" | "question",
-          "original_sample": "Trích dẫn 1 câu gốc tiêu biểu"
+          "original_sample": "Trích dẫn 1 câu gốc (đã được lọc)"
         }
       ]
-      
-      Sắp xếp theo số lượng giảm dần. Nếu không còn tin nhắn nào sau khi lọc, trả về [].
     `;
 
     // Gọi OpenAI (Đã bỏ temperature để tương thích tốt với mọi model kể cả o1)
