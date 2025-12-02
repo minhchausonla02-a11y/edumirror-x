@@ -133,7 +133,10 @@ export default function DashboardView({ model }: { model?: string }) {
                 >
                     {surveys.map(s => (
                     <option key={s.short_id} value={s.short_id}>
-                        {s.payload?.title ? s.payload.title.substring(0, 30) : "Phiếu..."} ({new Date(s.created_at).toLocaleDateString('vi-VN')})
+                        {s.payload?.title ? s.payload.title.substring(0, 30) : "Phiếu..."} ({new Date(s.created_at).toLocaleString('vi-VN', { 
+    day: '2-digit', month: '2-digit', year: 'numeric', 
+    hour: '2-digit', minute: '2-digit' 
+})})
                     </option>
                     ))}
                 </select>
