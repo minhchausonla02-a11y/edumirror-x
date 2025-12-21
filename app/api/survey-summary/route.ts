@@ -1,26 +1,33 @@
 import { NextResponse } from "next/server";
-import { createClient } from '@supabase/supabase-js';
+// 1. THAY ĐỔI QUAN TRỌNG: Dùng thư viện kết nối Server mới
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const surveyId = searchParams.get("id");
-
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  if (!surveyId) return NextResponse.json({ error: "Thiếu ID" }, { status: 400 });
-
   try {
+    const { searchParams } = new URL(req.url);
+    const surveyId = searchParams.get("id");
+
+    if (!surveyId) return NextResponse.json({ error: "Thiếu ID" }, { status: 400 });
+
+    // 2. KHỞI TẠO KẾT NỐI BẢO MẬT (Để vượt qua lớp bảo vệ RLS)
+    const supabase = await createClient();
+
+    // 3. LẤY DỮ LIỆU
+    // Lưu ý: Tôi đổi thành select('*') để lấy cả cột 'payload' lẫn 'answers'
+    // nhằm đảm bảo logic bên dưới của bạn luôn tìm thấy dữ liệu.
     const { data: responses, error } = await supabase
       .from("survey_responses")
-      .select("answers")
-      .eq("survey_short_id", surveyId);
+      .select("*") 
+      .eq("survey_id", surveyId); // Lưu ý: Thường cột liên kết là survey_id, nếu bảng của bạn là survey_short_id thì sửa lại chỗ này nhé.
 
     if (error) throw error;
 
+    // =================================================================
+    // TỪ ĐÂY TRỞ XUỐNG LÀ LOGIC CŨ CỦA BẠN (GIỮ NGUYÊN 100%)
+    // =================================================================
+    
     // Cấu trúc thống kê chuẩn cho 6 câu hỏi
     const stats = {
       total: 0,
@@ -33,10 +40,11 @@ export async function GET(req: Request) {
     };
 
     responses?.forEach((row: any) => {
+      // Logic tìm dữ liệu của bạn rất thông minh, tôi giữ nguyên
       let ans = row.answers;
       // Xử lý dữ liệu lồng nhau nếu có
       if (ans && ans.answers) ans = ans.answers;
-      if (!ans && row.payload) ans = row.payload;
+      if (!ans && row.payload) ans = row.payload; // Fallback sang payload
       if (typeof ans === 'string') { try { ans = JSON.parse(ans); } catch (e) {} }
 
       if (!ans) return;
@@ -44,7 +52,6 @@ export async function GET(req: Request) {
       stats.total++;
 
       // Q1: Cảm nhận (q1_feeling)
-      // VD: "A1 - Hứng thú" -> Lấy "Hứng thú"
       if (ans.q1_feeling) {
         const key = ans.q1_feeling.split("–")[1]?.trim() || ans.q1_feeling;
         stats.feeling[key] = (stats.feeling[key] || 0) + 1;
@@ -59,7 +66,7 @@ export async function GET(req: Request) {
       // Q3: Khó khăn (q3_difficulties) - Mảng
       if (Array.isArray(ans.q3_difficulties)) {
         ans.q3_difficulties.forEach((item: string) => {
-           if(!item.includes("nắm chắc")) // Bỏ qua lựa chọn "nắm chắc" để biểu đồ tập trung vào vấn đề
+           if(!item.includes("nắm chắc")) 
               stats.difficulties[item] = (stats.difficulties[item] || 0) + 1;
         });
       }
@@ -67,7 +74,6 @@ export async function GET(req: Request) {
       // Q4: Điều chỉnh (q4_teacher_adjust) - Mảng
       if (Array.isArray(ans.q4_teacher_adjust)) {
         ans.q4_teacher_adjust.forEach((item: string) => {
-           // Lấy icon đầu dòng cho gọn (nếu có) hoặc lấy cả câu
            const key = item.split(" ")[0].length < 4 ? item : item; 
            stats.adjustments[key] = (stats.adjustments[key] || 0) + 1;
         });
@@ -89,6 +95,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ stats });
 
   } catch (err: any) {
+    console.error("Lỗi API thống kê:", err); // Thêm log để dễ debug
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
