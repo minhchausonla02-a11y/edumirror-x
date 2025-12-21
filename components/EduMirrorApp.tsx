@@ -38,7 +38,8 @@ function EduMirrorContent() {
   const [standardsText, setStandardsText] = useState("");
   const [subject, setSubject] = useState("Toán học");
   const [grade, setGrade] = useState("Lớp 10");
-
+const [processMode, setProcessMode] = useState<'standard' | 'premium'>('standard');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
   const [chip, setChip] = useState<string>("");
   const [analysis, setAnalysis] = useState<AnalyzeResult | null>(null);
@@ -64,33 +65,75 @@ function EduMirrorContent() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    
+    // 1. Luôn lưu file gốc (Quan trọng cho chế độ Cao cấp)
+    setSelectedFile(f);
+    setChip(`Đã chọn: ${f.name}`);
+    
+    // 2. Vẫn thử rút text (Để dùng cho chế độ Tốc độ/Xem trước)
     setLoading(true);
     try {
       const form = new FormData();
       form.append("file", f);
       const res = await fetch("/api/extractText", { method: "POST", body: form });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error);
-      setLessonText(data?.text || "");
-      setChip(`Đã nạp: ${f.name}`);
+      // Không throw lỗi ở đây để tránh chặn dòng chảy, chỉ set text nếu có
+      setLessonText(data?.text || ""); 
+      
+      // Reset kết quả cũ
       setAnalysis(null); setSurvey(null); setSurveyId(null); setQrUrl("");
-    } catch (err: any) { alert("Lỗi: " + err.message); } 
+    } catch (err: any) { 
+        console.warn("Rút text thất bại (có thể dùng chế độ Cao cấp):", err);
+    } 
     finally { setLoading(false); }
   };
 
-  const handleAnalyze = async () => {
-    if (lessonText.length < 50) return alert("Nội dung giáo án quá ngắn");
+ const handleAnalyze = async () => {
     setLoading(true);
     try {
       const saved = localStorage.getItem("edumirror_key") || "";
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-proxy-key": saved },
-        body: JSON.stringify({ content: lessonText, model, subject, grade }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error);
+      let data;
+
+      // KIỂM TRA: Người dùng đang chọn chế độ nào?
+      if (processMode === 'premium') {
+        // === CHẾ ĐỘ CAO CẤP (Gửi file gốc cho AI đọc Toán/Lý) ===
+        if (!selectedFile) {
+            setLoading(false);
+            return alert("Chế độ Cao cấp yêu cầu bạn phải Upload File (Word/PDF/Ảnh)!");
+        }
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        formData.append("model", "gpt-4o"); // Bắt buộc dùng model mạnh
+        formData.append("subject", subject);
+        formData.append("grade", grade);
+        formData.append("apiKey", saved);
+
+        // Gọi API mới (Bạn cần đảm bảo đã tạo file api/analyze-file-assistant/route.ts)
+        const res = await fetch("/api/analyze-file-assistant", { method: "POST", body: formData });
+        data = await res.json();
+        if (!res.ok) throw new Error(data?.error);
+
+      } else {
+        // === CHẾ ĐỘ TỐC ĐỘ (Gửi text thông thường) ===
+        if (lessonText.length < 50) {
+             setLoading(false);
+             return alert("Nội dung quá ngắn! Hãy dán văn bản hoặc Upload file.");
+        }
+        const res = await fetch("/api/analyze", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "x-proxy-key": saved },
+          body: JSON.stringify({ content: lessonText, model, subject, grade }),
+        });
+        data = await res.json();
+        if (!res.ok) throw new Error(data?.error);
+      }
+
       setAnalysis(data.result);
+      
+      // Nếu dùng Premium, cập nhật lại ô text tóm tắt cho user thấy
+      if (processMode === 'premium' && data.result.summary) {
+          setLessonText(`[KẾT QUẢ TỪ CHẾ ĐỘ CAO CẤP]\n📂 File: ${selectedFile?.name}\n-------------------\n${data.result.summary}`);
+      }
     } catch (err: any) { alert("Lỗi: " + err.message); } 
     finally { setLoading(false); }
   };
@@ -234,19 +277,47 @@ function EduMirrorContent() {
 
               {/* CỘT PHẢI: ACTION CENTER (4 phần) */}
               <div className="lg:col-span-4 space-y-6">
+                {/* CỘT PHẢI: ACTION CENTER */}
                  <div className="bg-gray-900 p-6 rounded-3xl text-white shadow-xl relative overflow-hidden">
                     <div className="relative z-10">
-                        <h3 className="text-lg font-bold mb-1">Trung tâm Tác vụ</h3>
-                        <p className="text-gray-400 text-xs mb-6">AI Mode: <span className="text-green-400">{standardsText ? "Precision (Bám chuẩn)" : "Auto-Pilot"}</span></p>
+                        <h3 className="text-lg font-bold mb-4">Trung tâm Tác vụ</h3>
+                        
+                        {/* --- BỘ CHUYỂN ĐỔI CHẾ ĐỘ (MỚI) --- */}
+                        <div className="grid grid-cols-2 gap-2 mb-6 p-1 bg-gray-800 rounded-xl border border-gray-700">
+                            <button 
+                                onClick={() => setProcessMode('standard')}
+                                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-1 ${
+                                    processMode === 'standard' 
+                                    ? 'bg-gray-600 text-white shadow-md ring-1 ring-gray-400' 
+                                    : 'text-gray-400 hover:text-gray-200'
+                                }`}
+                            >
+                                <span>🚀 Tốc độ</span>
+                                <span className="text-[9px] font-normal opacity-70">Văn bản thường</span>
+                            </button>
+
+                            <button 
+                                onClick={() => setProcessMode('premium')}
+                                className={`py-2 px-3 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-1 ${
+                                    processMode === 'premium' 
+                                    ? 'bg-gradient-to-br from-amber-400 to-orange-600 text-black shadow-lg shadow-orange-500/30 transform scale-105' 
+                                    : 'text-gray-400 hover:text-gray-200'
+                                }`}
+                            >
+                                <span>💎 Cao cấp</span>
+                                <span className="text-[9px] font-normal opacity-70">Toán/Lý/Hóa</span>
+                            </button>
+                        </div>
+                        {/* ---------------------------------- */}
                         
                         <div className="space-y-3">
                             <button onClick={handleAnalyze} disabled={loading} className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2">
-                                🔍 Phân tích cấu trúc
+                                {loading ? "Đang đọc..." : "🔍 Phân tích cấu trúc"}
                             </button>
                             <button onClick={handleGenerateSurvey} disabled={loading} className="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:scale-[1.02] rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2">
-                                ✨ Sinh Phiếu Khảo sát
+                                {loading ? "Đang xử lý..." : "✨ Sinh Phiếu Khảo sát"}
                             </button>
-                            <button onClick={() => {setLessonText(""); setStandardsText(""); setSurvey(null);}} className="w-full py-2 text-gray-500 text-xs hover:text-white underline">Làm mới</button>
+                            <button onClick={() => {setLessonText(""); setStandardsText(""); setSurvey(null); setSelectedFile(null);}} className="w-full py-2 text-gray-500 text-xs hover:text-white underline">Làm mới</button>
                         </div>
                     </div>
                  </div>
