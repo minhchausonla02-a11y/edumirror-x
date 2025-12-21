@@ -1,25 +1,34 @@
 import { NextResponse } from "next/server";
-import { createClient } from '@supabase/supabase-js';
+// 1. THAY ĐỔI: Dùng bộ kết nối Server mới (đã cấu hình Cookies)
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
+export async function GET(req: Request) {
   try {
-    // Lấy danh sách, nhưng chỉ lấy những phiếu có dữ liệu (không null)
+    // 2. Khởi tạo Supabase theo phiên làm việc của người dùng
+    const supabase = await createClient();
+
+    // 3. Kiểm tra xem ai đang đăng nhập
+    const { data: { session } } = await supabase.auth.getSession();
+
+    // Nếu chưa đăng nhập -> Trả về danh sách rỗng (để Dashboard không bị lỗi)
+    if (!session) {
+      return NextResponse.json({ surveys: [] });
+    }
+
+    // 4. Truy vấn dữ liệu (CÓ BỘ LỌC NGƯỜI DÙNG)
     const { data, error } = await supabase
       .from("surveys")
       .select("short_id, payload, created_at")
-      .not("payload", "is", null) // Lọc bỏ phiếu rỗng
+      .eq("user_id", session.user.id) // <--- QUAN TRỌNG: Chỉ lấy bài của chính mình
+      .not("payload", "is", null)     // Giữ nguyên logic cũ: Lọc bỏ phiếu rỗng
       .order("created_at", { ascending: false })
       .limit(20);
 
     if (error) throw error;
 
-    // Kiểm tra dữ liệu trước khi trả về
+    // 5. Xử lý dữ liệu (GIỮ NGUYÊN CODE CŨ CỦA BẠN 100%)
     const validSurveys = data?.map(s => ({
         ...s,
         // Nếu không có tiêu đề thì đặt tên tạm
@@ -29,6 +38,7 @@ export async function GET() {
     })) || [];
 
     return NextResponse.json({ surveys: validSurveys });
+
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
