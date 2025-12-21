@@ -69,9 +69,9 @@ export async function POST(req: Request) {
       // Dọn dẹp JSON (xóa ký tự thừa)
       const jsonStr = text.replace(/```json/g, "").replace(/```/g, "").trim();
       
-      // Dọn dẹp Server (Xóa file, xóa trợ lý để tiết kiệm)
-      await client.files.del(openAIFile.id);
-      await client.beta.assistants.del(assistant.id);
+  // Dọn dẹp Server (Xóa file, xóa trợ lý để tiết kiệm)
+await client.files.delete(openAIFile.id);       // Sửa .del -> .delete
+await client.beta.assistants.delete(assistant.id); // Sửa .del -> .delete
       
       return NextResponse.json(JSON.parse(jsonStr));
     } else {
