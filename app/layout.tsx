@@ -1,3 +1,4 @@
+import UserProfile from '@/components/UserProfile'
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -17,7 +18,7 @@ export default function RootLayout({
   return (
     <html lang="vi">
       <body className={inter.className}>
-        {/* QUAN TRỌNG: Ở đây chỉ để children, KHÔNG ĐƯỢC ĐỂ Navbar hay Header nào cả */}
+        <UserProfile /> {/* QUAN TRỌNG: Ở đây chỉ để children, KHÔNG ĐƯỢC ĐỂ Navbar hay Header nào cả */}
         {children}
       </body>
     </html>
