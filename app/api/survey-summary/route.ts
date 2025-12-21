@@ -20,7 +20,7 @@ export async function GET(req: Request) {
     const { data: responses, error } = await supabase
       .from("survey_responses")
       .select("*") 
-      .eq("survey_id", surveyId); // Lưu ý: Thường cột liên kết là survey_id, nếu bảng của bạn là survey_short_id thì sửa lại chỗ này nhé.
+      .eq("survey_short_id", surveyId); // Lưu ý: Thường cột liên kết là survey_id, nếu bảng của bạn là survey_short_id thì sửa lại chỗ này nhé.
 
     if (error) throw error;
 
