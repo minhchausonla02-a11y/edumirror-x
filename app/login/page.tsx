@@ -1,5 +1,6 @@
 'use client'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+// Import từ file client.ts chúng ta vừa tạo
+import { createClient } from '@/lib/supabase/client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
@@ -8,13 +9,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  // Gọi hàm tạo client mới
+  const supabase = createClient()
 
   const handleSignUp = async () => {
     setLoading(true)
     const { error } = await supabase.auth.signUp({
       email,
       password,
+      // Chỉnh lại đường dẫn redirect cho chuẩn
       options: { emailRedirectTo: `${location.origin}/auth/callback` },
     })
     setLoading(false)
@@ -28,7 +31,7 @@ export default function LoginPage() {
     setLoading(false)
     if (error) alert('Lỗi đăng nhập: ' + error.message)
     else {
-      router.push('/') 
+      router.push('/')
       router.refresh()
     }
   }

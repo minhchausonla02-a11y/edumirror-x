@@ -1,8 +1,7 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+// Import từ file server.ts chúng ta vừa tạo
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
-// Hàm tạo ID ngắn 6 ký tự (Giữ nguyên logic của bạn)
 function generateShortId(length = 6) {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
@@ -14,10 +13,10 @@ function generateShortId(length = 6) {
 
 export async function POST(req: Request) {
   try {
-    // 1. Khởi tạo Supabase với Cookies (để biết ai đang gửi lệnh)
-    const supabase = createRouteHandlerClient({ cookies });
+    // 1. Khởi tạo Supabase Server Client kiểu mới
+    const supabase = await createClient();
 
-    // 2. Kiểm tra xem người dùng đã đăng nhập chưa
+    // 2. Kiểm tra session
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
@@ -27,7 +26,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // 3. Lấy dữ liệu từ Client gửi lên
+    // 3. Lấy dữ liệu
     const body = await req.json();
     const { payload } = body;
 
@@ -38,13 +37,13 @@ export async function POST(req: Request) {
     const shortId = generateShortId();
     console.log(`🔄 Giáo viên ${session.user.email} đang lưu phiếu, ID: ${shortId}`);
 
-    // 4. Thực hiện lưu vào bảng 'surveys' kèm theo user_id
+    // 4. Lưu vào DB
     const { error } = await supabase
       .from("surveys")
       .insert({
         short_id: shortId,
         payload: payload,
-        user_id: session.user.id // <--- QUAN TRỌNG: Đánh dấu chủ sở hữu
+        user_id: session.user.id
       });
 
     if (error) {
