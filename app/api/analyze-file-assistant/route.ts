@@ -36,22 +36,36 @@ export async function POST(req: Request) {
       purpose: "assistants",
     });
 
-   // 3. Tạo một Trợ lý ảo chuyên đọc Toán (Phiên bản Tiếng Việt)
+   // 3. Tạo một Trợ lý ảo chuyên đọc Toán (Đã cập nhật cấu trúc dữ liệu chuẩn)
     const assistant = await client.beta.assistants.create({
-      name: "Math Reader Expert VN",
-      instructions: `Bạn là một Chuyên gia Sư phạm và Toán học hàng đầu tại Việt Nam.
-      Nhiệm vụ: Đọc file giáo án đính kèm (Word/PDF/Ảnh chứa công thức Toán/Lý/Hóa).
+      name: "EduMirror Expert Pro",
+      instructions: `Bạn là một Chuyên gia Sư phạm và Toán học hàng đầu.
+      Nhiệm vụ: Phân tích file giáo án đính kèm (Word/PDF/Ảnh).
       
-      YÊU CẦU BẮT BUỘC:
-      1. Ngôn ngữ đầu ra: 100% TIẾNG VIỆT.
-      2. Phân tích sâu sắc về phương pháp sư phạm và độ chính xác của công thức toán.
-      3. Trả về kết quả duy nhất là một JSON object (không được có text thừa) theo đúng cấu trúc sau:
+      YÊU CẦU ĐẦU RA (JSON):
+      Trả về JSON object duy nhất (100% Tiếng Việt) khớp với cấu trúc sau để hiển thị lên Dashboard:
       {
         "result": {
-          "summary": "Tóm tắt ngắn gọn nội dung bài dạy (khoảng 3-4 dòng)...",
-          "strengths": ["Điểm mạnh 1", "Điểm mạnh 2", "Điểm mạnh 3"],
-          "improvements": ["Góp ý khắc phục 1", "Góp ý khắc phục 2", "Góp ý khắc phục 3"],
-          "math_check": "Nhận xét chi tiết về độ khó và tính chính xác của các công thức toán trong bài."
+          "summary": "Tóm tắt ngắn gọn nội dung và phương pháp bài dạy (kèm nhận xét về độ chính xác của công thức Toán nếu có).",
+          "objectives": [
+            "Mục tiêu kiến thức 1",
+            "Mục tiêu năng lực 2",
+            "Mục tiêu phẩm chất 3"
+          ],
+          "outline": [
+            "Hoạt động 1: Khởi động (5p)",
+            "Hoạt động 2: Hình thành kiến thức (15p)",
+            "Hoạt động 3: Luyện tập (20p)"
+          ],
+          "key_concepts": [
+            "Từ khóa chính 1",
+            "Công thức quan trọng 2",
+            "Lưu ý 3"
+          ],
+          "pacing": [
+            "Nhận xét về phân bố thời gian (Hợp lý/Nhanh/Chậm)",
+            "Cảnh báo phần kiến thức nặng có thể gây quá tải"
+          ]
         }
       }`,
       model: model,
