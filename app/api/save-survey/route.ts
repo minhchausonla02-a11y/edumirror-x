@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
-import { createClient } from '@supabase/supabase-js';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server';
 
-// Hàm tạo ID ngắn 6 ký tự
+// Hàm tạo ID ngắn 6 ký tự (Giữ nguyên logic của bạn)
 function generateShortId(length = 6) {
   const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
   let result = '';
@@ -13,6 +14,20 @@ function generateShortId(length = 6) {
 
 export async function POST(req: Request) {
   try {
+    // 1. Khởi tạo Supabase với Cookies (để biết ai đang gửi lệnh)
+    const supabase = createRouteHandlerClient({ cookies });
+
+    // 2. Kiểm tra xem người dùng đã đăng nhập chưa
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      return NextResponse.json(
+        { error: "Bạn cần đăng nhập để lưu phiếu!" }, 
+        { status: 401 }
+      );
+    }
+
+    // 3. Lấy dữ liệu từ Client gửi lên
     const body = await req.json();
     const { payload } = body;
 
@@ -20,41 +35,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Dữ liệu phiếu bị rỗng" }, { status: 400 });
     }
 
-    // 1. Lấy và làm sạch biến môi trường
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim() || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-
-    // 2. Kiểm tra kỹ URL
-    if (!supabaseUrl || !supabaseUrl.startsWith("https://")) {
-      console.error("❌ URL Supabase lỗi:", supabaseUrl);
-      return NextResponse.json({ 
-        error: "Cấu hình Server lỗi: URL Supabase phải bắt đầu bằng https://" 
-      }, { status: 500 });
-    }
-
-    if (!supabaseKey) {
-      return NextResponse.json({ error: "Server chưa cấu hình Key Supabase" }, { status: 500 });
-    }
-
-    // 3. KẾT NỐI (QUAN TRỌNG: Thêm persistSession: false)
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-        auth: {
-            persistSession: false, // Tắt lưu session để chạy ổn định trên Serverless
-            autoRefreshToken: false,
-            detectSessionInUrl: false
-        }
-    });
-
     const shortId = generateShortId();
-    console.log(`🔄 Đang lưu vào Supabase bảng 'surveys', ID: ${shortId}`);
+    console.log(`🔄 Giáo viên ${session.user.email} đang lưu phiếu, ID: ${shortId}`);
 
-    // 4. Thực hiện lưu
-    const { data, error } = await supabase
+    // 4. Thực hiện lưu vào bảng 'surveys' kèm theo user_id
+    const { error } = await supabase
       .from("surveys")
-      .insert([
-        { short_id: shortId, payload: payload }
-      ])
-      .select(); // Thêm .select() để đảm bảo lệnh chạy hoàn tất và trả về data
+      .insert({
+        short_id: shortId,
+        payload: payload,
+        user_id: session.user.id // <--- QUAN TRỌNG: Đánh dấu chủ sở hữu
+      });
 
     if (error) {
       console.error("❌ Lỗi Supabase:", error);
