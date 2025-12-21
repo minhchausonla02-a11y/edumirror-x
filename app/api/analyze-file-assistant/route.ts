@@ -36,14 +36,26 @@ export async function POST(req: Request) {
       purpose: "assistants",
     });
 
-    // 3. Tạo một Trợ lý ảo chuyên đọc Toán
+   // 3. Tạo một Trợ lý ảo chuyên đọc Toán (Phiên bản Tiếng Việt)
     const assistant = await client.beta.assistants.create({
-      name: "Math Reader Expert",
-      instructions: `Bạn là chuyên gia Toán học. Hãy đọc file đính kèm (có thể là ảnh hoặc PDF chứa công thức).
-      Phân tích kỹ nội dung, nhận diện chính xác các công thức Toán/Lý/Hóa.
-      Trả về JSON: { "result": { "summary": "...", "strengths": [], "improvements": [], "math_check": "Nhận xét độ chính xác công thức" } }`,
+      name: "Math Reader Expert VN",
+      instructions: `Bạn là một Chuyên gia Sư phạm và Toán học hàng đầu tại Việt Nam.
+      Nhiệm vụ: Đọc file giáo án đính kèm (Word/PDF/Ảnh chứa công thức Toán/Lý/Hóa).
+      
+      YÊU CẦU BẮT BUỘC:
+      1. Ngôn ngữ đầu ra: 100% TIẾNG VIỆT.
+      2. Phân tích sâu sắc về phương pháp sư phạm và độ chính xác của công thức toán.
+      3. Trả về kết quả duy nhất là một JSON object (không được có text thừa) theo đúng cấu trúc sau:
+      {
+        "result": {
+          "summary": "Tóm tắt ngắn gọn nội dung bài dạy (khoảng 3-4 dòng)...",
+          "strengths": ["Điểm mạnh 1", "Điểm mạnh 2", "Điểm mạnh 3"],
+          "improvements": ["Góp ý khắc phục 1", "Góp ý khắc phục 2", "Góp ý khắc phục 3"],
+          "math_check": "Nhận xét chi tiết về độ khó và tính chính xác của các công thức toán trong bài."
+        }
+      }`,
       model: model,
-      tools: [{ type: "file_search" }], // Công cụ đọc file
+      tools: [{ type: "file_search" }],
     });
 
     // 4. Tạo hội thoại và chạy
