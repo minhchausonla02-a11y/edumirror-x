@@ -1,16 +1,18 @@
 "use client";
 
 import type React from "react";
-import { useEffect, useMemo, useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import ResultsView, { AnalyzeResult } from "@/components/ResultsView";
 import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
 import DashboardView from "@/components/DashboardView";
 import AISuggestionsView from "@/components/AISuggestionsView";
+// 1. IMPORT COMPONENT MỚI
+import AILoading from "@/components/AILoading";
 
-// CẬP NHẬT DANH SÁCH MODEL (CÓ GPT-5.1)
+// DANH SÁCH MODEL (Giữ nguyên của bạn)
 const AVAILABLE_MODELS = [
-  { id: "gpt-5.1", name: "GPT-5.1 (Siêu trí tuệ - Mới nhất)" }, // Đưa lên đầu cho nổi bật
+  { id: "gpt-5.1", name: "GPT-5.1 (Siêu trí tuệ - Mới nhất)" },
   { id: "gpt-5-mini", name: "GPT-5.1 Mini (Tiết Kiệm Với Tốc độ ánh sáng)" },
   { id: "gpt-4o", name: "GPT-4o (Thông minh & Ổn định)" },
   { id: "gpt-4o-mini", name: "GPT-4o Mini (Tốc độ cao)" },
@@ -33,7 +35,7 @@ function EduMirrorContent() {
   
   // Dữ liệu đầu vào
   const [lessonText, setLessonText] = useState("");
-  const [standardsText, setStandardsText] = useState(""); // State mới cho Chuẩn
+  const [standardsText, setStandardsText] = useState("");
   const [subject, setSubject] = useState("Toán học");
   const [grade, setGrade] = useState("Lớp 10");
 
@@ -71,7 +73,6 @@ function EduMirrorContent() {
       if (!res.ok) throw new Error(data?.error);
       setLessonText(data?.text || "");
       setChip(`Đã nạp: ${f.name}`);
-      // Reset kết quả cũ
       setAnalysis(null); setSurvey(null); setSurveyId(null); setQrUrl("");
     } catch (err: any) { alert("Lỗi: " + err.message); } 
     finally { setLoading(false); }
@@ -100,14 +101,13 @@ function EduMirrorContent() {
     try {
       const saved = localStorage.getItem("edumirror_key") || "";
       
-      // Gửi cả Giáo án (content) và Chuẩn (standards) đi
       const res = await fetch("/api/generate-survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
             model, 
             content: lessonText, 
-            standards: standardsText, // <--- GỬI CHUẨN
+            standards: standardsText,
             apiKey: saved 
         }),
       });
@@ -117,7 +117,6 @@ function EduMirrorContent() {
       const surveyData = data.survey_v2;
       setSurvey(surveyData);
       
-      // Lưu DB
       try {
         const saveRes = await fetch("/api/save-survey", {
             method: "POST",
@@ -145,7 +144,11 @@ function EduMirrorContent() {
 
   // ===== RENDER =====
   return (
-    <div className="min-h-screen bg-[#F8F9FC] font-sans text-gray-900">
+    <div className="min-h-screen bg-[#F8F9FC] font-sans text-gray-900 relative">
+      
+      {/* 2. CHÈN MÀN HÌNH CHỜ VÀO ĐÂY (Chỉ hiện khi loading = true) */}
+      {loading && <AILoading />}
+
       {/* HEADER */}
       <header className="w-full bg-white/80 backdrop-blur border-b border-gray-200 sticky top-0 z-30">
         <div className="mx-auto max-w-7xl px-6 py-3">
@@ -241,7 +244,7 @@ function EduMirrorContent() {
                                 🔍 Phân tích cấu trúc
                             </button>
                             <button onClick={handleGenerateSurvey} disabled={loading} className="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:scale-[1.02] rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2">
-                                {loading ? "AI đang xử lý..." : "✨ Sinh Phiếu Khảo sát"}
+                                ✨ Sinh Phiếu Khảo sát
                             </button>
                             <button onClick={() => {setLessonText(""); setStandardsText(""); setSurvey(null);}} className="w-full py-2 text-gray-500 text-xs hover:text-white underline">Làm mới</button>
                         </div>
