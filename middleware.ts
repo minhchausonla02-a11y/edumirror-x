@@ -35,10 +35,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Áp dụng cho mọi đường dẫn TRỪ các file tĩnh, hình ảnh, icon...
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
-}
+  matcher: ["/dashboard/:path*"],
+};
