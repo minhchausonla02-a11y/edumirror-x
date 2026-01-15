@@ -16,7 +16,7 @@ export type AnalyzeResult = {
   standards?: Array<{
     code: string;
     descriptor: string;
-    bloom: "Remember"|"Understand"|"Apply"|"Analyze"|"Evaluate"|"Create";
+    bloom: "Remember" | "Understand" | "Apply" | "Analyze" | "Evaluate" | "Create";
     competency: string;
     alignment_score: number;
     evidence_items: string[];
@@ -38,16 +38,35 @@ export default function ResultsView({
   result: AnalyzeResult;
   lessonTitle?: string;
 }) {
+  // ✅ BỔ SUNG NHỎ: helper để tránh React error #31 (render object)
+  const toText = (v: any): string => {
+    if (v == null) return "";
+    if (typeof v === "string") return v;
+    if (typeof v === "number" || typeof v === "boolean") return String(v);
+    if (Array.isArray(v)) return v.map(toText).filter(Boolean).join(" • ");
+    // object
+    try {
+      return JSON.stringify(v);
+    } catch {
+      return String(v);
+    }
+  };
+
+  const toStringArray = (v: any): string[] => {
+    if (!v) return [];
+    if (Array.isArray(v)) return v.map(toText).filter(Boolean);
+    return [toText(v)].filter(Boolean);
+  };
 
   // Component con để hiển thị từng mục (Giữ nguyên để đảm bảo giao diện cũ)
-  const Section = ({ title, items }: { title: string; items: string[] }) => (
+  const Section = ({ title, items }: { title: string; items: any[] }) => (
     <details className="rounded-xl border p-4 bg-white shadow-sm" open>
       <summary className="cursor-pointer select-none text-base font-bold text-gray-800 flex items-center gap-2">
         {title}
       </summary>
       <ul className="mt-3 list-disc pl-5 space-y-2 text-sm text-gray-700 leading-relaxed">
         {items?.length ? (
-          items.map((x, i) => <li key={i}>{x}</li>)
+          items.map((x, i) => <li key={i}>{toText(x)}</li>)
         ) : (
           <li className="italic text-gray-400">Không có dữ liệu.</li>
         )}
@@ -57,34 +76,44 @@ export default function ResultsView({
 
   if (!result) return null;
 
+  // ✅ TƯƠNG THÍCH KEY CŨ/MỚI (không phá cái đang chạy)
+  const misconceptions = toStringArray(
+    (result as any).common_misconceptions ?? (result as any).likely_misconceptions
+  );
+
+  const pacingFlags = toStringArray(
+    (result as any).pacing_flags ?? (result as any).pacing
+  );
+
   return (
     <div className="space-y-4 animate-fade-in font-sans">
-      
       {/* --- ĐÃ XÓA CÁC NÚT XUẤT FILE Ở ĐÂY --- */}
 
       {/* --- CÁC PHẦN NỘI DUNG DƯỚI ĐÂY ĐƯỢC GIỮ NGUYÊN 100% --- */}
+      <Section title="🎯 Mục tiêu (Objectives)" items={toStringArray((result as any).objectives)} />
+      <Section title="🧭 Dàn ý (Outline)" items={toStringArray((result as any).outline)} />
+      <Section title="🔑 Trọng tâm (Key concepts)" items={toStringArray((result as any).key_concepts)} />
 
-      <Section title="🎯 Mục tiêu (Objectives)" items={result.objectives} />
-      <Section title="🧭 Dàn ý (Outline)" items={result.outline} />
-      <Section title="🔑 Trọng tâm (Key concepts)" items={result.key_concepts} />
-      
       {/* Lỗi sai thường gặp */}
-      {result.common_misconceptions?.length > 0 && (
+      {misconceptions.length > 0 && (
         <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
-           <h3 className="text-base font-bold text-orange-800 mb-3 flex items-center gap-2">
-             ⚠️ Dễ hiểu nhầm (Misconceptions)
-           </h3>
-           <ul className="list-none space-y-2">
-              {result.common_misconceptions.map((item, idx) => (
-                <li key={idx} className="text-sm text-orange-900 bg-white p-2 rounded border border-orange-100 flex gap-2">
-                   <span className="text-red-500 font-bold">✕</span> {item}
-                </li>
-              ))}
-           </ul>
+          <h3 className="text-base font-bold text-orange-800 mb-3 flex items-center gap-2">
+            ⚠️ Dễ hiểu nhầm (Misconceptions)
+          </h3>
+          <ul className="list-none space-y-2">
+            {misconceptions.map((item, idx) => (
+              <li
+                key={idx}
+                className="text-sm text-orange-900 bg-white p-2 rounded border border-orange-100 flex gap-2"
+              >
+                <span className="text-red-500 font-bold">✕</span> {item}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 
-      <Section title="⏱️ Cờ tốc độ (Pacing flags)" items={result.pacing_flags} />
+      <Section title="⏱️ Cờ tốc độ (Pacing flags)" items={pacingFlags} />
 
       {/* Chuẩn KT-KN (Logic hiển thị phức tạp được giữ nguyên) */}
       {result.standards?.length ? (
@@ -100,23 +129,25 @@ export default function ResultsView({
                 </div>
                 <div className="text-xs text-gray-500 mt-1 flex flex-wrap gap-2">
                   <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded">Bloom: {s.bloom}</span>
-                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded">Độ khớp: {(s.alignment_score * 100).toFixed(0)}%</span>
+                  <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                    Độ khớp: {(s.alignment_score * 100).toFixed(0)}%
+                  </span>
                 </div>
-                
+
                 {s.evidence_items?.length ? (
                   <div className="mt-2">
                     <div className="text-xs font-bold text-gray-500 uppercase">Minh chứng:</div>
                     <ul className="list-disc pl-5 text-sm text-gray-700">
-                      {s.evidence_items.map((e, j) => <li key={j}>{e}</li>)}
+                      {s.evidence_items.map((e, j) => <li key={j}>{toText(e)}</li>)}
                     </ul>
                   </div>
                 ) : null}
-                
+
                 {s.assessment_items?.length ? (
                   <div className="mt-2">
                     <div className="text-xs font-bold text-gray-500 uppercase">Gợi ý đánh giá:</div>
                     <ul className="list-disc pl-5 text-sm text-gray-700">
-                      {s.assessment_items.map((e, j) => <li key={j}>{e}</li>)}
+                      {s.assessment_items.map((e, j) => <li key={j}>{toText(e)}</li>)}
                     </ul>
                   </div>
                 ) : null}
@@ -127,7 +158,7 @@ export default function ResultsView({
       ) : null}
 
       {result.success_criteria?.length ? (
-        <Section title="✅ Tiêu chí thành công" items={result.success_criteria} />
+        <Section title="✅ Tiêu chí thành công" items={toStringArray(result.success_criteria)} />
       ) : null}
 
       {/* Rubric Bảng (Giữ nguyên) */}
@@ -150,11 +181,11 @@ export default function ResultsView({
               <tbody className="divide-y divide-gray-200">
                 {result.rubric.map((r, i) => (
                   <tr key={i} className="bg-white hover:bg-gray-50">
-                    <td className="px-3 py-2 font-medium">{r.criterion}</td>
-                    <td className="px-3 py-2 text-center">{r.levels.M4}</td>
-                    <td className="px-3 py-2 text-center">{r.levels.M3}</td>
-                    <td className="px-3 py-2 text-center">{r.levels.M2}</td>
-                    <td className="px-3 py-2 text-center text-gray-400">{r.levels.M1}</td>
+                    <td className="px-3 py-2 font-medium">{toText(r.criterion)}</td>
+                    <td className="px-3 py-2 text-center">{toText(r.levels?.M4)}</td>
+                    <td className="px-3 py-2 text-center">{toText(r.levels?.M3)}</td>
+                    <td className="px-3 py-2 text-center">{toText(r.levels?.M2)}</td>
+                    <td className="px-3 py-2 text-center text-gray-400">{toText(r.levels?.M1)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -164,13 +195,12 @@ export default function ResultsView({
       ) : null}
 
       {result.misalignment?.length ? (
-        <Section title="🚩 Điểm lệch chuẩn" items={result.misalignment} />
+        <Section title="🚩 Điểm lệch chuẩn" items={toStringArray(result.misalignment)} />
       ) : null}
 
       {result.recommendations?.length ? (
-        <Section title="🛠️ Gợi ý điều chỉnh" items={result.recommendations} />
+        <Section title="🛠️ Gợi ý điều chỉnh" items={toStringArray(result.recommendations)} />
       ) : null}
-
     </div>
   );
 }
