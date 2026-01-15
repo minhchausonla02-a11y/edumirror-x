@@ -33,6 +33,7 @@ function EduMirrorContent() {
   const [mounted, setMounted] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("gpt-4o-mini");
+  const [editingKey, setEditingKey] = useState(false);
 
   // Dữ liệu đầu vào
   const [lessonText, setLessonText] = useState("");
@@ -260,33 +261,83 @@ function EduMirrorContent() {
           {/* ✅ TAB UPLOAD: thêm block API key + giữ nguyên grid cũ */}
           {activeTab === "upload" && (
             <>
-              {/* 🔑 KHỐI NHẬP API KEY (đặt xa dropdown tài khoản) */}
-              <section className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-bold text-gray-800">🔑 Nhập API Key</div>
-                    <div className="text-xs text-gray-500">
-                      Tài khoản mới chưa có API key → nhập tại đây để dùng AI (phân tích, sinh phiếu, dashboard).
-                    </div>
-                  </div>
+              {/* 🔑 KHỐI API KEY (Sư phạm – giáo dục) */}
+<section className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+    <div className="flex items-start gap-3">
+      <div className="mt-0.5 h-9 w-9 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100">
+        🔑
+      </div>
 
-                  <div className="flex items-center gap-2">
-                    <input
-                      id="apiKeyInput"
-                      type="password"
-                      defaultValue={apiKey}
-                      placeholder="Dán API key..."
-                      className="outline-none px-3 py-2 text-sm w-[320px] md:w-[420px] border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
-                    />
-                    <button
-                      onClick={handleSaveKey}
-                      className="bg-gray-900 text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-gray-700 transition-colors"
-                    >
-                      Lưu
-                    </button>
-                  </div>
-                </div>
-              </section>
+      <div>
+        <div className="text-sm font-bold text-gray-800">Kết nối AI cho tiết học</div>
+        <div className="text-xs text-gray-500 leading-relaxed">
+          Nhập API key 1 lần để hệ thống phân tích giáo án và tạo khảo sát 60 giây cho học sinh.
+        </div>
+
+        {apiKey ? (
+          <div className="mt-2 inline-flex items-center gap-2 text-xs">
+            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
+              ✓ Đã sẵn sàng
+            </span>
+            <span className="text-gray-400">(đã lưu ••••{apiKey.slice(-4)})</span>
+          </div>
+        ) : (
+          <div className="mt-2 inline-flex items-center gap-2 text-xs">
+            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-100 font-semibold">
+              ⚠ Chưa thiết lập
+            </span>
+            <span className="text-gray-400">(bạn có thể thiết lập sau)</span>
+          </div>
+        )}
+      </div>
+    </div>
+
+    {/* Cột phải */}
+    {!apiKey || editingKey ? (
+      <div className="flex items-center gap-2 md:pl-4">
+        <input
+          id="apiKeyInput"
+          type="password"
+          defaultValue={apiKey}
+          placeholder="Dán API key…"
+          className="outline-none px-3 py-2 text-sm w-[240px] md:w-[300px]
+            border border-gray-200 rounded-xl bg-gray-50
+            focus:bg-white focus:border-indigo-500
+            focus:ring-4 focus:ring-indigo-500/10 transition-all"
+        />
+        <button
+          onClick={() => {
+            handleSaveKey();
+            setEditingKey(false);
+          }}
+          className="bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-indigo-500 transition-colors"
+        >
+          Lưu
+        </button>
+
+        {apiKey && (
+          <button
+            onClick={() => setEditingKey(false)}
+            className="text-sm font-semibold text-gray-500 hover:text-gray-700"
+          >
+            Hủy
+          </button>
+        )}
+      </div>
+    ) : (
+      <div className="flex items-center gap-2 md:pl-4">
+        <button
+          onClick={() => setEditingKey(true)}
+          className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50"
+        >
+          Cập nhật
+        </button>
+      </div>
+    )}
+  </div>
+</section>
+
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in">
                 {/* CỘT TRÁI: INPUT (8 phần) */}
