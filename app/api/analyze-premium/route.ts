@@ -150,13 +150,17 @@ NỘI DUNG GIÁO ÁN (đã rút gọn):
 ${compressed}
 `.trim();
 
-    const resp = await client.responses.create({
-      model,
-      input: prompt,
-      max_output_tokens: 900,
-      // @ts-ignore
-      signal: ac.signal,
-    });
+    const resp = await client.responses.create(
+  {
+    model,
+    input: prompt,
+    max_output_tokens: 900,
+  },
+  // options (signal) phải nằm ở đây
+  // @ts-ignore
+  { signal: ac.signal }
+);
+
 
     clearTimeout(timer);
 
