@@ -100,7 +100,7 @@ export default function SurveyEditor({ survey, setSurvey }: Props) {
 
             {q.options && (
               <div className="space-y-2 pl-4 border-l-2 border-gray-100">
-                {q.options.map((opt, oIdx) => (
+                {q.options.map((opt: string, oIdx: number) => (
                   <div key={oIdx} className="flex items-center gap-2">
                     <span className="text-gray-300">○</span>
                     <input
