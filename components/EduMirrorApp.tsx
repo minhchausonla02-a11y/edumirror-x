@@ -145,44 +145,7 @@ function EduMirrorContent() {
     }
   };
 
- // --- ĐÃ DỌN DẸP LẠI LUỒNG ---
-  const handleAnalyze = async () => {
-    if (lessonText.length < 50) return alert("Nội dung quá ngắn! Hãy Upload file hoặc dán văn bản.");
-    setLoading(true);
-    try {
-      const saved = localStorage.getItem("edumirror_key") || "";
-      
-      // Giờ đây Phân tích cấu trúc dùng chung 1 luồng chuẩn mực, đọc thẳng dữ liệu LlamaParse
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-proxy-key": saved },
-        body: JSON.stringify({ 
-          content: lessonText, 
-          model, 
-          subject, 
-          grade,
-          processMode // Gửi cờ lên báo cho AI biết đang ở mode nào
-        }),
-      });
-      
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error);
-
-      setAnalysis(data.result);
-      
-      // Chú thích nhỏ cho người dùng biết AI đã dùng mode gì
-      if (processMode === "premium") {
-        setChip("Đã phân tích cấu trúc bằng AI Chuyên sâu Toán học.");
-      } else {
-        setChip("Đã phân tích cấu trúc cơ bản.");
-      }
-
-    } catch (err: any) {
-      alert("Lỗi: " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+ 
 
   const handleGenerateSurvey = async () => {
     if (lessonText.length < 50) return alert("Nội dung giáo án quá ngắn");
@@ -463,12 +426,7 @@ function EduMirrorContent() {
                     />
                   </div>
 
-                  {/* Kết quả phân tích */}
-                  {analysis && (
-                    <section className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm animate-fade-in-up">
-                      <ResultsView result={analysis} lessonTitle="bai_hoc" />
-                    </section>
-                  )}
+              
                 </div>
 
                 {/* CỘT PHẢI: ACTION CENTER (4 phần) */}
@@ -504,21 +462,14 @@ function EduMirrorContent() {
                         </button>
                       </div>
 
-                      <div className="space-y-3">
-                        <button
-                          onClick={handleAnalyze}
-                          disabled={loading}
-                          className="w-full py-3 bg-white/10 hover:bg-white/20 border border-white/20 rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2"
-                        >
-                          {loading ? "Đang đọc..." : "🔍 Phân tích cấu trúc"}
-                        </button>
-
+                    <div className="space-y-4">
+                        {/* Đã xóa nút Phân tích cấu trúc ở đây */}
                         <button
                           onClick={handleGenerateSurvey}
                           disabled={loading}
-                          className="w-full py-3.5 bg-gradient-to-r from-indigo-500 to-purple-600 hover:scale-[1.02] rounded-xl text-sm font-bold shadow-lg transition-all flex items-center justify-center gap-2"
+                          className="w-full font-bold text-lg bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-400 hover:to-purple-400 py-4 rounded-xl shadow-lg transform transition active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
                         >
-                          {loading ? "Đang xử lý..." : "✨ Sinh Phiếu Khảo sát"}
+                          {loading ? "⏳ Đang phân tích & Sinh phiếu..." : "✨ Sinh Phiếu Khảo sát"}
                         </button>
 
                         <button
