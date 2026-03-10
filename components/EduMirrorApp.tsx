@@ -199,7 +199,8 @@ function EduMirrorContent() {
           content: lessonText,
           standards: standardsText,
           apiKey: saved,
-          processMode // <--- ĐIỂM ĂN TIỀN: Truyền chế độ Cao cấp lên Backend
+          processMode, // <--- Thêm dấu phẩy ở đây
+          subject      // <--- THÊM ĐÚNG CHỮ NÀY VÀO LÀ XONG!
         }),
       });
       const data = await res.json();
