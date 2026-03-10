@@ -49,9 +49,22 @@ function SurveyForm() {
     if (isSubmitting) return; // Chặn nếu đang gửi
     if (!surveyId) return alert("Lỗi ID phiếu");
     
-    // Validate sơ bộ: Cần trả lời ít nhất câu 1 và 2
-    if (!answers['q1_feeling'] || !answers['q2_understanding']) {
-        alert("Vui lòng chọn Cảm nhận và Mức độ hiểu bài trước khi gửi nhé!");
+    // ==========================================
+    // VALIDATE ĐỘNG (THÔNG MINH HƠN)
+    // ==========================================
+    // Lọc ra những câu trắc nghiệm mà học sinh chưa trả lời
+    const unanswered = survey.questions.filter((q: any) => {
+      if (q.type === "single_choice") {
+        return !answers[q.id]; // Chưa chọn cái nào
+      }
+      if (q.type === "multi_choice") {
+        return !answers[q.id] || answers[q.id].length === 0; // Chưa tick ô nào
+      }
+      return false; // Bỏ qua câu Tự luận (Cho phép để trống không ép buộc)
+    });
+
+    if (unanswered.length > 0) {
+        alert("Vui lòng đánh dấu đầy đủ các câu hỏi trắc nghiệm trước khi gửi phiếu nhé!");
         return;
     }
 
@@ -89,7 +102,7 @@ function SurveyForm() {
         <div className="max-w-xl mx-auto text-center">
           <div style={{ pointerEvents: 'none', userSelect: 'none' }} className="inline-block mb-2">
              <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border border-indigo-100">
-                EduMirror X • Survey
+               EduMirror X • Survey
              </span>
           </div>
           <h1 className="text-xl font-bold text-gray-800 leading-tight">{survey.title}</h1>
@@ -104,7 +117,7 @@ function SurveyForm() {
               {q.text}
             </h3>
 
-            {/* DẠNG 1: CHỌN 1 (SINGLE CHOICE) - Dùng cho Q1, Q2 */}
+            {/* DẠNG 1: CHỌN 1 (SINGLE CHOICE) */}
             {q.type === "single_choice" && (
               <div className="space-y-2">
                 {q.options.map((opt: string, i: number) => {
@@ -122,16 +135,13 @@ function SurveyForm() {
               </div>
             )}
 
-            {/* DẠNG 2: CHỌN NHIỀU (MULTI CHOICE) - Dùng cho Q3, Q4, Q5 */}
+            {/* DẠNG 2: CHỌN NHIỀU (MULTI CHOICE) */}
             {q.type === "multi_choice" && (
               <div className="space-y-2">
                 {q.options.map((opt: string, i: number) => {
                   const isChecked = (answers[q.id] || []).includes(opt);
                   return (
                     <div key={i}>
-                        {/* Dòng kẻ phân cách cho câu 3 */}
-                        {q.id === "q3_difficulties" && i === 5 && <div className="my-2 pt-2 border-t border-dashed border-gray-200 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Về phương pháp / Môi trường</div>}
-                        
                         <button onClick={() => handleMultiSelect(q.id, opt)} 
                             className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${isChecked ? "border-purple-500 bg-purple-50" : "border-gray-200 hover:bg-gray-50"}`}>
                         <div className={`w-5 h-5 rounded flex items-center justify-center border flex-shrink-0 transition-colors ${isChecked ? "bg-purple-500 border-purple-500" : "border-gray-300 bg-white"}`}>
@@ -148,7 +158,7 @@ function SurveyForm() {
             {/* DẠNG 3: TEXT */}
             {q.type === "text" && (
               <textarea className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-indigo-500 focus:bg-white outline-none text-sm min-h-[80px]" 
-                placeholder={q.placeholder} onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })} />
+                placeholder="Câu trả lời của em (có thể bỏ trống)..." onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })} />
             )}
           </div>
         ))}
