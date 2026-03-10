@@ -8,6 +8,7 @@ import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
 import DashboardView from "@/components/DashboardView";
 import AISuggestionsView from "@/components/AISuggestionsView";
 import AILoading from "@/components/AILoading";
+import SurveyEditor from "@/components/SurveyEditor";
 
 // [THÊM MỚI] Khởi tạo Supabase Client an toàn (Chống sập SSR)
 import { createClient } from "@supabase/supabase-js";
@@ -152,41 +153,46 @@ function EduMirrorContent() {
     setLoading(true);
     try {
       const saved = localStorage.getItem("edumirror_key") || "";
-
-      // Gọi API Sinh Phiếu Mới đã được nâng cấp
       const res = await fetch("/api/generate-survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model,
-          content: lessonText,
-          standards: standardsText,
-          apiKey: saved,
-          processMode, // <--- Thêm dấu phẩy ở đây
-          subject      // <--- THÊM ĐÚNG CHỮ NÀY VÀO LÀ XONG!
-        }),
+        body: JSON.stringify({ model, content: lessonText, standards: standardsText, apiKey: saved, processMode, subject }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error);
 
-      const surveyData = data.survey_v2;
-      setSurvey(surveyData);
+      // CHỈ GÁN DỮ LIỆU VÀO STATE ĐỂ CHUẨN BỊ CHỈNH SỬA
+      setSurvey(data.survey_v2);
+      setSurveyId(null); // Reset ID cũ
+      setQrUrl("");      // Xóa mã QR cũ
 
-      try {
-        const saveRes = await fetch("/api/save-survey", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ payload: surveyData }),
-        });
-        const saveData = await saveRes.json();
-        if (saveData.shortId) setSurveyId(saveData.shortId);
-      } catch (e) {
-        console.error("Lỗi lưu:", e);
-      }
-
-      setQrUrl("");
     } catch (err: any) {
       alert("Lỗi Sinh Phiếu: " + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveAndPublish = async () => {
+    if (!survey) return;
+    setLoading(true);
+    try {
+      const saveRes = await fetch("/api/save-survey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload: survey }), // Lưu bản đã chỉnh sửa
+      });
+      const saveData = await saveRes.json();
+      if (saveData.shortId) {
+        setSurveyId(saveData.shortId);
+        // Sinh mã QR
+        const currentDomain = window.location.origin;
+        const surveyUrl = `${currentDomain}/survey?id=${saveData.shortId}`;
+        const qr = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(surveyUrl)}`;
+        setQrUrl(qr);
+      }
+    } catch (e: any) {
+      alert("Lỗi lưu phiếu: " + e.message);
     } finally {
       setLoading(false);
     }
