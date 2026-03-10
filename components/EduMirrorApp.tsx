@@ -9,6 +9,12 @@ import DashboardView from "@/components/DashboardView";
 import AISuggestionsView from "@/components/AISuggestionsView";
 import AILoading from "@/components/AILoading";
 
+// [THÊM MỚI] Khởi tạo Supabase Client an toàn (Chống sập SSR)
+import { createClient } from "@supabase/supabase-js";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://he-thong-dang-khoi-dong.supabase.co";
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "key-khoi-dong";
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 // DANH SÁCH MODEL (Giữ nguyên của bạn)
 const AVAILABLE_MODELS = [
   { id: "gpt-5.1", name: "GPT-5.1 (Siêu trí tuệ - Mới nhất)" },
@@ -49,6 +55,12 @@ function EduMirrorContent() {
   const [surveyId, setSurveyId] = useState<string | null>(null);
   const [qrUrl, setQrUrl] = useState<string>("");
 
+  // [THÊM MỚI] State theo dõi tiến trình (cho UI)
+  const [loadingStep, setLoadingStep] = useState(""); 
+  
+  // [THÊM MỚI] State cho công tắc "Sử dụng LlamaParse"
+  const [useVisionParsing, setUseVisionParsing] = useState(false);
+
   useEffect(() => {
     setMounted(true);
     const k = localStorage.getItem("edumirror_key") || "";
@@ -71,15 +83,53 @@ function EduMirrorContent() {
     // 1. Luôn lưu file gốc (Quan trọng cho chế độ Cao cấp)
     setSelectedFile(f);
     setChip(`Đã chọn: ${f.name}`);
+    setLessonText(""); // Xóa text cũ
 
-    // 2. Vẫn thử rút text (Để dùng cho chế độ Tốc độ/Xem trước)
+    // 2. [THÊM MỚI] Logic tải file lai (Lai giữa luồng cũ và Supabase/LlamaParse)
     setLoading(true);
     try {
-      const form = new FormData();
-      form.append("file", f);
-      const res = await fetch("/api/extractText", { method: "POST", body: form });
-      const data = await res.json();
-      setLessonText(data?.text || "");
+      if (useVisionParsing) {
+        // LUỒNG MỚI: TẢI LÊN SUPABASE VÀ GỌI LLAMAPARSE
+        setLoadingStep("Đang tải file lên Supabase...");
+        
+        // Tạo tên file ngẫu nhiên để tránh trùng
+        const fileExt = f.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('lesson-plans')
+          .upload(fileName, f);
+
+        if (uploadError) throw new Error("Lỗi tải file lên Supabase: " + uploadError.message);
+
+       // Lấy link public
+        const { data: { publicUrl } } = supabase.storage
+          .from('lesson-plans')
+          .getPublicUrl(fileName);
+
+        // [GỌI AI LLAMAPARSE]
+        setLoadingStep("Đang dùng Vision AI quét công thức Toán (Xin chờ khoảng 10-20s)...");
+        
+        const aiRes = await fetch("/api/extractText-v2", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ fileUrl: publicUrl, fileName: f.name })
+        });
+        
+        const aiData = await aiRes.json();
+        if (!aiRes.ok) throw new Error(aiData.error || "Lỗi AI LlamaParse");
+
+        setLessonText(aiData.text);
+
+      } else {
+        // LUỒNG CŨ: GIỮ NGUYÊN (Để rút text thông thường)
+        setLoadingStep(`Đang đọc file: ${f.name}...`);
+        const form = new FormData();
+        form.append("file", f);
+        const res = await fetch("/api/extractText", { method: "POST", body: form });
+        const data = await res.json();
+        setLessonText(data?.text || "");
+      }
 
       // Reset kết quả cũ
       setAnalysis(null);
@@ -87,58 +137,46 @@ function EduMirrorContent() {
       setSurveyId(null);
       setQrUrl("");
     } catch (err: any) {
-      console.warn("Rút text thất bại (có thể dùng chế độ Cao cấp):", err);
+      console.warn("Lỗi xử lý file:", err);
+      alert("Lỗi xử lý file: " + err.message);
     } finally {
       setLoading(false);
+      setLoadingStep("");
     }
   };
 
+ // --- ĐÃ DỌN DẸP LẠI LUỒNG ---
   const handleAnalyze = async () => {
+    if (lessonText.length < 50) return alert("Nội dung quá ngắn! Hãy Upload file hoặc dán văn bản.");
     setLoading(true);
     try {
       const saved = localStorage.getItem("edumirror_key") || "";
-      let data: any;
-
-      if (processMode === "premium") {
-        if (!selectedFile) {
-          setLoading(false);
-          return alert("Chế độ Cao cấp yêu cầu bạn phải Upload File (Word/PDF/Ảnh)!");
-        }
-        const formData = new FormData();
-        formData.append("file", selectedFile);
-        formData.append("model", "gpt-4o-mini"); // giữ như bạn đang dùng
-        formData.append("subject", subject);
-        formData.append("grade", grade);
-        formData.append("apiKey", saved);
-
-        const res = await fetch("/api/analyze-premium", {
-          method: "POST",
-          body: formData,
-        });
-
-        data = await res.json();
-        if (!res.ok) throw new Error(data?.error);
-      } else {
-        if (lessonText.length < 50) {
-          setLoading(false);
-          return alert("Nội dung quá ngắn! Hãy dán văn bản hoặc Upload file.");
-        }
-        const res = await fetch("/api/analyze", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "x-proxy-key": saved },
-          body: JSON.stringify({ content: lessonText, model, subject, grade }),
-        });
-        data = await res.json();
-        if (!res.ok) throw new Error(data?.error);
-      }
+      
+      // Giờ đây Phân tích cấu trúc dùng chung 1 luồng chuẩn mực, đọc thẳng dữ liệu LlamaParse
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-proxy-key": saved },
+        body: JSON.stringify({ 
+          content: lessonText, 
+          model, 
+          subject, 
+          grade,
+          processMode // Gửi cờ lên báo cho AI biết đang ở mode nào
+        }),
+      });
+      
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error);
 
       setAnalysis(data.result);
-
-      if (processMode === "premium" && data.result?.summary) {
-        setLessonText(
-          `[KẾT QUẢ TỪ CHẾ ĐỘ CAO CẤP]\n📂 File: ${selectedFile?.name}\n-------------------\n${data.result.summary}`
-        );
+      
+      // Chú thích nhỏ cho người dùng biết AI đã dùng mode gì
+      if (processMode === "premium") {
+        setChip("Đã phân tích cấu trúc bằng AI Chuyên sâu Toán học.");
+      } else {
+        setChip("Đã phân tích cấu trúc cơ bản.");
       }
+
     } catch (err: any) {
       alert("Lỗi: " + err.message);
     } finally {
@@ -152,6 +190,7 @@ function EduMirrorContent() {
     try {
       const saved = localStorage.getItem("edumirror_key") || "";
 
+      // Gọi API Sinh Phiếu Mới đã được nâng cấp
       const res = await fetch("/api/generate-survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,6 +199,7 @@ function EduMirrorContent() {
           content: lessonText,
           standards: standardsText,
           apiKey: saved,
+          processMode // <--- ĐIỂM ĂN TIỀN: Truyền chế độ Cao cấp lên Backend
         }),
       });
       const data = await res.json();
@@ -182,7 +222,7 @@ function EduMirrorContent() {
 
       setQrUrl("");
     } catch (err: any) {
-      alert("Lỗi: " + err.message);
+      alert("Lỗi Sinh Phiếu: " + err.message);
     } finally {
       setLoading(false);
     }
@@ -262,86 +302,102 @@ function EduMirrorContent() {
           {activeTab === "upload" && (
             <>
               {/* 🔑 KHỐI API KEY (Sư phạm – giáo dục) */}
-<section className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 h-9 w-9 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100">
-        🔑
-      </div>
+              <section className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-0.5 h-9 w-9 rounded-full bg-indigo-50 flex items-center justify-center border border-indigo-100">
+                      🔑
+                    </div>
 
-      <div>
-        <div className="text-sm font-bold text-gray-800">Kết nối AI cho tiết học</div>
-        <div className="text-xs text-gray-500 leading-relaxed">
-          Nhập API key 1 lần để hệ thống phân tích giáo án và tạo khảo sát 60 giây cho học sinh.
-        </div>
+                    <div>
+                      <div className="text-sm font-bold text-gray-800">Kết nối AI cho tiết học</div>
+                      <div className="text-xs text-gray-500 leading-relaxed">
+                        Nhập API key 1 lần để hệ thống phân tích giáo án và tạo khảo sát 60 giây cho học sinh.
+                      </div>
 
-        {apiKey ? (
-          <div className="mt-2 inline-flex items-center gap-2 text-xs">
-            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
-              ✓ Đã sẵn sàng
-            </span>
-            <span className="text-gray-400">(đã lưu ••••{apiKey.slice(-4)})</span>
-          </div>
-        ) : (
-          <div className="mt-2 inline-flex items-center gap-2 text-xs">
-            <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-100 font-semibold">
-              ⚠ Chưa thiết lập
-            </span>
-            <span className="text-gray-400">(bạn có thể thiết lập sau)</span>
-          </div>
-        )}
-      </div>
-    </div>
+                      {apiKey ? (
+                        <div className="mt-2 inline-flex items-center gap-2 text-xs">
+                          <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
+                            ✓ Đã sẵn sàng
+                          </span>
+                          <span className="text-gray-400">(đã lưu ••••{apiKey.slice(-4)})</span>
+                        </div>
+                      ) : (
+                        <div className="mt-2 inline-flex items-center gap-2 text-xs">
+                          <span className="px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-100 font-semibold">
+                            ⚠ Chưa thiết lập
+                          </span>
+                          <span className="text-gray-400">(bạn có thể thiết lập sau)</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
-    {/* Cột phải */}
-    {!apiKey || editingKey ? (
-      <div className="flex items-center gap-2 md:pl-4">
-        <input
-          id="apiKeyInput"
-          type="password"
-          defaultValue={apiKey}
-          placeholder="Dán API key…"
-          className="outline-none px-3 py-2 text-sm w-[240px] md:w-[300px]
-            border border-gray-200 rounded-xl bg-gray-50
-            focus:bg-white focus:border-indigo-500
-            focus:ring-4 focus:ring-indigo-500/10 transition-all"
-        />
-        <button
-          onClick={() => {
-            handleSaveKey();
-            setEditingKey(false);
-          }}
-          className="bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-indigo-500 transition-colors"
-        >
-          Lưu
-        </button>
+                  {/* Cột phải */}
+                  {!apiKey || editingKey ? (
+                    <div className="flex items-center gap-2 md:pl-4">
+                      <input
+                        id="apiKeyInput"
+                        type="password"
+                        defaultValue={apiKey}
+                        placeholder="Dán API key…"
+                        className="outline-none px-3 py-2 text-sm w-[240px] md:w-[300px]
+                          border border-gray-200 rounded-xl bg-gray-50
+                          focus:bg-white focus:border-indigo-500
+                          focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                      />
+                      <button
+                        onClick={() => {
+                          handleSaveKey();
+                          setEditingKey(false);
+                        }}
+                        className="bg-indigo-600 text-white text-sm font-bold px-4 py-2 rounded-xl hover:bg-indigo-500 transition-colors"
+                      >
+                        Lưu
+                      </button>
 
-        {apiKey && (
-          <button
-            onClick={() => setEditingKey(false)}
-            className="text-sm font-semibold text-gray-500 hover:text-gray-700"
-          >
-            Hủy
-          </button>
-        )}
-      </div>
-    ) : (
-      <div className="flex items-center gap-2 md:pl-4">
-        <button
-          onClick={() => setEditingKey(true)}
-          className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50"
-        >
-          Cập nhật
-        </button>
-      </div>
-    )}
-  </div>
-</section>
-
+                      {apiKey && (
+                        <button
+                          onClick={() => setEditingKey(false)}
+                          className="text-sm font-semibold text-gray-500 hover:text-gray-700"
+                        >
+                          Hủy
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 md:pl-4">
+                      <button
+                        onClick={() => setEditingKey(true)}
+                        className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-700 hover:bg-gray-50"
+                      >
+                        Cập nhật
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </section>
 
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in">
                 {/* CỘT TRÁI: INPUT (8 phần) */}
                 <div className="lg:col-span-8 space-y-6">
+                  
+                  {/* [THÊM MỚI] Giao diện Công tắc Vision Parsing */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-100 shadow-sm flex items-center justify-between">
+                    <div>
+                      <h4 className="text-sm font-bold text-indigo-800 flex items-center gap-2">
+                        <span>👁️‍🗨️</span> Công nghệ Vision Parsing (LlamaParse)
+                      </h4>
+                      <p className="text-xs text-indigo-600 mt-1">Bật để AI tự động chuyển đổi ảnh/PDF sang định dạng Toán học chuẩn xác (LaTeX).</p>
+                    </div>
+                    <div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={useVisionParsing} onChange={(e) => setUseVisionParsing(e.target.checked)}/>
+                        <div className="w-11 h-6 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                      </label>
+                    </div>
+                  </div>
+
                   <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
@@ -380,7 +436,8 @@ function EduMirrorContent() {
                       <div className="absolute bottom-4 right-4">
                         <label className="cursor-pointer bg-white hover:bg-gray-50 border border-gray-200 text-gray-600 text-xs font-bold px-3 py-2 rounded-xl shadow-sm flex items-center gap-2 transition-all">
                           📁 Upload File
-                          <input type="file" className="hidden" onChange={handleFileChange} />
+                          {/* Đã thêm thuộc tính accept="image/*" để hỗ trợ chụp ảnh Toán */}
+                          <input type="file" accept=".pdf,.doc,.docx,.txt,image/*" className="hidden" onChange={handleFileChange} />
                         </label>
                       </div>
                     </div>
