@@ -43,7 +43,7 @@ const MobilePreview = ({ survey }: { survey: SurveyV2UI }) => {
             </p>
             {q.type !== "text" ? (
               <div className="space-y-2 mt-3">
-                {q.options?.map((opt, oIdx) => (
+                {q.options?.map((opt: string, oIdx: number) => (
                   <div key={oIdx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-gray-200">
                     <div className={`w-4 h-4 rounded-${q.type === 'multi_choice' ? 'sm' : 'full'} border-2 border-gray-300 flex-shrink-0`}></div>
                     <span className="text-sm text-gray-700">{opt}</span>
