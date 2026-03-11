@@ -3,7 +3,7 @@
 import type React from "react";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import SurveyView, { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
+import { SurveyV2 as SurveyV2UI } from "@/components/SurveyView";
 import DashboardView from "@/components/DashboardView";
 import AISuggestionsView from "@/components/AISuggestionsView";
 import AILoading from "@/components/AILoading";
@@ -26,8 +26,44 @@ const AVAILABLE_MODELS = [
 ];
 
 type TopTab = "upload" | "dashboard" | "ai";
-
+// --- BẮT ĐẦU ĐOẠN DÁN THÊM ---
+// Component mô phỏng giao diện điện thoại cực nhẹ, chống lỗi chồng chéo
+const MobilePreview = ({ survey }: { survey: SurveyV2UI }) => {
+  if (!survey) return null;
+  return (
+    <div className="bg-white min-h-full p-4 font-sans text-gray-800">
+      <h2 className="text-xl font-bold text-indigo-600 mb-6 text-center leading-tight">
+        {survey.title}
+      </h2>
+      <div className="space-y-5 pb-8">
+        {survey.questions.map((q, idx) => (
+          <div key={idx} className="bg-gray-50 p-4 rounded-2xl border border-gray-100 shadow-sm">
+            <p className="font-bold text-sm mb-3 text-gray-800">
+              <span className="text-indigo-500 mr-1 font-extrabold">Câu {idx + 1}:</span> {q.text}
+            </p>
+            {q.type !== "text" ? (
+              <div className="space-y-2 mt-3">
+                {q.options?.map((opt, oIdx) => (
+                  <div key={oIdx} className="flex items-center gap-3 bg-white p-2.5 rounded-xl border border-gray-200">
+                    <div className={`w-4 h-4 rounded-${q.type === 'multi_choice' ? 'sm' : 'full'} border-2 border-gray-300 flex-shrink-0`}></div>
+                    <span className="text-sm text-gray-700">{opt}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="w-full h-20 bg-white border border-dashed border-gray-300 rounded-xl mt-3 p-3 text-xs text-gray-400 italic">
+                Khu vực học sinh nhập câu trả lời...
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+// --- KẾT THÚC ĐOẠN DÁN THÊM ---
 function EduMirrorContent() {
+  
   const searchParams = useSearchParams();
   const router = useRouter();
   const activeTab = (searchParams.get("tab") as TopTab) || "upload";
@@ -413,7 +449,7 @@ function EduMirrorContent() {
                       </h4>
                       <div className="border-[8px] border-gray-900 rounded-[2.5rem] overflow-hidden shadow-2xl transform scale-95 w-full max-w-[360px] bg-gray-50 h-[600px] overflow-y-auto custom-scrollbar relative">
                         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-gray-900 rounded-b-xl z-20"></div>
-                        <SurveyView survey={survey} />
+                        <MobilePreview survey={survey} />
                       </div>
                       <div className="mt-8 w-full max-w-[360px]">
                         {qrUrl ? (
