@@ -81,6 +81,7 @@ export async function GET(req: Request) {
       if (ans.q6_feedback_text) {
           // Quét tìm dữ liệu AI đã lưu (có thể nằm ở cột riêng của row hoặc chui trong JSON ans)
           const isHarsh = row.is_harsh || ans.is_harsh || false;
+          const isSOS = row.is_sos || ans.is_sos || false; // 👈 THÊM DÒNG NÀY: Quét tìm cờ SOS
           const aiSummary = row.ai_summary || ans.ai_summary || "";
           const rawText = row.raw_text || ans.raw_text || ans.q6_feedback_text;
 
@@ -88,8 +89,10 @@ export async function GET(req: Request) {
           stats.feedbacks.push({
               raw_text: rawText,
               is_harsh: isHarsh,
+              is_sos: isSOS, // 👈 THÊM DÒNG NÀY: Bơm cờ SOS lên giao diện
               ai_summary: aiSummary
           });
+      }
       }
     });
 

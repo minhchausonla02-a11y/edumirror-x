@@ -82,9 +82,17 @@ export default function DashboardView({ model }: { model?: string }) {
     setAnalyzing(true);
     try {
         const savedKey = localStorage.getItem("edumirror_key");
-        // Rút trích text để gửi cho AI gom nhóm
-        const textArray = feedbacks.map(fb => typeof fb === 'object' ? fb.raw_text : fb);
         
+        // 💡 LỌC BỎ SOS: Chỉ gửi những phản hồi không phải là SOS cho AI gom nhóm
+        const normalFeedbacks = feedbacks.filter(fb => typeof fb !== 'object' || !fb.is_sos);
+        const textArray = normalFeedbacks.map(fb => typeof fb === 'object' ? fb.raw_text : fb);
+        
+        if (textArray.length === 0) {
+            alert("Không có phản hồi chuyên môn nào để phân tích nhóm.");
+            setAnalyzing(false);
+            return;
+        }
+
         const res = await fetch("/api/analyze-feedback", {
             method: "POST",
             body: JSON.stringify({ feedbacks: textArray, apiKey: savedKey, model: model })
@@ -120,6 +128,10 @@ export default function DashboardView({ model }: { model?: string }) {
   };
 
   const showData = !!stats;
+
+  // 💡 TÁCH PHẢN HỒI THÀNH 2 NHÓM: SOS VÀ BÌNH THƯỜNG
+  const sosFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb === 'object' && fb.is_sos) || [];
+  const normalFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb !== 'object' || !fb.is_sos) || [];
 
   return (
     <div className="space-y-8 font-sans animate-fade-in pb-12">
@@ -158,7 +170,7 @@ export default function DashboardView({ model }: { model?: string }) {
       ) : showData ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* CÁC BLOCK 1 ĐẾN 6 GIỮ NGUYÊN */}
+          {/* CÁC BLOCK 1 ĐẾN 6 GIỮ NGUYÊN HOÀN TOÀN */}
           <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-3xl shadow-lg text-white flex flex-col sm:flex-row justify-between items-center relative overflow-hidden">
              <div className="relative z-10">
                 <div className="text-xs opacity-80 uppercase font-bold tracking-widest mb-1">Tổng phiếu</div>
@@ -226,12 +238,35 @@ export default function DashboardView({ model }: { model?: string }) {
             </div>
           </div>
 
-          {/* 7. LỜI NHẮN & AI - ĐÃ NÂNG CẤP LĂNG KÍNH THẤU CẢM */}
+          {/* ========================================================= */}
+          {/* 7. LỜI NHẮN & AI - ĐÃ NÂNG CẤP LĂNG KÍNH THẤU CẢM & SOS */}
+          {/* ========================================================= */}
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm col-span-1 md:col-span-2 lg:col-span-3">
+            
+            {/* 🚨 KHU VỰC BÁO ĐỘNG ĐỎ (SOS) - CHỈ HIỆN KHI CÓ NGƯỜI CẦU CỨU */}
+            {sosFeedbacks.length > 0 && (
+              <div className="mb-6 bg-red-50 border-l-[6px] border-red-600 p-5 rounded-r-xl shadow-md animate-pulse">
+                <h4 className="text-red-800 font-bold flex items-center gap-2 mb-2 text-sm uppercase tracking-wide">
+                  <span className="text-2xl">🚨</span> Cảnh báo tâm lý khẩn cấp (SOS)
+                </h4>
+                <p className="text-xs text-red-600 mb-4 font-medium">
+                  Hệ thống AI phát hiện các nội dung có dấu hiệu bạo lực học đường, tổn thương tâm lý hoặc xâm phạm đời tư. Vui lòng lưu ý và can thiệp kịp thời!
+                </p>
+                <div className="space-y-3">
+                  {sosFeedbacks.map((fb: any, idx: number) => (
+                    <div key={idx} className="bg-white p-4 rounded-xl text-red-800 text-sm font-bold border border-red-200 shadow-sm relative overflow-hidden">
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
+                      "{fb.raw_text}"
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
                 <div className="flex items-center gap-4">
                   <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                    💌 Lời nhắn ẩn danh ({stats.feedbacks?.length || 0})
+                    💌 Lời nhắn ẩn danh ({normalFeedbacks.length})
                   </h3>
                   
                   {/* CÔNG TẮC LÀM MỜ (TOGGLE) */}
@@ -248,7 +283,7 @@ export default function DashboardView({ model }: { model?: string }) {
                   </div>
                 </div>
 
-                {stats.feedbacks?.length > 0 && (
+                {normalFeedbacks.length > 0 && (
                     <button onClick={() => analyzeFeedback(stats.feedbacks)} disabled={analyzing} className="text-xs bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-4 py-2 rounded-xl shadow hover:scale-105 transition-all font-bold">
                         {analyzing ? "Đang đọc..." : "✨ AI Phân tích Nhóm"}
                     </button>
@@ -258,7 +293,6 @@ export default function DashboardView({ model }: { model?: string }) {
             {/* Khối AI Nhóm (Giữ nguyên) */}
             {aiResult && (
                 <div className="mb-6 bg-indigo-50/60 rounded-2xl border border-indigo-100 overflow-hidden animate-fade-in">
-                    {/* ... (Đoạn này giữ nguyên như code cũ của bạn) ... */}
                     <div className="p-3 bg-indigo-100/50 flex justify-between items-center border-b border-indigo-200">
                         <span className="text-xs font-bold text-indigo-800 uppercase">🤖 Kết quả phân tích nhóm</span>
                         <button onClick={goToSolution} className="text-xs bg-white text-indigo-700 border border-indigo-200 px-3 py-1 rounded-lg font-bold shadow-sm hover:bg-indigo-50 transition-colors">
@@ -283,9 +317,9 @@ export default function DashboardView({ model }: { model?: string }) {
                 </div>
             )}
 
-            {/* KHU VỰC HIỂN THỊ LỜI NHẮN (ĐÃ NÂNG CẤP) */}
+            {/* KHU VỰC HIỂN THỊ LỜI NHẮN CHUYÊN MÔN */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
-              {stats.feedbacks && stats.feedbacks.length > 0 ? stats.feedbacks.map((fb: any, i: number) => {
+              {normalFeedbacks.length > 0 ? normalFeedbacks.map((fb: any, i: number) => {
                   
                   // Nhận diện dữ liệu kiểu cũ (chỉ là chuỗi) hoặc kiểu mới (có AI phân tích)
                   const isObject = typeof fb === 'object' && fb !== null;
