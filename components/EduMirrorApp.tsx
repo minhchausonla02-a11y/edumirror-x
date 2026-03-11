@@ -8,6 +8,7 @@ import DashboardView from "@/components/DashboardView";
 import AISuggestionsView from "@/components/AISuggestionsView";
 import AILoading from "@/components/AILoading";
 import SurveyEditor from "@/components/SurveyEditor";
+import UserProfile from "@/components/UserProfile";
 
 // Khởi tạo Supabase Client an toàn
 import { createClient } from "@supabase/supabase-js";
@@ -184,6 +185,8 @@ function EduMirrorContent() {
       <header className="w-full bg-white/80 backdrop-blur border-b border-gray-200 sticky top-0 z-30">
         <div className="mx-auto max-w-7xl px-6 py-3">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            
+            {/* 1. LOGO (CỘT TRÁI) */}
             <div className="flex items-center gap-2">
               <span className="text-2xl">🪞</span>
               <div className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
@@ -191,16 +194,32 @@ function EduMirrorContent() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 bg-white p-1 rounded-xl border border-gray-200 shadow-sm">
-              <select
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                className="bg-gray-50 text-xs font-bold text-indigo-700 px-3 py-2 rounded-lg outline-none cursor-pointer hover:bg-indigo-50"
-              >
-                {AVAILABLE_MODELS.map((m) => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
+            {/* 2. CỤM CHỨC NĂNG (CỘT PHẢI) */}
+            <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6">
+              
+              {/* Ô chọn AI Model */}
+              <div className="flex items-center bg-white p-1.5 rounded-xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
+                <span className="pl-2 pr-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider hidden sm:inline-block">
+                  AI Model:
+                </span>
+                <select
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-indigo-700 px-2 py-1.5 rounded-lg outline-none cursor-pointer hover:bg-indigo-50 transition-colors"
+                >
+                  {AVAILABLE_MODELS.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Ô thông tin Giáo viên (User Profile) */}
+              <div className="flex-shrink-0 z-50">
+                <UserProfile />
+              </div>
+
             </div>
           </div>
 
