@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-// 1. THAY ĐỔI QUAN TRỌNG: Dùng thư viện kết nối Server mới
 import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = "force-dynamic";
@@ -11,44 +10,36 @@ export async function GET(req: Request) {
 
     if (!surveyId) return NextResponse.json({ error: "Thiếu ID" }, { status: 400 });
 
-    // 2. KHỞI TẠO KẾT NỐI BẢO MẬT (Để vượt qua lớp bảo vệ RLS)
     const supabase = await createClient();
 
-    // 3. LẤY DỮ LIỆU
-    // Lưu ý: Tôi đổi thành select('*') để lấy cả cột 'payload' lẫn 'answers'
-    // nhằm đảm bảo logic bên dưới của bạn luôn tìm thấy dữ liệu.
     const { data: responses, error } = await supabase
       .from("survey_responses")
       .select("*") 
-      .eq("survey_short_id", surveyId); // Lưu ý: Thường cột liên kết là survey_id, nếu bảng của bạn là survey_short_id thì sửa lại chỗ này nhé.
+      .eq("survey_short_id", surveyId); 
 
     if (error) throw error;
 
-    // =================================================================
-    // TỪ ĐÂY TRỞ XUỐNG LÀ LOGIC CŨ CỦA BẠN (GIỮ NGUYÊN 100%)
-    // =================================================================
-    
-    // Cấu trúc thống kê chuẩn cho 6 câu hỏi
     const stats = {
       total: 0,
       feeling: {} as Record<string, number>,      // Q1: Cảm nhận
       understanding: {} as Record<string, number>, // Q2: Hiểu bài
       difficulties: {} as Record<string, number>,  // Q3: Khó khăn
       adjustments: {} as Record<string, number>,   // Q4: Điều chỉnh
-      styles: {} as Record<string, number>,        // Q5: Phong cách học (MỚI)
-      feedbacks: [] as string[]                    // Q6: Lời nhắn
+      styles: {} as Record<string, number>,        // Q5: Phong cách học
+      feedbacks: [] as any[]                       // ĐÃ SỬA: Đổi từ string[] thành any[] để chứa Object AI
     };
 
     responses?.forEach((row: any) => {
-      // Logic tìm dữ liệu của bạn rất thông minh, tôi giữ nguyên
       let ans = row.answers;
-      // Xử lý dữ liệu lồng nhau nếu có
       if (ans && ans.answers) ans = ans.answers;
-      if (!ans && row.payload) ans = row.payload; // Fallback sang payload
+      if (!ans && row.payload) ans = row.payload; 
       if (typeof ans === 'string') { try { ans = JSON.parse(ans); } catch (e) {} }
 
       if (!ans) return;
       
+      // Bỏ qua nếu dòng này đã bị AI đánh dấu là rác (Spam) từ trước
+      if (row.is_spam || ans.is_spam) return;
+
       stats.total++;
 
       // Q1: Cảm nhận (q1_feeling)
@@ -59,11 +50,11 @@ export async function GET(req: Request) {
 
       // Q2: Hiểu bài (q2_understanding)
       if (ans.q2_understanding) {
-        const key = ans.q2_understanding.split("–")[0]?.trim(); // Lấy B1, B2
+        const key = ans.q2_understanding.split("–")[0]?.trim(); 
         stats.understanding[key] = (stats.understanding[key] || 0) + 1;
       }
 
-      // Q3: Khó khăn (q3_difficulties) - Mảng
+      // Q3: Khó khăn (q3_difficulties)
       if (Array.isArray(ans.q3_difficulties)) {
         ans.q3_difficulties.forEach((item: string) => {
            if(!item.includes("nắm chắc")) 
@@ -71,7 +62,7 @@ export async function GET(req: Request) {
         });
       }
 
-      // Q4: Điều chỉnh (q4_teacher_adjust) - Mảng
+      // Q4: Điều chỉnh (q4_teacher_adjust)
       if (Array.isArray(ans.q4_teacher_adjust)) {
         ans.q4_teacher_adjust.forEach((item: string) => {
            const key = item.split(" ")[0].length < 4 ? item : item; 
@@ -79,23 +70,33 @@ export async function GET(req: Request) {
         });
       }
 
-      // Q5: Phong cách học (q5_learning_style) - Mảng (MỚI)
+      // Q5: Phong cách học (q5_learning_style)
       if (Array.isArray(ans.q5_learning_style)) {
         ans.q5_learning_style.forEach((item: string) => {
            stats.styles[item] = (stats.styles[item] || 0) + 1;
         });
       }
 
-      // Q6: Lời nhắn (q6_feedback_text)
+      // --- Q6: LỜI NHẮN (ĐÃ NÂNG CẤP KẾT NỐI AI) ---
       if (ans.q6_feedback_text) {
-          stats.feedbacks.push(ans.q6_feedback_text);
+          // Quét tìm dữ liệu AI đã lưu (có thể nằm ở cột riêng của row hoặc chui trong JSON ans)
+          const isHarsh = row.is_harsh || ans.is_harsh || false;
+          const aiSummary = row.ai_summary || ans.ai_summary || "";
+          const rawText = row.raw_text || ans.raw_text || ans.q6_feedback_text;
+
+          // Đóng gói tất cả thành 1 Object gửi lên Frontend
+          stats.feedbacks.push({
+              raw_text: rawText,
+              is_harsh: isHarsh,
+              ai_summary: aiSummary
+          });
       }
     });
 
     return NextResponse.json({ stats });
 
   } catch (err: any) {
-    console.error("Lỗi API thống kê:", err); // Thêm log để dễ debug
+    console.error("Lỗi API thống kê:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
