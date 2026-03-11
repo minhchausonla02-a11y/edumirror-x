@@ -26,7 +26,7 @@ export async function GET(req: Request) {
       difficulties: {} as Record<string, number>,  // Q3: Khó khăn
       adjustments: {} as Record<string, number>,   // Q4: Điều chỉnh
       styles: {} as Record<string, number>,        // Q5: Phong cách học
-      feedbacks: [] as any[]                       // ĐÃ SỬA: Đổi từ string[] thành any[] để chứa Object AI
+      feedbacks: [] as any[]                       // Q6: Lời nhắn
     };
 
     responses?.forEach((row: any) => {
@@ -79,20 +79,17 @@ export async function GET(req: Request) {
 
       // --- Q6: LỜI NHẮN (ĐÃ NÂNG CẤP KẾT NỐI AI) ---
       if (ans.q6_feedback_text) {
-          // Quét tìm dữ liệu AI đã lưu (có thể nằm ở cột riêng của row hoặc chui trong JSON ans)
           const isHarsh = row.is_harsh || ans.is_harsh || false;
-          const isSOS = row.is_sos || ans.is_sos || false; // 👈 THÊM DÒNG NÀY: Quét tìm cờ SOS
+          const isSOS = row.is_sos || ans.is_sos || false; 
           const aiSummary = row.ai_summary || ans.ai_summary || "";
           const rawText = row.raw_text || ans.raw_text || ans.q6_feedback_text;
 
-          // Đóng gói tất cả thành 1 Object gửi lên Frontend
           stats.feedbacks.push({
               raw_text: rawText,
               is_harsh: isHarsh,
-              is_sos: isSOS, // 👈 THÊM DÒNG NÀY: Bơm cờ SOS lên giao diện
+              is_sos: isSOS, 
               ai_summary: aiSummary
           });
-      }
       }
     });
 
