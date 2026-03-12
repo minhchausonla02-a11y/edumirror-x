@@ -239,25 +239,36 @@ export default function DashboardView({ model }: { model?: string }) {
           </div>
 
           {/* ========================================================= */}
+        {/* ========================================================= */}
           {/* 7. LỜI NHẮN & AI - ĐÃ NÂNG CẤP LĂNG KÍNH THẤU CẢM & SOS */}
           {/* ========================================================= */}
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm col-span-1 md:col-span-2 lg:col-span-3">
             
-            {/* 🚨 KHU VỰC BÁO ĐỘNG ĐỎ (SOS) - CHỈ HIỆN KHI CÓ NGƯỜI CẦU CỨU */}
+            {/* 🚨 KHU VỰC BÁO ĐỘNG ĐỎ (SOS) - NHẤN VÀO MỚI HIỆN NỘI DUNG */}
             {sosFeedbacks.length > 0 && (
               <div className="mb-6 bg-red-50 border-l-[6px] border-red-600 p-5 rounded-r-xl shadow-md animate-pulse">
                 <h4 className="text-red-800 font-bold flex items-center gap-2 mb-2 text-sm uppercase tracking-wide">
                   <span className="text-2xl">🚨</span> Cảnh báo tâm lý khẩn cấp (SOS)
                 </h4>
                 <p className="text-xs text-red-600 mb-4 font-medium">
-                  Hệ thống AI phát hiện các nội dung có dấu hiệu bạo lực học đường, tổn thương tâm lý hoặc xâm phạm đời tư. Vui lòng lưu ý và can thiệp kịp thời!
+                  Hệ thống AI phát hiện các nội dung có dấu hiệu bạo lực, tổn thương tâm lý hoặc báo động an toàn. 
                 </p>
                 <div className="space-y-3">
                   {sosFeedbacks.map((fb: any, idx: number) => (
-                    <div key={idx} className="bg-white p-4 rounded-xl text-red-800 text-sm font-bold border border-red-200 shadow-sm relative overflow-hidden">
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
-                      "{fb.raw_text}"
-                    </div>
+                    <details key={idx} className="group bg-white rounded-xl border border-red-200 shadow-sm relative overflow-hidden cursor-pointer transition-all">
+                      <summary className="p-3 outline-none flex items-center justify-between marker:content-none hover:bg-red-50/50">
+                          <span className="flex items-center gap-2">
+                              <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+                                ⚠️ Thông tin nhạy cảm (Nhấn để xem)
+                              </span>
+                          </span>
+                          <span className="text-red-400 transition group-open:rotate-180">▼</span>
+                      </summary>
+                      <div className="p-4 bg-red-50/30 border-t border-red-100 text-red-900 text-sm font-bold italic">
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
+                        "{fb.raw_text}"
+                      </div>
+                    </details>
                   ))}
                 </div>
               </div>
