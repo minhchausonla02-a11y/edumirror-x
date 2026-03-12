@@ -17,7 +17,6 @@ export async function POST(req: Request) {
 
     // ==========================================
     // 🛡️ BƯỚC 1: CƠ CHẾ THU GOM DỮ LIỆU (TẠO MENU MẪU)
-    // Lấy toàn bộ đáp án trắc nghiệm giáo viên soạn để làm màng lọc
     // ==========================================
     const { data: surveyData } = await supabase
       .from("surveys")
@@ -41,14 +40,12 @@ export async function POST(req: Request) {
 
     // ==========================================
     // 🛡️ BƯỚC 2: XÁC THỰC TRỪ LÙI (BẮT CÂU TỰ LUẬN)
-    // Nếu không giống đáp án trong Menu -> Chắc chắn là học sinh tự gõ
     // ==========================================
     let rawInputs: string[] = [];
     
     for (const key in answers) {
       const val = answers[key];
       
-      // Bỏ qua Array (chọn nhiều) và các ô trống
       if (Array.isArray(val) || typeof val !== "string" || val.trim().length === 0) {
           continue; 
       }
@@ -57,11 +54,10 @@ export async function POST(req: Request) {
 
       if (predefinedOptions.length > 0) {
           if (predefinedOptions.includes(cleanVal)) {
-              continue; // Là trắc nghiệm -> Bỏ qua
+              continue; 
           }
-          rawInputs.push(cleanVal); // Là tự luận -> Thu gom
+          rawInputs.push(cleanVal); 
       } else {
-          // Bọc lót nếu không tải được DB
           if (key.toLowerCase().match(/^q[1-5](\_|$)/)) continue;
           rawInputs.push(cleanVal);
       }
@@ -79,7 +75,7 @@ export async function POST(req: Request) {
     };
 
     // ==========================================
-    // 🧠 BƯỚC 3: AI PHÂN LOẠI (ÁP DỤNG ĐÚNG BỘ QUY TẮC ĐÃ CHỐT)
+    // 🧠 BƯỚC 3: AI PHÂN LOẠI (NÂNG CẤP LUẬT SƯ PHẠM)
     // ==========================================
     try {
         if (openFeedback.trim().length > 0) {
@@ -87,16 +83,20 @@ export async function POST(req: Request) {
           if (apiKey) {
             const openai = new OpenAI({ apiKey });
             
-            // BỘ LUẬT PHÂN LOẠI 5 NHÓM
+            // 🚀 BỘ LUẬT PHÂN LOẠI ĐÃ ĐƯỢC CHUẨN HÓA SƯ PHẠM
             const prompt = `Bạn là Chuyên gia Tâm lý và Giám thị Học đường. 
-            Nhiệm vụ của bạn là đọc lời nhắn do học sinh tự gõ: "${openFeedback}" và phân loại theo CHUẨN SAU:
+            Nhiệm vụ của bạn là phân tích lời nhắn do học sinh tự gõ: "${openFeedback}" và tuân thủ NGHIÊM NGẶT các quy tắc sau:
             
-            1. isSpam (Thùng rác): Gán TRUE nếu nội dung VÔ NGHĨA ("asdasd") HOẶC CỢT NHẢ, TÁN TỈNH, KHÔNG LIÊN QUAN bài học ("anh nhớ em", "chiều chơi game", "thầy bao em ăn").
-            2. isSOS (Báo động đỏ): Gán TRUE nếu có dấu hiệu bạo lực, đe dọa, tẩy chay, quấy rối, trầm cảm ("bạn đánh em", "muốn chết", "sờ soạng").
-            3. isHarsh (Công kích): Gán TRUE nếu phàn nàn thô lỗ, đả kích cá nhân, nhắc tên giáo viên với thái độ tiêu cực ("dạy dở ẹc", "bà cô này nói nhiều").
+            1. isSpam (Rác/Không liên quan): Gán TRUE nếu nội dung thuộc 1 trong 2 trường hợp:
+               - Vô nghĩa: "asdasd", "123".
+               - Không liên quan đến bài học/lớp học: Chuyện thời tiết ("nay trời mưa mát"), tán tỉnh ("anh nhớ em"), đi chơi ("hôm nay quên đi thi"), nói lấp lửng ("Vui", "Buồn" mà không giải thích).
             
-            * LƯU Ý QUAN TRỌNG VỀ NHÓM BÌNH THƯỜNG:
-            Nếu câu nhắn là lời khen, cảm ơn, góp ý chân thành, hoặc thắc mắc về bài học (VD: "thầy dạy rất cuốn", "giảng chậm lại", "em không hiểu bài") -> Gán TẤT CẢ isSpam = false, isSOS = false, isHarsh = false.
+            2. isSOS (Báo động An toàn): Gán TRUE CHỈ KHI có dấu hiệu nguy hiểm thực sự: Bạo lực thể xác ("đánh em", "chặn đường"), quấy rối, tẩy chay tập thể, hoặc có ý định tự tử.
+            
+            3. isHarsh (Nhạy cảm - Cần che chắn): Gán TRUE CHỈ KHI học sinh có lời lẽ XÚC PHẠM, ĐẢ KÍCH TRỰC TIẾP đến GIÁO VIÊN hoặc NHÀ TRƯỜNG ("thầy dạy dở ẹc", "bà cô này ác", "trù dập"). 
+            
+            * LƯU Ý SỰ KHÁC BIỆT GIỮA KỶ LUẬT (BÌNH THƯỜNG) VÀ NHẠY CẢM (HARSH):
+            Nếu học sinh phản ánh việc các bạn khác làm ồn, trêu chọc nhẹ nhàng làm ảnh hưởng việc học (VD: "Bạn Tiến hay trêu em, mất trật tự làm em không tập trung được") -> Đây là GÓP Ý KỶ LUẬT LỚP HỌC HỢP LỆ. Gán isSpam = false, isSOS = false, isHarsh = false để hiện bình thường cho giáo viên xem.
             
             TRẢ VỀ JSON: 
             {
@@ -112,7 +112,7 @@ export async function POST(req: Request) {
               model: "gpt-4o-mini",
               messages: [{ role: "system", content: prompt }],
               response_format: { type: "json_object" },
-              temperature: 0.1 // Nhiệt độ thấp để AI tuân thủ luật nghiêm ngặt nhất
+              temperature: 0.1 
             });
             aiAnalysis = { ...aiAnalysis, ...JSON.parse(completion.choices[0].message.content || "{}") };
           }
@@ -126,7 +126,7 @@ export async function POST(req: Request) {
     // ==========================================
     answers.is_harsh = aiAnalysis.isHarsh;
     answers.is_sos = aiAnalysis.isSOS;
-    answers.is_spam = aiAnalysis.isSpam; // Cờ này sẽ quyết định việc vứt vào Thùng Rác UI
+    answers.is_spam = aiAnalysis.isSpam; 
     answers.ai_summary = aiAnalysis.summary;
     answers.raw_text = openFeedback; 
     

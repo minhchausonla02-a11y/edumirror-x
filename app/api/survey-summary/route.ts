@@ -13,6 +13,13 @@ export async function GET(req: Request) {
 
     const supabase = await createClient();
 
+    // 🚀 NÂNG CẤP: Lấy cả Cấu trúc phiếu gốc để Frontend biết tên câu hỏi tùy chọn
+    const { data: surveyData } = await supabase
+      .from("surveys")
+      .select("payload")
+      .eq("short_id", surveyId)
+      .single();
+
     const { data: responses, error } = await supabase
       .from("survey_responses")
       .select("*") 
@@ -27,8 +34,18 @@ export async function GET(req: Request) {
       difficulties: {} as Record<string, number>,
       adjustments: {} as Record<string, number>,
       styles: {} as Record<string, number>,
-      feedbacks: [] as any[]
+      feedbacks: [] as any[],
+      // 🚀 NÂNG CẤP: Giỏ chứa dữ liệu động cho mọi câu hỏi giáo viên tự thêm
+      custom_charts: {} as Record<string, Record<string, number>> 
     };
+
+    // Danh sách các "chìa khóa" mặc định để loại trừ khi quét câu hỏi động
+    const systemKeys = [
+        "q1", "q1_feeling", "q2", "q2_understanding", 
+        "q3", "q3_difficulties", "q4", "q4_teacher_adjust", 
+        "q5", "q5_learning_style", "q6_feedback_text", 
+        "raw_text", "is_harsh", "is_sos", "is_spam", "ai_summary"
+    ];
 
     responses?.forEach((row: any) => {
       let ans = row.answers;
@@ -81,6 +98,26 @@ export async function GET(req: Request) {
         });
       }
 
+      // --- 🚀 XỬ LÝ CÂU HỎI BỔ SUNG (DYNAMIC SCANNER) ---
+      Object.keys(ans).forEach(k => {
+          // Bỏ qua các câu mặc định và các cờ đánh dấu
+          if (!systemKeys.includes(k) && !k.startsWith("is_") && k !== "ai_summary" && k !== "raw_text") {
+              const val = ans[k];
+              if (val) {
+                  // Khởi tạo giỏ chứa cho câu hỏi này nếu chưa có
+                  if (!stats.custom_charts[k]) stats.custom_charts[k] = {};
+                  
+                  // Đếm số lượng (hỗ trợ cả chọn 1 và chọn nhiều)
+                  const valArray = Array.isArray(val) ? val : [val];
+                  valArray.forEach((item: string) => {
+                      if (item && typeof item === 'string') {
+                          stats.custom_charts[k][item] = (stats.custom_charts[k][item] || 0) + 1;
+                      }
+                  });
+              }
+          }
+      });
+
       if (ans.q6_feedback_text || ans.raw_text) {
           const isHarsh = row.is_harsh || ans.is_harsh || false;
           const isSOS = row.is_sos || ans.is_sos || false; 
@@ -101,7 +138,11 @@ export async function GET(req: Request) {
       }
     });
 
-    return NextResponse.json({ stats });
+    // 🚀 Trả về stats và gửi kèm luôn cấu trúc phiếu (surveyPayload) để UI vẽ biểu đồ
+    return NextResponse.json({ 
+        stats,
+        surveyPayload: surveyData?.payload 
+    });
 
   } catch (err: any) {
     console.error("Lỗi API thống kê:", err);

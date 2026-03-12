@@ -9,6 +9,7 @@ export default function DashboardView({ model }: { model?: string }) {
   const [surveys, setSurveys] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [stats, setStats] = useState<any>(null);
+  const [surveyPayload, setSurveyPayload] = useState<any>(null); // 🚀 Thêm state lưu cấu trúc phiếu
   const [loading, setLoading] = useState(false);
   
   // AI State
@@ -34,6 +35,7 @@ export default function DashboardView({ model }: { model?: string }) {
             setSurveys([]);
             setSelectedId("");
             setStats(null);
+            setSurveyPayload(null);
         }
       })
       .catch(err => console.error("Lỗi tải danh sách:", err));
@@ -52,8 +54,13 @@ export default function DashboardView({ model }: { model?: string }) {
     fetch(`/api/survey-summary?id=${selectedId}&t=${Date.now()}`)
       .then((res) => res.json())
       .then((data) => {
-         if (data.stats) setStats(data.stats);
-         else setStats(null);
+         if (data.stats) {
+             setStats(data.stats);
+             setSurveyPayload(data.surveyPayload); // 🚀 Nhận payload từ API
+         } else {
+             setStats(null);
+             setSurveyPayload(null);
+         }
       })
       .catch(err => console.error("Lỗi tải stats:", err))
       .finally(() => setLoading(false));
@@ -135,6 +142,16 @@ export default function DashboardView({ model }: { model?: string }) {
   const sosFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb === 'object' && fb.is_sos && !fb.is_spam) || [];
   const spamFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb === 'object' && fb.is_spam) || [];
   const normalFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb !== 'object' || (!fb.is_sos && !fb.is_spam)) || [];
+
+  // 📝 Bóc tách câu hỏi từ payload để hiển thị Tên câu hỏi tùy chọn
+  let questionsArr: any[] = [];
+  if (surveyPayload) {
+      let parsed = surveyPayload;
+      if (typeof parsed === 'string') {
+          try { parsed = JSON.parse(parsed); } catch(e){}
+      }
+      questionsArr = parsed?.questions || parsed?.survey_v2?.questions || [];
+  }
 
   return (
     <div className="space-y-8 font-sans animate-fade-in pb-12">
@@ -241,37 +258,83 @@ export default function DashboardView({ model }: { model?: string }) {
           </div>
 
           {/* ========================================================= */}
+          {/* 🚀 KHU VỰC KHẢO SÁT BỔ SUNG (DYNAMIC CHARTS) */}
+          {/* ========================================================= */}
+          {stats?.custom_charts && Object.keys(stats.custom_charts).length > 0 && (
+            <div className="col-span-1 md:col-span-2 lg:col-span-3 mt-2">
+                <div className="flex items-center gap-2 mb-4 px-2">
+                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                      <span className="bg-amber-100 text-amber-600 p-1.5 rounded-lg text-sm shadow-sm">📝</span> 
+                      Khảo sát bổ sung (Tùy chọn)
+                   </h3>
+                   <div className="flex-1 h-px bg-amber-200 ml-2"></div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Object.entries(stats.custom_charts).map(([qKey, chartData]: any) => {
+                        // Tìm Tên Câu hỏi thực tế dựa trên qKey (ví dụ: q6, q7)
+                        let qTitle = qKey;
+                        const qMatch = qKey.match(/^q(\d+)/);
+                        if (qMatch && questionsArr.length >= parseInt(qMatch[1])) {
+                            qTitle = questionsArr[parseInt(qMatch[1]) - 1]?.title || qKey;
+                        }
+                        
+                        return (
+                          <div key={qKey} className="bg-white p-6 rounded-3xl border border-amber-100 shadow-sm relative overflow-hidden">
+                              <div className="absolute top-0 right-0 w-16 h-16 bg-amber-50 rounded-bl-full -z-10"></div>
+                              <h4 className="font-bold text-gray-800 mb-5 text-sm leading-snug">{qTitle}</h4>
+                              <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                  {Object.keys(chartData).length > 0 ? (
+                                      Object.entries(chartData)
+                                        .sort((a:any, b:any) => b[1] - a[1]) // Sắp xếp giảm dần
+                                        .map(([optKey, count]: any) => (
+                                          <ProgressBar key={optKey} label={optKey} val={count} total={stats.total} color="bg-amber-400" />
+                                      ))
+                                  ) : <EmptyState msg="Chưa có dữ liệu" />}
+                              </div>
+                          </div>
+                        )
+                    })}
+                </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
           {/* 7. LỜI NHẮN & AI */}
           {/* ========================================================= */}
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm col-span-1 md:col-span-2 lg:col-span-3">
             
-            {/* 🚨 KHU VỰC BÁO ĐỘNG ĐỎ (SOS) */}
+            {/* 🚨 KHU VỰC BÁO ĐỘNG ĐỎ (SOS) - ĐÃ THU GỌN THEO CHUẨN UX */}
             {sosFeedbacks.length > 0 && (
-              <div className="mb-6 bg-red-50 border-l-[6px] border-red-600 p-5 rounded-r-xl shadow-md animate-pulse">
-                <h4 className="text-red-800 font-bold flex items-center gap-2 mb-2 text-sm uppercase tracking-wide">
-                  <span className="text-2xl">🚨</span> Cảnh báo tâm lý khẩn cấp (SOS)
-                </h4>
-                <p className="text-xs text-red-600 mb-4 font-medium">
-                  Hệ thống AI phát hiện các nội dung có dấu hiệu bạo lực, tổn thương tâm lý hoặc báo động an toàn. 
-                </p>
-                <div className="space-y-3">
-                  {sosFeedbacks.map((fb: any, idx: number) => (
-                    <details key={idx} className="group bg-white rounded-xl border border-red-200 shadow-sm relative overflow-hidden cursor-pointer transition-all">
-                      <summary className="p-3 outline-none flex items-center justify-between marker:content-none hover:bg-red-50/50">
-                          <span className="flex items-center gap-2">
-                              <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
-                                ⚠️ Thông tin nhạy cảm (Nhấn để xem)
-                              </span>
-                          </span>
-                          <span className="text-red-400 transition group-open:rotate-180">▼</span>
-                      </summary>
-                      <div className="p-4 bg-red-50/30 border-t border-red-100 text-red-900 text-sm font-bold italic">
-                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
-                        "{fb.raw_text}"
-                      </div>
-                    </details>
-                  ))}
-                </div>
+              <div className="mb-6 bg-red-50 border border-red-200 rounded-xl shadow-sm overflow-hidden animate-pulse">
+                <details className="group">
+                  <summary className="p-4 cursor-pointer flex items-center justify-between hover:bg-red-100 transition-colors list-none outline-none">
+                     <h4 className="text-red-700 font-bold flex items-center gap-2 text-sm uppercase tracking-wide">
+                       <span className="text-xl">🚨</span> Cảnh báo tâm lý khẩn cấp ({sosFeedbacks.length} trường hợp)
+                     </h4>
+                     <span className="text-red-500 font-bold group-open:rotate-180 transition-transform">▼</span>
+                  </summary>
+                  
+                  <div className="p-4 pt-0 space-y-3 bg-red-50">
+                    <p className="text-xs text-red-600 mb-4 font-medium italic border-b border-red-100 pb-2">
+                      * Hệ thống AI phát hiện các nội dung có dấu hiệu bạo lực, tổn thương tâm lý hoặc báo động an toàn. 
+                    </p>
+                    {sosFeedbacks.map((fb: any, idx: number) => (
+                      <details key={idx} className="group/item bg-white rounded-lg border border-red-200 shadow-sm relative overflow-hidden cursor-pointer transition-all">
+                        <summary className="p-3 outline-none flex items-center justify-between marker:content-none hover:bg-red-50">
+                            <span className="bg-red-100 text-red-700 px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">
+                              ⚠️ Thông tin nhạy cảm (Nhấn để xem)
+                            </span>
+                            <span className="text-red-300 transition group-open/item:rotate-180">▼</span>
+                        </summary>
+                        <div className="p-4 bg-red-50/50 border-t border-red-100 text-red-900 text-sm font-bold italic">
+                          <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
+                          "{fb.raw_text}"
+                        </div>
+                      </details>
+                    ))}
+                  </div>
+                </details>
               </div>
             )}
 
