@@ -9,7 +9,7 @@ export default function DashboardView({ model }: { model?: string }) {
   const [surveys, setSurveys] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [stats, setStats] = useState<any>(null);
-  const [surveyPayload, setSurveyPayload] = useState<any>(null); // 🚀 Thêm state lưu cấu trúc phiếu
+  const [surveyPayload, setSurveyPayload] = useState<any>(null); 
   const [loading, setLoading] = useState(false);
   
   // AI State
@@ -17,11 +17,9 @@ export default function DashboardView({ model }: { model?: string }) {
   const [aiResult, setAiResult] = useState<any[] | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // --- CÔNG TẮC GIAO DIỆN ---
-  const [showRaw, setShowRaw] = useState(false); // Khiên bảo vệ
-  const [showTrash, setShowTrash] = useState(false); // Thùng rác
+  const [showRaw, setShowRaw] = useState(false); 
+  const [showTrash, setShowTrash] = useState(false); 
 
-  // 1. Tải danh sách phiếu
   const fetchSurveys = () => {
     fetch("/api/list-surveys")
       .then((res) => res.json())
@@ -43,7 +41,6 @@ export default function DashboardView({ model }: { model?: string }) {
 
   useEffect(() => { fetchSurveys(); }, []);
 
-  // 2. Tải chi tiết thống kê
   const fetchStats = () => {
     if (!selectedId) return;
     setLoading(true);
@@ -56,7 +53,7 @@ export default function DashboardView({ model }: { model?: string }) {
       .then((data) => {
          if (data.stats) {
              setStats(data.stats);
-             setSurveyPayload(data.surveyPayload); // 🚀 Nhận payload từ API
+             setSurveyPayload(data.surveyPayload); 
          } else {
              setStats(null);
              setSurveyPayload(null);
@@ -68,7 +65,6 @@ export default function DashboardView({ model }: { model?: string }) {
 
   useEffect(() => { fetchStats(); }, [selectedId]);
 
-  // --- XÓA PHIẾU ---
   const handleDelete = async () => {
       if (!selectedId) return;
       if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn phiếu này?")) return;
@@ -86,13 +82,10 @@ export default function DashboardView({ model }: { model?: string }) {
       finally { setDeleting(false); }
   };
 
-  // --- AI PHÂN TÍCH NHÓM ---
   const analyzeFeedback = async (feedbacks: any[]) => {
     setAnalyzing(true);
     try {
         const savedKey = localStorage.getItem("edumirror_key");
-        
-        // LỌC BỎ SOS VÀ SPAM: Chỉ gửi phản hồi bình thường cho AI gom nhóm
         const normalFeedbacks = feedbacks.filter(fb => typeof fb !== 'object' || (!fb.is_sos && !fb.is_spam));
         const textArray = normalFeedbacks.map(fb => typeof fb === 'object' ? fb.raw_text : fb);
         
@@ -138,12 +131,10 @@ export default function DashboardView({ model }: { model?: string }) {
 
   const showData = !!stats;
 
-  // 💡 TÁCH PHẢN HỒI THÀNH 3 NHÓM RÕ RÀNG
   const sosFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb === 'object' && fb.is_sos && !fb.is_spam) || [];
   const spamFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb === 'object' && fb.is_spam) || [];
   const normalFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb !== 'object' || (!fb.is_sos && !fb.is_spam)) || [];
 
-  // 📝 Bóc tách câu hỏi từ payload để hiển thị Tên câu hỏi tùy chọn
   let questionsArr: any[] = [];
   if (surveyPayload) {
       let parsed = surveyPayload;
@@ -171,10 +162,7 @@ export default function DashboardView({ model }: { model?: string }) {
                 >
                     {surveys.map(s => (
                     <option key={s.short_id} value={s.short_id}>
-                        {s.payload?.title ? s.payload.title.substring(0, 30) : "Phiếu..."} ({new Date(s.created_at).toLocaleString('vi-VN', { 
-    day: '2-digit', month: '2-digit', year: 'numeric', 
-    hour: '2-digit', minute: '2-digit' 
-})})
+                        {s.payload?.title ? s.payload.title.substring(0, 30) : "Phiếu..."} ({new Date(s.created_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })})
                     </option>
                     ))}
                 </select>
@@ -272,11 +260,20 @@ export default function DashboardView({ model }: { model?: string }) {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {Object.entries(stats.custom_charts).map(([qKey, chartData]: any) => {
-                        // Tìm Tên Câu hỏi thực tế dựa trên qKey (ví dụ: q6, q7)
                         let qTitle = qKey;
-                        const qMatch = qKey.match(/^q(\d+)/);
-                        if (qMatch && questionsArr.length >= parseInt(qMatch[1])) {
-                            qTitle = questionsArr[parseInt(qMatch[1]) - 1]?.title || qKey;
+                        
+                        // 🚀 TÌM ĐÚNG TIÊU ĐỀ CÂU HỎI TRONG PAYLOAD
+                        if (questionsArr && questionsArr.length > 0) {
+                            const foundQ = questionsArr.find((q: any) => q.id === qKey || q.name === qKey);
+                            if (foundQ && foundQ.title) {
+                                qTitle = foundQ.title; // Lấy đúng tên giáo viên gõ
+                            } else {
+                                // Fallback cho dạng q6, q7 cũ
+                                const qMatch = qKey.match(/^q(\d+)/);
+                                if (qMatch && questionsArr.length >= parseInt(qMatch[1])) {
+                                    qTitle = questionsArr[parseInt(qMatch[1]) - 1]?.title || qKey;
+                                }
+                            }
                         }
                         
                         return (
@@ -300,11 +297,11 @@ export default function DashboardView({ model }: { model?: string }) {
           )}
 
           {/* ========================================================= */}
-          {/* 7. LỜI NHẮN & AI */}
+          {/* LỜI NHẮN & AI */}
           {/* ========================================================= */}
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm col-span-1 md:col-span-2 lg:col-span-3">
             
-            {/* 🚨 KHU VỰC BÁO ĐỘNG ĐỎ (SOS) - ĐÃ THU GỌN THEO CHUẨN UX */}
+            {/* 🚨 KHU VỰC BÁO ĐỘNG ĐỎ (SOS) */}
             {sosFeedbacks.length > 0 && (
               <div className="mb-6 bg-red-50 border border-red-200 rounded-xl shadow-sm overflow-hidden animate-pulse">
                 <details className="group">
@@ -392,14 +389,13 @@ export default function DashboardView({ model }: { model?: string }) {
                 </div>
             )}
 
-            {/* KHU VỰC HIỂN THỊ LỜI NHẮN (ĐÃ NÂNG CẤP KHIÊN) */}
+            {/* KHU VỰC HIỂN THỊ LỜI NHẮN */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
               {normalFeedbacks.length > 0 ? normalFeedbacks.map((fb: any, i: number) => {
                   
                   const isObject = typeof fb === 'object' && fb !== null;
                   const isHarsh = isObject ? fb.is_harsh : false;
                   
-                  // 🛡️ NÂNG CẤP KHIÊN BẢO VỆ TUYỆT ĐỐI
                   let textToDisplay = fb; 
                   if (isObject) {
                       if (isHarsh && !showRaw) {
@@ -431,7 +427,7 @@ export default function DashboardView({ model }: { model?: string }) {
               }) : <EmptyState msg="Chưa có lời nhắn nào" />}
             </div>
 
-            {/* 🗑️ THÙNG RÁC AI (CHỈ HIỆN KHI CÓ RÁC) */}
+            {/* 🗑️ THÙNG RÁC AI */}
             {spamFeedbacks.length > 0 && (
                 <div className="mt-6 border-t border-gray-100 pt-4">
                     <button 

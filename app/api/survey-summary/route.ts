@@ -13,7 +13,6 @@ export async function GET(req: Request) {
 
     const supabase = await createClient();
 
-    // 🚀 NÂNG CẤP: Lấy cả Cấu trúc phiếu gốc để Frontend biết tên câu hỏi tùy chọn
     const { data: surveyData } = await supabase
       .from("surveys")
       .select("payload")
@@ -35,15 +34,14 @@ export async function GET(req: Request) {
       adjustments: {} as Record<string, number>,
       styles: {} as Record<string, number>,
       feedbacks: [] as any[],
-      // 🚀 NÂNG CẤP: Giỏ chứa dữ liệu động cho mọi câu hỏi giáo viên tự thêm
       custom_charts: {} as Record<string, Record<string, number>> 
     };
 
-    // Danh sách các "chìa khóa" mặc định để loại trừ khi quét câu hỏi động
+    // 🚀 ĐÃ THÊM "q6" VÀO ĐÂY ĐỂ CHẶN VẼ BIỂU ĐỒ CHỮ
     const systemKeys = [
         "q1", "q1_feeling", "q2", "q2_understanding", 
         "q3", "q3_difficulties", "q4", "q4_teacher_adjust", 
-        "q5", "q5_learning_style", "q6_feedback_text", 
+        "q5", "q5_learning_style", "q6", "q6_feedback_text", 
         "raw_text", "is_harsh", "is_sos", "is_spam", "ai_summary"
     ];
 
@@ -54,8 +52,6 @@ export async function GET(req: Request) {
       if (typeof ans === 'string') { try { ans = JSON.parse(ans); } catch (e) {} }
 
       if (!ans) return;
-      
-      // Đã bỏ dòng chặn spam ở đây để rác lọt được vào "Thùng rác AI" trên màn hình Giáo viên
       
       stats.total++;
 
@@ -98,16 +94,12 @@ export async function GET(req: Request) {
         });
       }
 
-      // --- 🚀 XỬ LÝ CÂU HỎI BỔ SUNG (DYNAMIC SCANNER) ---
+      // Quét câu hỏi động
       Object.keys(ans).forEach(k => {
-          // Bỏ qua các câu mặc định và các cờ đánh dấu
           if (!systemKeys.includes(k) && !k.startsWith("is_") && k !== "ai_summary" && k !== "raw_text") {
               const val = ans[k];
               if (val) {
-                  // Khởi tạo giỏ chứa cho câu hỏi này nếu chưa có
                   if (!stats.custom_charts[k]) stats.custom_charts[k] = {};
-                  
-                  // Đếm số lượng (hỗ trợ cả chọn 1 và chọn nhiều)
                   const valArray = Array.isArray(val) ? val : [val];
                   valArray.forEach((item: string) => {
                       if (item && typeof item === 'string') {
@@ -118,27 +110,24 @@ export async function GET(req: Request) {
           }
       });
 
-      if (ans.q6_feedback_text || ans.raw_text) {
+      if (ans.q6_feedback_text || ans.raw_text || ans.q6) {
           const isHarsh = row.is_harsh || ans.is_harsh || false;
           const isSOS = row.is_sos || ans.is_sos || false; 
-          
-          // ĐỊNH NGHĨA BIẾN MÀ VERCEL ĐANG BÁO THIẾU
           const isSpam = row.is_spam || ans.is_spam || false; 
           
           const aiSummary = row.ai_summary || ans.ai_summary || "";
-          const rawText = ans.raw_text || ans.q6_feedback_text || "";
+          const rawText = ans.raw_text || ans.q6_feedback_text || ans.q6 || "";
 
           stats.feedbacks.push({
               raw_text: rawText,
               is_harsh: isHarsh,
               is_sos: isSOS, 
-              is_spam: isSpam, // Vercel sẽ không còn báo lỗi dòng này nữa
+              is_spam: isSpam, 
               ai_summary: aiSummary
           });
       }
     });
 
-    // 🚀 Trả về stats và gửi kèm luôn cấu trúc phiếu (surveyPayload) để UI vẽ biểu đồ
     return NextResponse.json({ 
         stats,
         surveyPayload: surveyData?.payload 
