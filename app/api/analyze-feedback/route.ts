@@ -1,3 +1,4 @@
+// File: app/api/analyze-feedback/route.ts
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 
@@ -6,8 +7,9 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    // Lấy model từ body (Mặc định gpt-4o-mini nếu client không gửi)
-    const { feedbacks, apiKey, model = "gpt-4o-mini" } = body;
+    
+    // 🚀 ĐÃ NÂNG CẤP: Lấy model từ body, nếu không có sẽ mặc định là GPT-5.4 tiêu chuẩn
+    const { feedbacks, apiKey, model = "gpt-5.4" } = body;
 
     const finalKey = apiKey || process.env.OPENAI_API_KEY;
     if (!finalKey) return NextResponse.json({ error: "Thiếu API Key" }, { status: 401 });
@@ -18,7 +20,7 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({ apiKey: finalKey });
 
-    // --- PROMPT: BỘ LỌC SƯ PHẠM & DỊCH THUẬT GEN Z ---
+    // --- PROMPT: BỘ LỌC SƯ PHẠM & DỊCH THUẬT GEN Z (GIỮ NGUYÊN VÌ ĐÃ QUÁ XUẤT SẮC) ---
     const prompt = `
       Bạn là Trợ lý Thư ký Hội đồng Giáo dục (EduMirror AI).
       
@@ -43,7 +45,7 @@ export async function POST(req: Request) {
           "category": "Nhãn ngắn gọn (VD: 'Kiến thức', 'Phương pháp', 'Lời khen', 'Góp ý')",
           "summary": "Nội dung tóm tắt (Viết một câu hoàn chỉnh. VD: 'Học sinh thấy bài giảng hơi nhanh, chưa chép kịp.')",
           "count": Số lượng phiếu,
-          "type": "negative" (nếu là vấn đề) | "positive" (nếu là khen) | "neutral" (nếu là hỏi/đề xuất),
+          "type": "negative" | "positive" | "neutral",
           "original_sample": "Trích dẫn nguyên văn 1 câu gốc để làm bằng chứng"
         }
       ]
@@ -52,9 +54,9 @@ export async function POST(req: Request) {
     `;
 
     const response = await openai.chat.completions.create({
-      model: model, // Sử dụng đúng model người dùng chọn (gpt-5.1, o1, 4o...)
+      model: model, // 🚀 CHẠY ĐÚNG MODEL MÀ GIÁO VIÊN ĐANG CHỌN TRÊN GIAO DIỆN (GPT-5.4 hoặc Pro)
       messages: [{ role: "user", content: prompt }],
-      // LƯU Ý: Không cài đặt 'temperature' ở đây để tương thích với dòng model o1/gpt-5
+      // LƯU Ý: Không cài đặt 'temperature' ở đây để tương thích tối đa với dòng model GPT-5 / o-series
     });
 
     let content = response.choices[0].message.content || "[]";

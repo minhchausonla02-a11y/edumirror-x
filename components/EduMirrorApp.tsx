@@ -16,17 +16,15 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://he-thong-da
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "key-khoi-dong";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// DANH SÁCH MODEL
+// 🚀 ĐÃ CẬP NHẬT DANH SÁCH MODEL MỚI NHẤT 2026
 const AVAILABLE_MODELS = [
-  { id: "gpt-5.1", name: "GPT-5.1 (Siêu trí tuệ - Mới nhất)" },
-  { id: "gpt-5-mini", name: "GPT-5.1 Mini (Tiết Kiệm Với Tốc độ ánh sáng)" },
-  { id: "gpt-4o", name: "GPT-4o (Thông minh & Ổn định)" },
-  { id: "gpt-4o-mini", name: "GPT-4o Mini (Tốc độ cao)" },
-  { id: "o1-preview", name: "o1 Preview (Tư duy sâu)" },
+  { id: "gpt-5-mini", name: "GPT-5 Mini (Tốc độ ánh sáng - Tiết kiệm)" },
+  { id: "gpt-5.4", name: "GPT-5.4 (Thông minh & Cân bằng - Khuyên dùng)" },
+  { id: "gpt-5.4-pro", name: "GPT-5.4 Pro (Siêu trí tuệ - Tác vụ phức tạp)" },
 ];
 
 type TopTab = "upload" | "dashboard" | "ai";
-// --- BẮT ĐẦU ĐOẠN DÁN THÊM ---
+
 // Component mô phỏng giao diện điện thoại cực nhẹ, chống lỗi chồng chéo
 const MobilePreview = ({ survey }: { survey: SurveyV2UI }) => {
   if (!survey) return null;
@@ -61,7 +59,7 @@ const MobilePreview = ({ survey }: { survey: SurveyV2UI }) => {
     </div>
   );
 };
-// --- KẾT THÚC ĐOẠN DÁN THÊM ---
+
 function EduMirrorContent() {
   
   const searchParams = useSearchParams();
@@ -75,7 +73,8 @@ function EduMirrorContent() {
   // STATE
   const [mounted, setMounted] = useState(false);
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("gpt-4o-mini");
+  // 🚀 ĐẶT MẶC ĐỊNH LÀ BẢN TIÊU CHUẨN GPT-5.4
+  const [model, setModel] = useState("gpt-5.4");
   const [editingKey, setEditingKey] = useState(false);
 
   const [lessonText, setLessonText] = useState("");
@@ -171,6 +170,7 @@ function EduMirrorContent() {
       const res = await fetch("/api/generate-survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        // 🚀 Truyền đúng cái `model` đang chọn xuống Backend
         body: JSON.stringify({ model, content: lessonText, standards: standardsText, apiKey: saved, processMode, subject }),
       });
       const data = await res.json();
@@ -433,7 +433,6 @@ function EduMirrorContent() {
                 </div>
               </div>
 
-              {/* TRẠM CHỈNH SỬA ĐƯỢC ĐẶT Ở ĐÂY LÀ CHUẨN NHẤT */}
               {survey && (
                 <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-gray-200 shadow-xl animate-fade-in-up mt-8">
                   <h3 className="text-xl md:text-2xl font-extrabold text-gray-800 mb-8 flex items-center gap-3 border-b pb-4">
@@ -479,12 +478,14 @@ function EduMirrorContent() {
 
           {activeTab === "dashboard" && (
             <section className="rounded-3xl border bg-white shadow-sm p-8 min-h-[600px]">
+              {/* 🚀 TRUYỀN BIẾN MODEL XUỐNG DASHBOARD */}
               <DashboardView model={model} />
             </section>
           )}
 
           {activeTab === "ai" && (
             <section className="rounded-3xl border bg-white shadow-sm p-8 min-h-[600px]">
+              {/* 🚀 TRUYỀN BIẾN MODEL XUỐNG TRẠM TƯ VẤN AI */}
               <AISuggestionsView lessonText={lessonText} apiKey={apiKey} model={model} />
             </section>
           )}
