@@ -15,12 +15,38 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Thiếu dữ liệu" }, { status: 400 });
     }
 
+    // ==========================================
+    // THUẬT TOÁN NHẬN DIỆN VĂN BẢN TỰ LUẬN THÔNG MINH
+    // ==========================================
     let openFeedback = "";
+    
     for (const key in answers) {
-      if (typeof answers[key] === "string" && answers[key].length > 5 && !answers[key].includes("A1") && !answers[key].includes("A2")) {
-        openFeedback += answers[key] + " | ";
+      const val = answers[key];
+      
+      // 1. Bỏ qua các mảng (trắc nghiệm chọn nhiều)
+      if (Array.isArray(val)) continue;
+
+      // 2. Xử lý chuỗi
+      if (typeof val === "string" && val.trim().length > 0) {
+        const text = val.trim();
+
+        // Nhận diện trắc nghiệm chọn 1 (VD: "A1 - ...", "B2 – ...")
+        const isSingleChoicePattern = /^[A-Za-z]\d{1,2}\s*[-–:]/.test(text);
+
+        // Nhận diện biến chứa lời nhắn chuyên dụng
+        const isExplicitTextKey = key.toLowerCase().includes("text") || 
+                                  key.toLowerCase().includes("feedback") || 
+                                  key.toLowerCase().includes("message");
+
+        // Chỉ gom vào nếu là ô chữ chuyên dụng HOẶC không mang hình dáng trắc nghiệm
+        if (isExplicitTextKey || !isSingleChoicePattern) {
+           openFeedback += text + " | ";
+        }
       }
     }
+    
+    // Dọn dẹp dấu "|" thừa ở cuối để AI đọc chuẩn nhất
+    openFeedback = openFeedback.replace(/ \| $/, "").trim();
 
     let aiAnalysis = { 
       sentiment: "Trung tính", 
@@ -62,7 +88,6 @@ export async function POST(req: Request) {
         }
     } catch (aiError) {
         console.error("⚠️ LỖI TRẠM KIỂM DUYỆT AI (Có thể hết Quota/Key sai) - Bỏ qua để cứu dữ liệu:", aiError);
-        // Không throw error ở đây! Cứ để hệ thống chạy tiếp xuống dưới.
     }
 
     // ==========================================
