@@ -1,3 +1,4 @@
+// File: app/api/survey-summary/route.ts
 import { NextResponse } from "next/server";
 import { createClient } from '@/lib/supabase/server';
 
@@ -36,14 +37,13 @@ export async function GET(req: Request) {
       if (typeof ans === 'string') { try { ans = JSON.parse(ans); } catch (e) {} }
 
       if (!ans) return;
-    
-
+      
+      // Đã bỏ dòng chặn spam ở đây để rác lọt được vào "Thùng rác AI" trên màn hình Giáo viên
+      
       stats.total++;
 
-      // Hỗ trợ ĐỒNG THỜI cả tên biến mới (q1_feeling) và tên biến cũ (q1)
       const q1 = ans.q1_feeling || ans.q1;
       if (q1) {
-        // Cắt chuỗi thông minh (hỗ trợ cả dấu gạch ngang ngắn và dài)
         const key = q1.includes("–") ? q1.split("–")[1]?.trim() : q1.includes("-") ? q1.split("-")[1]?.trim() : q1;
         stats.feeling[key] = (stats.feeling[key] || 0) + 1;
       }
@@ -84,6 +84,10 @@ export async function GET(req: Request) {
       if (ans.q6_feedback_text || ans.raw_text) {
           const isHarsh = row.is_harsh || ans.is_harsh || false;
           const isSOS = row.is_sos || ans.is_sos || false; 
+          
+          // ĐỊNH NGHĨA BIẾN MÀ VERCEL ĐANG BÁO THIẾU
+          const isSpam = row.is_spam || ans.is_spam || false; 
+          
           const aiSummary = row.ai_summary || ans.ai_summary || "";
           const rawText = ans.raw_text || ans.q6_feedback_text || "";
 
@@ -91,7 +95,7 @@ export async function GET(req: Request) {
               raw_text: rawText,
               is_harsh: isHarsh,
               is_sos: isSOS, 
-              is_spam: isSpam, // Dòng mới thêm
+              is_spam: isSpam, // Vercel sẽ không còn báo lỗi dòng này nữa
               ai_summary: aiSummary
           });
       }
