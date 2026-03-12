@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     }
 
     // ==========================================
-    // 🛡️ BƯỚC 1: CƠ CHẾ THU GOM DỮ LIỆU (TẠO MENU MẪU)
+    // 🛡️ BƯỚC 1: TẠO MENU TRẮC NGHIỆM ĐỂ ĐỐI CHIẾU
     // ==========================================
     const { data: surveyData } = await supabase
       .from("surveys")
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
     });
 
     // ==========================================
-    // 🛡️ BƯỚC 2: XÁC THỰC TRỪ LÙI (BẮT CÂU TỰ LUẬN)
+    // 🛡️ BƯỚC 2: XÁC THỰC TRỪ LÙI (LỌC LẤY CHỮ TỰ GÕ)
     // ==========================================
     let rawInputs: string[] = [];
     
@@ -56,7 +56,7 @@ export async function POST(req: Request) {
           if (predefinedOptions.includes(cleanVal)) {
               continue; 
           }
-          rawInputs.push(cleanVal); 
+          rawInputs.push(cleanVal);
       } else {
           if (key.toLowerCase().match(/^q[1-5](\_|$)/)) continue;
           rawInputs.push(cleanVal);
@@ -66,7 +66,7 @@ export async function POST(req: Request) {
     let openFeedback = rawInputs.join(" | ");
 
     let aiAnalysis = { 
-      sentiment: "Trung tính", 
+      sentiment: "Trung lập", 
       tags: [] as string[], 
       isSpam: false, 
       isHarsh: false, 
@@ -75,7 +75,7 @@ export async function POST(req: Request) {
     };
 
     // ==========================================
-    // 🧠 BƯỚC 3: AI PHÂN LOẠI (NÂNG CẤP LUẬT SƯ PHẠM)
+    // 🧠 BƯỚC 3: PHÂN TÍCH NLP 4 CHIỀU (SIÊU CẤP SƯ PHẠM)
     // ==========================================
     try {
         if (openFeedback.trim().length > 0) {
@@ -83,46 +83,52 @@ export async function POST(req: Request) {
           if (apiKey) {
             const openai = new OpenAI({ apiKey });
             
-            // 🚀 BỘ LUẬT PHÂN LOẠI ĐÃ ĐƯỢC CHUẨN HÓA SƯ PHẠM
-            const prompt = `Bạn là Chuyên gia Tâm lý và Giám thị Học đường. 
-            Nhiệm vụ của bạn là phân tích lời nhắn do học sinh tự gõ: "${openFeedback}" và tuân thủ NGHIÊM NGẶT các quy tắc sau:
-            
-            1. isSpam (Rác/Không liên quan): Gán TRUE nếu nội dung thuộc 1 trong 2 trường hợp:
-               - Vô nghĩa: "asdasd", "123".
-               - Không liên quan đến bài học/lớp học: Chuyện thời tiết ("nay trời mưa mát"), tán tỉnh ("anh nhớ em"), đi chơi ("hôm nay quên đi thi"), nói lấp lửng ("Vui", "Buồn" mà không giải thích).
-            
-            2. isSOS (Báo động An toàn): Gán TRUE CHỈ KHI có dấu hiệu nguy hiểm thực sự: Bạo lực thể xác ("đánh em", "chặn đường"), quấy rối, tẩy chay tập thể, hoặc có ý định tự tử.
-            
-            3. isHarsh (Nhạy cảm - Cần che chắn): Gán TRUE CHỈ KHI học sinh có lời lẽ XÚC PHẠM, ĐẢ KÍCH TRỰC TIẾP đến GIÁO VIÊN hoặc NHÀ TRƯỜNG ("thầy dạy dở ẹc", "bà cô này ác", "trù dập"). 
-            
-            * LƯU Ý SỰ KHÁC BIỆT GIỮA KỶ LUẬT (BÌNH THƯỜNG) VÀ NHẠY CẢM (HARSH):
-            Nếu học sinh phản ánh việc các bạn khác làm ồn, trêu chọc nhẹ nhàng làm ảnh hưởng việc học (VD: "Bạn Tiến hay trêu em, mất trật tự làm em không tập trung được") -> Đây là GÓP Ý KỶ LUẬT LỚP HỌC HỢP LỆ. Gán isSpam = false, isSOS = false, isHarsh = false để hiện bình thường cho giáo viên xem.
-            
-            TRẢ VỀ JSON: 
+            // 🚀 BỘ NÃO NLP: NẠP TRIẾT LÝ SƯ PHẠM VÀO AI
+            const prompt = `Bạn là Chuyên gia Tâm lý Sư phạm và Kỹ sư Xử lý Ngôn ngữ Tự nhiên (NLP). 
+            Nhiệm vụ của bạn là phân tích lời nhắn tự do của học sinh: "${openFeedback}" dựa trên Khung NLP 4 Chiều:
+
+            1. NGỮ DỤNG HỌC & TÍN HIỆU NGẦM (QUAN TRỌNG NHẤT):
+               - Lời than vãn về thể trạng/tinh thần trong giờ học ("buồn ngủ", "mệt", "đói", "muốn nghỉ", "muốn về", "chán", "nhức đầu", "lú luôn") LÀ NHỮNG TÍN HIỆU SƯ PHẠM HỢP LỆ. Chúng phản ánh sự QUÁ TẢI NHẬN THỨC hoặc MẤT KẾT NỐI với bài giảng. 
+               - BẮT BUỘC coi những câu này là HỢP LỆ (Gán isSpam = false).
+
+            2. RÁC NGỮ CẢNH TUYỆT ĐỐI (isSpam):
+               - CHỈ gán isSpam = TRUE nếu là rác gõ phím ("asd", "123") HOẶC giao tiếp hoàn toàn THOÁT LY khỏi không gian lớp học ("chiều đi net không", "mua acc game", "thầy bao em ăn").
+
+            3. CÔNG KÍCH vs KỶ LUẬT (isHarsh):
+               - CHỈ gán isHarsh = TRUE khi có lời lẽ lăng mạ, xúc phạm, đả kích CÁ NHÂN giáo viên ("dạy dở ẹc", "bà cô này ác").
+               - Nhắc nhở kỷ luật lớp ("bạn An nói chuyện", "lớp ồn", "bạn Tiến trêu em") -> Đây là quản lý lớp học. Gán isHarsh = FALSE.
+
+            4. BÁO ĐỘNG AN TOÀN (isSOS):
+               - CHỈ gán isSOS = TRUE khi rủi ro nghiêm trọng: Bạo lực ("đánh em", "chặn đường"), quấy rối, tẩy chay tập thể, tự tử.
+
+            5. GẮN NHÃN ĐA CHIỀU (tags):
+               - Trích xuất 1 đến 3 nhãn phân loại Sư phạm chuyên sâu. Ví dụ: "Trạng thái thể chất", "Mất tập trung", "Quá tải nhận thức", "Quản lý lớp học", "Phương pháp giảng dạy", "Xung đột bạn bè", "Động lực học tập".
+
+            TRẢ VỀ JSON CHÍNH XÁC: 
             {
-              "sentiment": "Tích cực" | "Tiêu cực" | "Trung bình", 
-              "tags": ["1-3 từ khóa"], 
+              "sentiment": "Tích cực" | "Tiêu cực" | "Trung lập", 
+              "tags": ["Tag 1", "Tag 2"], 
               "isSpam": boolean, 
               "isHarsh": boolean, 
               "isSOS": boolean, 
-              "summary": "Tóm tắt."
+              "summary": "Tóm tắt ngắn gọn ý chính của học sinh."
             }`;
 
             const completion = await openai.chat.completions.create({
               model: "gpt-4o-mini",
               messages: [{ role: "system", content: prompt }],
               response_format: { type: "json_object" },
-              temperature: 0.1 
+              temperature: 0.1 // Cố định nhiệt độ thấp để AI tuân thủ luật phân tích logic
             });
             aiAnalysis = { ...aiAnalysis, ...JSON.parse(completion.choices[0].message.content || "{}") };
           }
         }
     } catch (aiError) { 
-        console.error("Lỗi AI:", aiError); 
+        console.error("Lỗi AI NLP:", aiError); 
     }
 
     // ==========================================
-    // 4. LƯU VÀO KÉT SẮT SUPABASE
+    // 4. LƯU KẾT QUẢ VÀO SUPABASE
     // ==========================================
     answers.is_harsh = aiAnalysis.isHarsh;
     answers.is_sos = aiAnalysis.isSOS;
@@ -143,7 +149,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
     
   } catch (error: any) {
-    console.error("Lỗi chí mạng API Submit:", error);
+    console.error("Lỗi API Submit:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
