@@ -16,39 +16,22 @@ export async function POST(req: Request) {
     }
 
     // ==========================================
-    // THUẬT TOÁN NHẬN DIỆN VĂN BẢN TỰ LUẬN THÔNG MINH
+    // 1. GOM MỌI CHUỖI VĂN BẢN ĐỂ AI SÀNG LỌC LẠI
     // ==========================================
-    let openFeedback = "";
-    
+    let rawInputs = [];
     for (const key in answers) {
       const val = answers[key];
-      
-      // 1. Bỏ qua các mảng (trắc nghiệm chọn nhiều)
-      if (Array.isArray(val)) continue;
-
-      // 2. Xử lý chuỗi
+      if (Array.isArray(val)) continue; // Bỏ qua mảng trắc nghiệm nhiều đáp án
       if (typeof val === "string" && val.trim().length > 0) {
-        const text = val.trim();
-
-        // Nhận diện trắc nghiệm chọn 1 (VD: "A1 - ...", "B2 – ...")
-        const isSingleChoicePattern = /^[A-Za-z]\d{1,2}\s*[-–:]/.test(text);
-
-        // Nhận diện biến chứa lời nhắn chuyên dụng
-        const isExplicitTextKey = key.toLowerCase().includes("text") || 
-                                  key.toLowerCase().includes("feedback") || 
-                                  key.toLowerCase().includes("message");
-
-        // Chỉ gom vào nếu là ô chữ chuyên dụng HOẶC không mang hình dáng trắc nghiệm
-        if (isExplicitTextKey || !isSingleChoicePattern) {
-           openFeedback += text + " | ";
-        }
+        rawInputs.push(val.trim());
       }
     }
     
-    // Dọn dẹp dấu "|" thừa ở cuối để AI đọc chuẩn nhất
-    openFeedback = openFeedback.replace(/ \| $/, "").trim();
+    // Nối tất cả lại thành 1 chuỗi để gửi cho AI đọc
+    let openFeedback = rawInputs.join(" | ");
 
     let aiAnalysis = { 
+      extracted_message: "", // 🚀 VŨ KHÍ MỚI: Dùng AI để trích xuất tin nhắn thật
       sentiment: "Trung tính", 
       tags: [] as string[], 
       isSpam: false,
@@ -58,7 +41,7 @@ export async function POST(req: Request) {
     };
 
     // ==========================================
-    // 🛡️ HỘP CHỐNG SỐC AI: Nếu AI lỗi, vẫn cho đi tiếp
+    // 2. NHỜ AI BÓC TÁCH VÀ TRÍCH XUẤT THÔNG ĐIỆP
     // ==========================================
     try {
         if (openFeedback.trim().length > 0) {
@@ -66,48 +49,66 @@ export async function POST(req: Request) {
           
           if (apiKey) {
             const openai = new OpenAI({ apiKey });
-            const prompt = `Bạn là Chuyên gia Tâm lý Học đường.
-              1. isSpam: Rác vô nghĩa ("asdasd").
-              2. isSOS: Báo động đỏ (Cầu cứu, bắt nạt, trầm cảm, bôi nhọ đời tư). VD: "Bạn đánh em", "Ông B ngoại tình".
+            const prompt = `Bạn là Chuyên gia Phân tích Dữ liệu Học đường.
+              Học sinh gửi lên một chuỗi các câu trả lời: "${openFeedback}"
+              
+              Nhiệm vụ của bạn là LỌC RÁC TRẮC NGHIỆM:
+              - Các cụm từ như "Lựa chọn 1", "Lựa chọn 2", "A1 - ...", "B2 - ...", "Đồng ý", "Bình thường" là ĐÁP ÁN TRẮC NGHIỆM máy móc.
+              - Bạn PHẢI TÌM VÀ TRÍCH XUẤT ra ĐÚNG phần câu văn tự do mà học sinh CỐ TÌNH TỰ GÕ VÀO (thường là câu dài, chứa cảm xúc, hoặc lời nhắn nhủ, kêu cứu).
+              
+              Sau khi trích xuất được câu tự gõ, hãy phân loại:
+              1. isSpam: Rác gõ phím ("asdasd").
+              2. isSOS: Cầu cứu, bắt nạt, đe dọa ("bị bạn an nói xấu", "đánh em").
               3. isHarsh: Chê bai thô lỗ.
-              Trả JSON: {"sentiment": "...", "tags": [], "isSpam": false, "isHarsh": false, "isSOS": false, "summary": "..."}
-              Nội dung: "${openFeedback}"`;
+              
+              Trả về JSON ĐÚNG ĐỊNH DẠNG SAU:
+              {
+                "extracted_message": "GIỮ NGUYÊN VĂN phần học sinh tự gõ. Bỏ hết các đáp án trắc nghiệm đi. Nếu không có gì tự gõ, trả về chuỗi rỗng ''",
+                "sentiment": "Tích cực" | "Tiêu cực" | "Trung bình",
+                "tags": [],
+                "isSpam": false,
+                "isHarsh": false,
+                "isSOS": false,
+                "summary": "Tóm tắt"
+              }`;
 
             const completion = await openai.chat.completions.create({
               model: "gpt-4o-mini",
               messages: [{ role: "system", content: prompt }],
               response_format: { type: "json_object" },
-              temperature: 0.2 
+              temperature: 0.1 // Để AI tư duy logic nhất
             });
 
             const aiResultStr = completion.choices[0].message.content || "{}";
-            aiAnalysis = JSON.parse(aiResultStr);
-          } else {
-              console.log("⚠️ Không tìm thấy OPENAI_API_KEY, bỏ qua kiểm duyệt AI.");
+            // Gộp kết quả phân tích của AI vào biến aiAnalysis
+            aiAnalysis = { ...aiAnalysis, ...JSON.parse(aiResultStr) };
           }
         }
     } catch (aiError) {
-        console.error("⚠️ LỖI TRẠM KIỂM DUYỆT AI (Có thể hết Quota/Key sai) - Bỏ qua để cứu dữ liệu:", aiError);
+        console.error("⚠️ LỖI TRẠM KIỂM DUYỆT AI:", aiError);
     }
 
-    // ==========================================
-    // LỌC RÁC
-    // ==========================================
     if (aiAnalysis.isSpam) {
-        console.log("🚫 AI chặn tin rác:", openFeedback);
         return NextResponse.json({ ok: true, blocked: true });
     }
 
     // ==========================================
-    // BƠM CỜ VÀ LƯU SUPABASE
+    // 3. LƯU KẾT QUẢ ĐÃ ĐƯỢC AI "TẨY RỬA" VÀO DATABASE
     // ==========================================
+    
+    // 🔥 BÍ QUYẾT: Dùng phần chữ đã được AI lọc sạch (extracted_message) để lưu
+    // Nếu AI vô tình trả về rỗng, mới dùng tạm openFeedback làm phương án dự phòng
+    const finalCleanMessage = aiAnalysis.extracted_message && aiAnalysis.extracted_message.trim().length > 0 
+                         ? aiAnalysis.extracted_message 
+                         : openFeedback;
+
     answers.is_harsh = aiAnalysis.isHarsh;
     answers.is_sos = aiAnalysis.isSOS;
     answers.ai_summary = aiAnalysis.summary;
-    answers.raw_text = openFeedback;
+    answers.raw_text = finalCleanMessage; // UI Dashboard sẽ chỉ đọc biến sạch sẽ này!
     
-    if (openFeedback.trim().length > 0) {
-        answers.q6_feedback_text = openFeedback;
+    if (finalCleanMessage.trim().length > 0) {
+        answers.q6_feedback_text = finalCleanMessage;
     }
 
     const { error } = await supabase
@@ -119,7 +120,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true });
     
   } catch (error: any) {
-    console.error("Lỗi chí mạng API Submit Survey:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
