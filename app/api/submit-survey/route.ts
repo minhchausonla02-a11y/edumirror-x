@@ -16,7 +16,8 @@ export async function POST(req: Request) {
     }
 
     // ==========================================
-    // 🛡️ BƯỚC 1: LẤY "DANH SÁCH ĐÁP ÁN MẪU" TỪ DATABASE
+    // 🛡️ BƯỚC 1: CƠ CHẾ THU GOM DỮ LIỆU (TẠO MENU MẪU)
+    // Lấy toàn bộ đáp án trắc nghiệm giáo viên soạn để làm màng lọc
     // ==========================================
     const { data: surveyData } = await supabase
       .from("surveys")
@@ -24,16 +25,13 @@ export async function POST(req: Request) {
       .eq("short_id", surveyId)
       .single();
     
-    // Xử lý bóc tách dữ liệu JSON an toàn
     let payloadObj = surveyData?.payload;
     if (typeof payloadObj === 'string') {
         try { payloadObj = JSON.parse(payloadObj); } catch(e){}
     }
     
-    // Tìm mảng câu hỏi
     const questions = payloadObj?.questions || payloadObj?.survey_v2?.questions || [];
     
-    // Gom tất cả các đáp án trắc nghiệm giáo viên đã soạn vào một mảng Menu
     let predefinedOptions: string[] = [];
     questions.forEach((q: any) => {
         if (q.options && Array.isArray(q.options)) {
@@ -42,14 +40,15 @@ export async function POST(req: Request) {
     });
 
     // ==========================================
-    // 🛡️ BƯỚC 2: XÁC THỰC "TRỪ LÙI" THÔNG MINH
+    // 🛡️ BƯỚC 2: XÁC THỰC TRỪ LÙI (BẮT CÂU TỰ LUẬN)
+    // Nếu không giống đáp án trong Menu -> Chắc chắn là học sinh tự gõ
     // ==========================================
     let rawInputs: string[] = [];
     
     for (const key in answers) {
       const val = answers[key];
       
-      // Bỏ qua mảng (ví dụ: học sinh tích chọn nhiều ô checkbox)
+      // Bỏ qua Array (chọn nhiều) và các ô trống
       if (Array.isArray(val) || typeof val !== "string" || val.trim().length === 0) {
           continue; 
       }
@@ -57,14 +56,12 @@ export async function POST(req: Request) {
       const cleanVal = val.trim();
 
       if (predefinedOptions.length > 0) {
-          // 🎯 NẾU CÂU TRẢ LỜI CÓ TRONG MENU TRẮC NGHIỆM -> CHẮC CHẮN LÀ TRẮC NGHIỆM -> VỨT BỎ!
           if (predefinedOptions.includes(cleanVal)) {
-              continue;
+              continue; // Là trắc nghiệm -> Bỏ qua
           }
-          // PHẦN CÒN LẠI KHÔNG NẰM TRONG MENU -> CHẮC CHẮN LÀ HỌC SINH TỰ GÕ!
-          rawInputs.push(cleanVal);
+          rawInputs.push(cleanVal); // Là tự luận -> Thu gom
       } else {
-          // Phương án bọc lót (Fallback) phòng khi Database bị trễ mạng không lấy được Menu
+          // Bọc lót nếu không tải được DB
           if (key.toLowerCase().match(/^q[1-5](\_|$)/)) continue;
           rawInputs.push(cleanVal);
       }
@@ -82,25 +79,29 @@ export async function POST(req: Request) {
     };
 
     // ==========================================
-    // 🧠 BƯỚC 3: AI PHÂN TÍCH
+    // 🧠 BƯỚC 3: AI PHÂN LOẠI (ÁP DỤNG ĐÚNG BỘ QUY TẮC ĐÃ CHỐT)
     // ==========================================
     try {
         if (openFeedback.trim().length > 0) {
           const apiKey = process.env.OPENAI_API_KEY; 
           if (apiKey) {
             const openai = new OpenAI({ apiKey });
-            const prompt = `Bạn là Chuyên gia Tâm lý Học đường. 
-            Đọc lời nhắn do học sinh tự gõ: "${openFeedback}"
             
-            QUY TẮC PHÂN LOẠI CỰC KỲ QUAN TRỌNG:
-            1. isSpam: CHỈ gán TRUE nếu là rác gõ bừa hoàn toàn vô nghĩa ("asdasd", "123"). Các câu có ý nghĩa (dù là trêu đùa như "anh nhớ em", "hello thầy") -> BẮT BUỘC isSpam = FALSE.
-            2. isSOS: Báo động nguy hiểm thật sự (bạo lực, trầm cảm, đe dọa).
-            3. isHarsh: Chê bai thô lỗ, tấn công cá nhân.
+            // BỘ LUẬT PHÂN LOẠI 5 NHÓM
+            const prompt = `Bạn là Chuyên gia Tâm lý và Giám thị Học đường. 
+            Nhiệm vụ của bạn là đọc lời nhắn do học sinh tự gõ: "${openFeedback}" và phân loại theo CHUẨN SAU:
             
-            Trả JSON CHÍNH XÁC: 
+            1. isSpam (Thùng rác): Gán TRUE nếu nội dung VÔ NGHĨA ("asdasd") HOẶC CỢT NHẢ, TÁN TỈNH, KHÔNG LIÊN QUAN bài học ("anh nhớ em", "chiều chơi game", "thầy bao em ăn").
+            2. isSOS (Báo động đỏ): Gán TRUE nếu có dấu hiệu bạo lực, đe dọa, tẩy chay, quấy rối, trầm cảm ("bạn đánh em", "muốn chết", "sờ soạng").
+            3. isHarsh (Công kích): Gán TRUE nếu phàn nàn thô lỗ, đả kích cá nhân, nhắc tên giáo viên với thái độ tiêu cực ("dạy dở ẹc", "bà cô này nói nhiều").
+            
+            * LƯU Ý QUAN TRỌNG VỀ NHÓM BÌNH THƯỜNG:
+            Nếu câu nhắn là lời khen, cảm ơn, góp ý chân thành, hoặc thắc mắc về bài học (VD: "thầy dạy rất cuốn", "giảng chậm lại", "em không hiểu bài") -> Gán TẤT CẢ isSpam = false, isSOS = false, isHarsh = false.
+            
+            TRẢ VỀ JSON: 
             {
               "sentiment": "Tích cực" | "Tiêu cực" | "Trung bình", 
-              "tags": [], 
+              "tags": ["1-3 từ khóa"], 
               "isSpam": boolean, 
               "isHarsh": boolean, 
               "isSOS": boolean, 
@@ -111,7 +112,7 @@ export async function POST(req: Request) {
               model: "gpt-4o-mini",
               messages: [{ role: "system", content: prompt }],
               response_format: { type: "json_object" },
-              temperature: 0.1 
+              temperature: 0.1 // Nhiệt độ thấp để AI tuân thủ luật nghiêm ngặt nhất
             });
             aiAnalysis = { ...aiAnalysis, ...JSON.parse(completion.choices[0].message.content || "{}") };
           }
@@ -122,11 +123,10 @@ export async function POST(req: Request) {
 
     // ==========================================
     // 4. LƯU VÀO KÉT SẮT SUPABASE
-    // (Bao gồm cả is_spam để hiện lên Thùng Rác Dashboard)
     // ==========================================
     answers.is_harsh = aiAnalysis.isHarsh;
     answers.is_sos = aiAnalysis.isSOS;
-    answers.is_spam = aiAnalysis.isSpam; 
+    answers.is_spam = aiAnalysis.isSpam; // Cờ này sẽ quyết định việc vứt vào Thùng Rác UI
     answers.ai_summary = aiAnalysis.summary;
     answers.raw_text = openFeedback; 
     
