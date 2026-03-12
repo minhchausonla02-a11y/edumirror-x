@@ -16,22 +16,32 @@ export async function POST(req: Request) {
     }
 
     // ==========================================
-    // 1. GOM MỌI CHUỖI VĂN BẢN ĐỂ AI SÀNG LỌC LẠI
+    // 1. LỌC TUYỆT ĐỐI BẰNG TÊN CÂU HỎI (KEY)
     // ==========================================
     let rawInputs = [];
     for (const key in answers) {
       const val = answers[key];
-      if (Array.isArray(val)) continue; // Bỏ qua mảng trắc nghiệm nhiều đáp án
+      const lowerKey = key.toLowerCase();
+
+      // 🛡️ CHẶN CỨNG: Bỏ qua tất cả các câu từ Q1 đến Q5 (dù nội dung bên trong là gì đi nữa)
+      if (lowerKey.includes("q1") || lowerKey.includes("q2") || 
+          lowerKey.includes("q3") || lowerKey.includes("q4") || 
+          lowerKey.includes("q5")) {
+        continue;
+      }
+
+      // Bỏ qua mảng trắc nghiệm nhiều đáp án
+      if (Array.isArray(val)) continue; 
+
+      // Chỉ lấy chuỗi văn bản thuộc về Q6 hoặc các ô nhập chữ tự do
       if (typeof val === "string" && val.trim().length > 0) {
         rawInputs.push(val.trim());
       }
     }
     
-    // Nối tất cả lại thành 1 chuỗi để gửi cho AI đọc
     let openFeedback = rawInputs.join(" | ");
 
     let aiAnalysis = { 
-      extracted_message: "", // 🚀 VŨ KHÍ MỚI: Dùng AI để trích xuất tin nhắn thật
       sentiment: "Trung tính", 
       tags: [] as string[], 
       isSpam: false,
@@ -41,7 +51,7 @@ export async function POST(req: Request) {
     };
 
     // ==========================================
-    // 2. NHỜ AI BÓC TÁCH VÀ TRÍCH XUẤT THÔNG ĐIỆP
+    // 2. AI PHÂN TÍCH (Chỉ đọc những câu học sinh tự gõ)
     // ==========================================
     try {
         if (openFeedback.trim().length > 0) {
@@ -49,43 +59,35 @@ export async function POST(req: Request) {
           
           if (apiKey) {
             const openai = new OpenAI({ apiKey });
-            const prompt = `Bạn là Chuyên gia Phân tích Dữ liệu Học đường.
-              Học sinh gửi lên một chuỗi các câu trả lời: "${openFeedback}"
+            const prompt = `Bạn là Chuyên gia Tâm lý. Phân loại câu nói sau của học sinh: "${openFeedback}"
               
-              Nhiệm vụ của bạn là LỌC RÁC TRẮC NGHIỆM:
-              - Các cụm từ như "Lựa chọn 1", "Lựa chọn 2", "A1 - ...", "B2 - ...", "Đồng ý", "Bình thường" là ĐÁP ÁN TRẮC NGHIỆM máy móc.
-              - Bạn PHẢI TÌM VÀ TRÍCH XUẤT ra ĐÚNG phần câu văn tự do mà học sinh CỐ TÌNH TỰ GÕ VÀO (thường là câu dài, chứa cảm xúc, hoặc lời nhắn nhủ, kêu cứu).
-              
-              Sau khi trích xuất được câu tự gõ, hãy phân loại:
               1. isSpam: Rác gõ phím ("asdasd").
-              2. isSOS: Cầu cứu, bắt nạt, đe dọa ("bị bạn an nói xấu", "đánh em").
-              3. isHarsh: Chê bai thô lỗ.
+              2. isSOS: Cầu cứu, bắt nạt, đe dọa ("đánh em", "tẩy chay", "muốn chết").
+              3. isHarsh: Chê bai thô lỗ, đả kích cá nhân, nhắc tên giáo viên với thái độ tiêu cực ("không thích thầy A", "dạy dở").
               
-              Trả về JSON ĐÚNG ĐỊNH DẠNG SAU:
+              Trả về JSON:
               {
-                "extracted_message": "GIỮ NGUYÊN VĂN phần học sinh tự gõ. Bỏ hết các đáp án trắc nghiệm đi. Nếu không có gì tự gõ, trả về chuỗi rỗng ''",
                 "sentiment": "Tích cực" | "Tiêu cực" | "Trung bình",
                 "tags": [],
                 "isSpam": false,
                 "isHarsh": false,
                 "isSOS": false,
-                "summary": "Tóm tắt"
+                "summary": "Tóm tắt ngắn gọn."
               }`;
 
             const completion = await openai.chat.completions.create({
               model: "gpt-4o-mini",
               messages: [{ role: "system", content: prompt }],
               response_format: { type: "json_object" },
-              temperature: 0.1 // Để AI tư duy logic nhất
+              temperature: 0.1 
             });
 
             const aiResultStr = completion.choices[0].message.content || "{}";
-            // Gộp kết quả phân tích của AI vào biến aiAnalysis
             aiAnalysis = { ...aiAnalysis, ...JSON.parse(aiResultStr) };
           }
         }
     } catch (aiError) {
-        console.error("⚠️ LỖI TRẠM KIỂM DUYỆT AI:", aiError);
+        console.error("⚠️ LỖI AI:", aiError);
     }
 
     if (aiAnalysis.isSpam) {
@@ -93,22 +95,15 @@ export async function POST(req: Request) {
     }
 
     // ==========================================
-    // 3. LƯU KẾT QUẢ ĐÃ ĐƯỢC AI "TẨY RỬA" VÀO DATABASE
+    // 3. LƯU KẾT QUẢ
     // ==========================================
-    
-    // 🔥 BÍ QUYẾT: Dùng phần chữ đã được AI lọc sạch (extracted_message) để lưu
-    // Nếu AI vô tình trả về rỗng, mới dùng tạm openFeedback làm phương án dự phòng
-    const finalCleanMessage = aiAnalysis.extracted_message && aiAnalysis.extracted_message.trim().length > 0 
-                         ? aiAnalysis.extracted_message 
-                         : openFeedback;
-
     answers.is_harsh = aiAnalysis.isHarsh;
     answers.is_sos = aiAnalysis.isSOS;
     answers.ai_summary = aiAnalysis.summary;
-    answers.raw_text = finalCleanMessage; // UI Dashboard sẽ chỉ đọc biến sạch sẽ này!
+    answers.raw_text = openFeedback; 
     
-    if (finalCleanMessage.trim().length > 0) {
-        answers.q6_feedback_text = finalCleanMessage;
+    if (openFeedback.trim().length > 0) {
+        answers.q6_feedback_text = openFeedback;
     }
 
     const { error } = await supabase

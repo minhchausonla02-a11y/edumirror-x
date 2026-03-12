@@ -16,7 +16,7 @@ export default function DashboardView({ model }: { model?: string }) {
   const [aiResult, setAiResult] = useState<any[] | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // --- STATE MỚI: CÔNG TẮC LÀM MỜ SỰ THẬT THÔ RÁP ---
+  // --- CÔNG TẮC LÀM MỜ SỰ THẬT THÔ RÁP ---
   const [showRaw, setShowRaw] = useState(false);
 
   // 1. Tải danh sách phiếu
@@ -83,7 +83,7 @@ export default function DashboardView({ model }: { model?: string }) {
     try {
         const savedKey = localStorage.getItem("edumirror_key");
         
-        // 💡 LỌC BỎ SOS: Chỉ gửi những phản hồi không phải là SOS cho AI gom nhóm
+        // LỌC BỎ SOS: Chỉ gửi phản hồi không phải SOS cho AI gom nhóm
         const normalFeedbacks = feedbacks.filter(fb => typeof fb !== 'object' || !fb.is_sos);
         const textArray = normalFeedbacks.map(fb => typeof fb === 'object' ? fb.raw_text : fb);
         
@@ -129,7 +129,7 @@ export default function DashboardView({ model }: { model?: string }) {
 
   const showData = !!stats;
 
-  // 💡 TÁCH PHẢN HỒI THÀNH 2 NHÓM: SOS VÀ BÌNH THƯỜNG
+  // TÁCH PHẢN HỒI THÀNH 2 NHÓM: SOS VÀ BÌNH THƯỜNG
   const sosFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb === 'object' && fb.is_sos) || [];
   const normalFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb !== 'object' || !fb.is_sos) || [];
 
@@ -170,7 +170,6 @@ export default function DashboardView({ model }: { model?: string }) {
       ) : showData ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          {/* CÁC BLOCK 1 ĐẾN 6 GIỮ NGUYÊN HOÀN TOÀN */}
           <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-3xl shadow-lg text-white flex flex-col sm:flex-row justify-between items-center relative overflow-hidden">
              <div className="relative z-10">
                 <div className="text-xs opacity-80 uppercase font-bold tracking-widest mb-1">Tổng phiếu</div>
@@ -239,12 +238,11 @@ export default function DashboardView({ model }: { model?: string }) {
           </div>
 
           {/* ========================================================= */}
-        {/* ========================================================= */}
-          {/* 7. LỜI NHẮN & AI - ĐÃ NÂNG CẤP LĂNG KÍNH THẤU CẢM & SOS */}
+          {/* 7. LỜI NHẮN & AI */}
           {/* ========================================================= */}
           <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm col-span-1 md:col-span-2 lg:col-span-3">
             
-            {/* 🚨 KHU VỰC BÁO ĐỘNG ĐỎ (SOS) - NHẤN VÀO MỚI HIỆN NỘI DUNG */}
+            {/* 🚨 KHU VỰC BÁO ĐỘNG ĐỎ (SOS) */}
             {sosFeedbacks.length > 0 && (
               <div className="mb-6 bg-red-50 border-l-[6px] border-red-600 p-5 rounded-r-xl shadow-md animate-pulse">
                 <h4 className="text-red-800 font-bold flex items-center gap-2 mb-2 text-sm uppercase tracking-wide">
@@ -280,7 +278,7 @@ export default function DashboardView({ model }: { model?: string }) {
                     💌 Lời nhắn ẩn danh ({normalFeedbacks.length})
                   </h3>
                   
-                  {/* CÔNG TẮC LÀM MỜ (TOGGLE) */}
+                  {/* CÔNG TẮC KHIÊN BẢO VỆ */}
                   <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
                     <span className={`text-[10px] font-bold transition-colors ${showRaw ? 'text-red-600' : 'text-gray-500'}`}>
                       {showRaw ? '👁️ Đang hiện bản gốc' : '🛡️ Đã bật khiên bảo vệ'}
@@ -301,7 +299,7 @@ export default function DashboardView({ model }: { model?: string }) {
                 )}
             </div>
 
-            {/* Khối AI Nhóm (Giữ nguyên) */}
+            {/* Khối AI Nhóm */}
             {aiResult && (
                 <div className="mb-6 bg-indigo-50/60 rounded-2xl border border-indigo-100 overflow-hidden animate-fade-in">
                     <div className="p-3 bg-indigo-100/50 flex justify-between items-center border-b border-indigo-200">
@@ -328,38 +326,42 @@ export default function DashboardView({ model }: { model?: string }) {
                 </div>
             )}
 
-            {/* KHU VỰC HIỂN THỊ LỜI NHẮN CHUYÊN MÔN */}
+            {/* KHU VỰC HIỂN THỊ LỜI NHẮN (ĐÃ NÂNG CẤP KHIÊN) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-64 overflow-y-auto pr-2 custom-scrollbar">
               {normalFeedbacks.length > 0 ? normalFeedbacks.map((fb: any, i: number) => {
                   
-                  // Nhận diện dữ liệu kiểu cũ (chỉ là chuỗi) hoặc kiểu mới (có AI phân tích)
                   const isObject = typeof fb === 'object' && fb !== null;
                   const isHarsh = isObject ? fb.is_harsh : false;
                   
-                  // Quyết định xem text nào
-                  let textToDisplay = fb; // Mặc định nếu là chuỗi cũ
+                  // 🛡️ NÂNG CẤP KHIÊN BẢO VỆ TUYỆT ĐỐI
+                  let textToDisplay = fb; 
                   if (isObject) {
                       if (isHarsh && !showRaw) {
-                          textToDisplay = fb.ai_summary || fb.raw_text; // Hiện bản tóm tắt mô phạm
+                          // CHE KÍN KHI BẬT KHIÊN
+                          textToDisplay = "Nội dung nhạy cảm đã được che khuất. Tắt Khiên để xem bản gốc."; 
                       } else {
-                          textToDisplay = fb.raw_text; // Hiện bản gốc
+                          // HIỆN GỐC KHI TẮT KHIÊN
+                          textToDisplay = fb.raw_text || fb.q6_feedback_text;
                       }
                   }
 
-                  // Giao diện (Làm mờ nếu đang giấu sự thật)
                   const isHiddenHarsh = isHarsh && !showRaw;
                   const isExposedHarsh = isHarsh && showRaw;
 
                   return (
-                    <div key={i} className={`p-3.5 rounded-xl text-xs transition-all duration-300 border-l-4 
-                        ${isHiddenHarsh ? 'bg-gray-50 border-gray-300 text-gray-500 opacity-90' : ''}
+                    <div key={i} className={`p-3.5 rounded-xl text-xs transition-all duration-300 border-l-4 flex flex-col justify-center
+                        ${isHiddenHarsh ? 'bg-gray-100 border-gray-400 text-gray-500 opacity-80' : ''}
                         ${isExposedHarsh ? 'bg-red-50 border-red-500 text-red-800 shadow-sm' : ''}
                         ${!isHarsh ? 'bg-white border-indigo-200 text-gray-700 shadow-sm' : ''}
                     `}>
-                        {isHiddenHarsh && <span className="mr-2 inline-block bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded text-[9px] font-bold not-italic">🛡️ AI Đã dịch</span>}
-                        {isExposedHarsh && <span className="mr-2 inline-block bg-red-600 text-white px-1.5 py-0.5 rounded text-[9px] font-bold not-italic animate-pulse">🔥 Gốc</span>}
+                        <div className="mb-1">
+                          {isHiddenHarsh && <span className="inline-block bg-gray-300 text-gray-700 px-1.5 py-0.5 rounded text-[9px] font-bold not-italic">🔒 Đã khóa</span>}
+                          {isExposedHarsh && <span className="inline-block bg-red-600 text-white px-1.5 py-0.5 rounded text-[9px] font-bold not-italic animate-pulse">🔥 Gốc</span>}
+                        </div>
                         
-                        <span className={`italic leading-relaxed ${isHiddenHarsh ? 'blur-[0.5px]' : ''}`}>"{textToDisplay}"</span>
+                        <span className={`leading-relaxed ${isHiddenHarsh ? 'italic font-medium' : 'italic'}`}>
+                            {isHiddenHarsh ? textToDisplay : `"${textToDisplay}"`}
+                        </span>
                     </div>
                   );
               }) : <EmptyState msg="Chưa có lời nhắn nào" />}
