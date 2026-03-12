@@ -83,26 +83,24 @@ export async function POST(req: Request) {
           if (apiKey) {
             const openai = new OpenAI({ apiKey });
             
-            // 🚀 BỘ NÃO NLP: NẠP TRIẾT LÝ SƯ PHẠM VÀO AI
+          // 🚀 BỘ NÃO NLP: NẠP TRIẾT LÝ SƯ PHẠM VÀO AI (PHIÊN BẢN CỰC KỲ KHẮT KHE)
             const prompt = `Bạn là Chuyên gia Tâm lý Sư phạm và Kỹ sư Xử lý Ngôn ngữ Tự nhiên (NLP). 
-            Nhiệm vụ của bạn là phân tích lời nhắn tự do của học sinh: "${openFeedback}" dựa trên Khung NLP 4 Chiều:
+            Nhiệm vụ của bạn là phân tích lời nhắn tự do của học sinh: "${openFeedback}" dựa trên Khung NLP:
 
-            1. NGỮ DỤNG HỌC & TÍN HIỆU NGẦM (QUAN TRỌNG NHẤT):
-               - Lời than vãn về thể trạng/tinh thần trong giờ học ("buồn ngủ", "mệt", "đói", "muốn nghỉ", "muốn về", "chán", "nhức đầu", "lú luôn") LÀ NHỮNG TÍN HIỆU SƯ PHẠM HỢP LỆ. Chúng phản ánh sự QUÁ TẢI NHẬN THỨC hoặc MẤT KẾT NỐI với bài giảng. 
-               - BẮT BUỘC coi những câu này là HỢP LỆ (Gán isSpam = false).
+            1. LỜI NHẮN HỢP LỆ (TẬP TRUNG VÀO BÀI GIẢNG):
+               - Lời khen/chê bài giảng, phương pháp dạy ("thầy dạy cuốn", "giảng nhanh quá").
+               - Trạng thái nhận thức/thể chất ảnh hưởng học tập ("em không hiểu bài", "nhức đầu", "buồn ngủ", "quá tải").
 
-            2. RÁC NGỮ CẢNH TUYỆT ĐỐI (isSpam):
-               - CHỈ gán isSpam = TRUE nếu là rác gõ phím ("asd", "123") HOẶC giao tiếp hoàn toàn THOÁT LY khỏi không gian lớp học ("chiều đi net không", "mua acc game", "thầy bao em ăn").
+            2. RÁC (SPAM) - PHẢI GÁN TRUE CHO CÁC TRƯỜNG HỢP SAU:
+               - Vô nghĩa: "asd", "123".
+               - Giao tiếp ngoài luồng: "chiều đi net không", "mua acc game".
+               - MÁCH LẺO CHUYỆN VẶT CỦA BẠN BÈ: Những phàn nàn nhỏ nhặt về bạn bè không liên quan trực tiếp đến thầy cô hay bài giảng ("bạn Thuỷ cười to quá", "bạn An hay trêu em", "bạn kia lấy bút của em"). ĐÂY LÀ RÁC ĐỐI VỚI HỆ THỐNG NÀY.
 
-            3. CÔNG KÍCH vs KỶ LUẬT (isHarsh):
-               - CHỈ gán isHarsh = TRUE khi có lời lẽ lăng mạ, xúc phạm, đả kích CÁ NHÂN giáo viên ("dạy dở ẹc", "bà cô này ác").
-               - Nhắc nhở kỷ luật lớp ("bạn An nói chuyện", "lớp ồn", "bạn Tiến trêu em") -> Đây là quản lý lớp học. Gán isHarsh = FALSE.
+            3. CÔNG KÍCH (isHarsh):
+               - CHỈ gán isHarsh = TRUE khi XÚC PHẠM, ĐẢ KÍCH CÁ NHÂN GIÁO VIÊN ("dạy dở ẹc", "bà cô này ác").
 
             4. BÁO ĐỘNG AN TOÀN (isSOS):
-               - CHỈ gán isSOS = TRUE khi rủi ro nghiêm trọng: Bạo lực ("đánh em", "chặn đường"), quấy rối, tẩy chay tập thể, tự tử.
-
-            5. GẮN NHÃN ĐA CHIỀU (tags):
-               - Trích xuất 1 đến 3 nhãn phân loại Sư phạm chuyên sâu. Ví dụ: "Trạng thái thể chất", "Mất tập trung", "Quá tải nhận thức", "Quản lý lớp học", "Phương pháp giảng dạy", "Xung đột bạn bè", "Động lực học tập".
+               - CHỈ gán isSOS = TRUE khi rủi ro nghiêm trọng: Bạo lực học đường ("đánh em", "chặn đường"), quấy rối, tẩy chay tập thể.
 
             TRẢ VỀ JSON CHÍNH XÁC: 
             {
@@ -111,7 +109,7 @@ export async function POST(req: Request) {
               "isSpam": boolean, 
               "isHarsh": boolean, 
               "isSOS": boolean, 
-              "summary": "Tóm tắt ngắn gọn ý chính của học sinh."
+              "summary": "Tóm tắt ngắn gọn."
             }`;
 
             const completion = await openai.chat.completions.create({
