@@ -16,8 +16,9 @@ export default function DashboardView({ model }: { model?: string }) {
   const [aiResult, setAiResult] = useState<any[] | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // --- CÔNG TẮC LÀM MỜ SỰ THẬT THÔ RÁP ---
-  const [showRaw, setShowRaw] = useState(false);
+  // --- CÔNG TẮC GIAO DIỆN ---
+  const [showRaw, setShowRaw] = useState(false); // Khiên bảo vệ
+  const [showTrash, setShowTrash] = useState(false); // Thùng rác
 
   // 1. Tải danh sách phiếu
   const fetchSurveys = () => {
@@ -45,7 +46,8 @@ export default function DashboardView({ model }: { model?: string }) {
     if (!selectedId) return;
     setLoading(true);
     setAiResult(null);
-    setShowRaw(false); // Reset công tắc mỗi khi chuyển phiếu
+    setShowRaw(false); 
+    setShowTrash(false);
     
     fetch(`/api/survey-summary?id=${selectedId}&t=${Date.now()}`)
       .then((res) => res.json())
@@ -83,8 +85,8 @@ export default function DashboardView({ model }: { model?: string }) {
     try {
         const savedKey = localStorage.getItem("edumirror_key");
         
-        // LỌC BỎ SOS: Chỉ gửi phản hồi không phải SOS cho AI gom nhóm
-        const normalFeedbacks = feedbacks.filter(fb => typeof fb !== 'object' || !fb.is_sos);
+        // LỌC BỎ SOS VÀ SPAM: Chỉ gửi phản hồi bình thường cho AI gom nhóm
+        const normalFeedbacks = feedbacks.filter(fb => typeof fb !== 'object' || (!fb.is_sos && !fb.is_spam));
         const textArray = normalFeedbacks.map(fb => typeof fb === 'object' ? fb.raw_text : fb);
         
         if (textArray.length === 0) {
@@ -129,9 +131,10 @@ export default function DashboardView({ model }: { model?: string }) {
 
   const showData = !!stats;
 
-  // TÁCH PHẢN HỒI THÀNH 2 NHÓM: SOS VÀ BÌNH THƯỜNG
-  const sosFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb === 'object' && fb.is_sos) || [];
-  const normalFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb !== 'object' || !fb.is_sos) || [];
+  // 💡 TÁCH PHẢN HỒI THÀNH 3 NHÓM RÕ RÀNG
+  const sosFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb === 'object' && fb.is_sos && !fb.is_spam) || [];
+  const spamFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb === 'object' && fb.is_spam) || [];
+  const normalFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb !== 'object' || (!fb.is_sos && !fb.is_spam)) || [];
 
   return (
     <div className="space-y-8 font-sans animate-fade-in pb-12">
@@ -337,10 +340,8 @@ export default function DashboardView({ model }: { model?: string }) {
                   let textToDisplay = fb; 
                   if (isObject) {
                       if (isHarsh && !showRaw) {
-                          // CHE KÍN KHI BẬT KHIÊN
                           textToDisplay = "Nội dung nhạy cảm đã được che khuất. Tắt Khiên để xem bản gốc."; 
                       } else {
-                          // HIỆN GỐC KHI TẮT KHIÊN
                           textToDisplay = fb.raw_text || fb.q6_feedback_text;
                       }
                   }
@@ -366,6 +367,30 @@ export default function DashboardView({ model }: { model?: string }) {
                   );
               }) : <EmptyState msg="Chưa có lời nhắn nào" />}
             </div>
+
+            {/* 🗑️ THÙNG RÁC AI (CHỈ HIỆN KHI CÓ RÁC) */}
+            {spamFeedbacks.length > 0 && (
+                <div className="mt-6 border-t border-gray-100 pt-4">
+                    <button 
+                        onClick={() => setShowTrash(!showTrash)} 
+                        className="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-2 font-bold transition-colors"
+                    >
+                        🗑️ Thùng rác AI đã lọc ({spamFeedbacks.length}) {showTrash ? "▲" : "▼"}
+                    </button>
+                    
+                    {showTrash && (
+                        <div className="mt-3 space-y-2 max-h-40 overflow-y-auto custom-scrollbar p-3 bg-gray-50 rounded-xl border border-gray-200">
+                            {spamFeedbacks.map((fb: any, i: number) => (
+                                <div key={i} className="text-gray-400 text-[11px] italic border-b border-gray-200/50 pb-2 last:border-0 last:pb-0">
+                                    <span className="font-bold text-red-400 mr-2">[Bị chặn]</span>
+                                    "{fb.raw_text}"
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
           </div>
 
         </div>

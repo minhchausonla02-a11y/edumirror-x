@@ -36,7 +36,7 @@ export async function GET(req: Request) {
       if (typeof ans === 'string') { try { ans = JSON.parse(ans); } catch (e) {} }
 
       if (!ans) return;
-      if (row.is_spam || ans.is_spam) return;
+    
 
       stats.total++;
 
@@ -91,6 +91,7 @@ export async function GET(req: Request) {
               raw_text: rawText,
               is_harsh: isHarsh,
               is_sos: isSOS, 
+              is_spam: isSpam, // Dòng mới thêm
               ai_summary: aiSummary
           });
       }
