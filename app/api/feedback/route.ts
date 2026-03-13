@@ -35,7 +35,6 @@ export async function POST(req: Request) {
       if (apiKey) {
         const openai = new OpenAI({ apiKey });
         
-        // --- PROMPT ĐÃ ĐƯỢC NÂNG CẤP DÀNH CHO KHKT 2026 ---
         const prompt = `
           Bạn là một Chuyên gia Tâm lý Học đường và Kỹ sư Dữ liệu (NLP) tại Việt Nam.
           Phân loại phản hồi ẩn danh của học sinh theo các tiêu chí sau:
@@ -74,15 +73,28 @@ export async function POST(req: Request) {
     // XỬ LÝ LỌC RÁC: GHI NHẬN ĐỂ HIỂN THỊ LÊN THÙNG RÁC GIAO DIỆN
     // ========================================================
     if (aiAnalysis.isSpam) {
-        // Log ra server để theo dõi, nhưng KHÔNG return chặn lại nữa
-        // để dữ liệu được đi tiếp vào database và hiện lên "Thùng rác"
         console.log("🗑️ AI đã đưa 1 tin rác vào Thùng Rác:", openFeedback);
     }
 
+    // ========================================================
+    // BỘ LỌC TỪ KHÓA CỨNG (SAFETY NET) DÀNH CHO KHKT
+    // Đảm bảo không bao giờ bỏ sót các từ khóa nguy hiểm cực độ
+    // ========================================================
+    const sosKeywords = ["bạo lực", "tự tử", "đánh nhau", "tẩy chay", "bắt nạt", "cô lập", "trầm cảm", "muốn chết", "đánh em", "chửi em"];
+    const lowerFeedback = openFeedback.toLowerCase();
+    
+    // Nếu trong câu có chứa bất kỳ từ khóa nào ở trên -> Ép nó thành SOS ngay lập tức!
+    if (sosKeywords.some(keyword => lowerFeedback.includes(keyword))) {
+        aiAnalysis.isSOS = true;
+        // Nếu đã là SOS thì không thể là Rác hay Bình thường được nữa
+        aiAnalysis.isSpam = false; 
+        console.log("🚨 Đã kích hoạt Safety Net: Bắt buộc chuyển thành SOS!");
+    }
+
     // 4. Bơm các Cờ AI vào dữ liệu để gửi lên Supabase
-    answers.is_spam = aiAnalysis.isSpam; // Thêm trường này để Frontend lọc được thùng rác
+    answers.is_spam = aiAnalysis.isSpam;
     answers.is_harsh = aiAnalysis.isHarsh;
-    answers.is_sos = aiAnalysis.isSOS;
+    answers.is_sos = aiAnalysis.isSOS; 
     answers.ai_summary = aiAnalysis.summary;
     answers.raw_text = openFeedback;
     
@@ -96,7 +108,6 @@ export async function POST(req: Request) {
     // ========================================================
     const supabase = await createClient();
     
-    // Tìm ID của phiếu (Hỗ trợ nhiều kiểu gửi ID từ Form học sinh)
     const surveyIdToSave = data.surveyId || data.short_id || data.lessonId || "unknown_survey";
 
     const { error } = await supabase.from('survey_responses').insert({
@@ -118,7 +129,6 @@ export async function POST(req: Request) {
   }
 }
 
-// Giữ lại hàm GET cơ bản để Next.js không báo lỗi cấu trúc Route Handler
 export async function GET() {
   return NextResponse.json({ message: "API Feedback hoạt động bình thường" });
 }
