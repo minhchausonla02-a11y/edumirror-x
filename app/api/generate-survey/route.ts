@@ -16,19 +16,25 @@ function safeParse(text: string) {
 }
 
 // =====================================================================
-// KIẾN TRÚC "TỦ HỒ SƠ" - PHÂN TÁCH ĐẶC THÙ TỪNG MÔN HỌC
+// KIẾN TRÚC "TỦ HỒ SƠ" - ĐÃ TỐI ƯU PROMPT THEO CHUẨN KHKT
 // =====================================================================
 const SUBJECT_CONFIGS: Record<string, any> = {
 
   // 1. KHỐI TỰ NHIÊN (TOÁN / LÝ / HÓA)
   "Toán học": {
     buildPrompt: (processMode: string, standards: string) => `
-      Bạn là một Giáo viên Toán học xuất sắc.
-      ${standards ? `YÊU CẦU CẦN ĐẠT (CHUẨN): "${standards}"\nHãy bám sát chuẩn này để đánh giá.` : ""}
-      ${processMode === "premium" 
-        ? "CHẾ ĐỘ CAO CẤP: Nội dung chứa công thức LaTeX. Hãy phân tích sâu và tìm ra 4-5 LỖI SAI KINH ĐIỂN, SỰ NHẦM LẪN HOẶC ĐIỂM MÙ TƯ DUY (Pain points) mà học sinh thường mắc phải khi áp dụng công thức/logic trong bài này." 
-        : "CHẾ ĐỘ CƠ BẢN: Hãy tìm ra 4-5 khái niệm hoặc kỹ năng tính toán KHÓ NHẤT mà học sinh thường gặp khó khăn."}
-      Biến các lỗi/khó khăn đó thành phát biểu của học sinh (ngắn gọn dưới 15 từ, VD: "Em hay quên đổi dấu", "Em không hiểu bước gộp nghiệm").
+      Bạn là một Chuyên gia Phương pháp giảng dạy Toán học.
+      Nhiệm vụ của bạn là đọc giáo án và tìm ra 4-5 LỖI SAI KINH ĐIỂN, ĐIỂM MÙ TƯ DUY hoặc BƯỚC TÍNH TOÁN DỄ NHẦM LẪN NHẤT.
+
+      ${standards 
+        ? `🔥 MỤC TIÊU TỐI THƯỢNG: Giáo viên đã chỉ định YÊU CẦU CẦN ĐẠT: "${standards}". Bạn CHỈ ĐƯỢC PHÉP tìm ra các nguyên nhân, lỗi sai khiến học sinh THẤT BẠI trong việc đạt được chuẩn này. TUYỆT ĐỐI KHÔNG phân tích các phần kiến thức râu ria khác.` 
+        : `🔍 MỤC TIÊU QUÉT RỘNG: Hãy phân tích toàn diện giáo án và tìm ra các điểm vướng mắc khó nhất của bài học này.`
+      }
+      
+      ${processMode === "premium" ? "CHÚ Ý: Đây là nội dung chứa công thức phức tạp, hãy phân tích thật sâu vào bản chất logic/định lý." : ""}
+      
+      ĐỊNH DẠNG BẮT BUỘC: Biến các lỗi/khó khăn đó thành phát biểu của học sinh ở ngôi thứ nhất. Ngắn gọn, dân dã, dưới 15 từ. 
+      VD: "Em hay quên đổi dấu", "Em không hiểu bước gộp nghiệm", "Em chưa biết cách kẻ đường cao".
     `,
     buildQuestions: (gaps: string[]) => [
       { id: "q1", type: "single_choice", text: "1. Cảm nhận chung của em về tiết Toán hôm nay?", options: ["A1 – Rất cuốn, thích thú 🤩", "A2 – Bình thường 🙂", "A3 – Hơi ngợp (nhiều công thức/số liệu) 🤯", "A4 – Mệt, khó tập trung 😴"] },
@@ -43,10 +49,16 @@ const SUBJECT_CONFIGS: Record<string, any> = {
   // 2. KHỐI XÃ HỘI (NGỮ VĂN)
   "Ngữ văn": {
     buildPrompt: (processMode: string, standards: string) => `
-      Bạn là một Giáo viên Ngữ Văn thấu cảm và sâu sắc.
-      ${standards ? `YÊU CẦU CẦN ĐẠT (CHUẨN): "${standards}"\nHãy bám sát chuẩn này.` : ""}
-      Nhiệm vụ: Đọc giáo án và tìm ra 4-5 KHÓ KHĂN VỀ CẢM THỤ, BÍ Ý TƯỞNG, hoặc RÀO CẢN TÂM LÝ mà học sinh thường gặp khi học bài này. 
-      VD: "Em khó đồng cảm với tâm lý nhân vật", "Em không biết cách lập dàn ý phân tích", "Em bị bí từ khi diễn đạt"... (Ngắn gọn dưới 15 từ).
+      Bạn là một Chuyên gia Phương pháp giảng dạy Ngữ Văn.
+      Nhiệm vụ: Tìm ra 4-5 RÀO CẢN TÂM LÝ, SỰ BÍ Ý TƯỞNG, hoặc KHÓ KHĂN CẢM THỤ mà học sinh thường gặp.
+
+      ${standards 
+        ? `🔥 MỤC TIÊU TỐI THƯỢNG: Giáo viên đã chỉ định YÊU CẦU CẦN ĐẠT: "${standards}". Bạn CHỈ TẬP TRUNG tìm ra những điểm nghẽn khiến học sinh KHÔNG THỂ đạt được mục tiêu này. Bỏ qua các chi tiết phụ.` 
+        : `🔍 MỤC TIÊU QUÉT RỘNG: Tìm ra các khó khăn chung nhất khi học sinh tiếp cận tác phẩm/kỹ năng trong bài này.`
+      }
+
+      ĐỊNH DẠNG BẮT BUỘC: Biến thành phát biểu của học sinh ở ngôi thứ nhất. Ngắn gọn, dưới 15 từ.
+      VD: "Em khó đồng cảm với nhân vật", "Em không biết cách lập dàn ý", "Em bị bí từ khi diễn đạt".
     `,
     buildQuestions: (gaps: string[]) => [
       { id: "q1", type: "single_choice", text: "1. Cảm xúc của em sau tiết Văn hôm nay?", options: ["A1 – Rất chạm đến cảm xúc, lôi cuốn ✨", "A2 – Bình thường, dễ nghe 🙂", "A3 – Hơi khô khan, buồn ngủ 🥱", "A4 – Quá trừu tượng, khó cảm nhận 😵‍💫"] },
@@ -62,9 +74,15 @@ const SUBJECT_CONFIGS: Record<string, any> = {
   "Tiếng Anh": {
     buildPrompt: (processMode: string, standards: string) => `
       Bạn là một Chuyên gia ngôn ngữ (TESOL/IELTS).
-      ${standards ? `YÊU CẦU CẦN ĐẠT (CHUẨN): "${standards}"\nHãy bám sát chuẩn này.` : ""}
-      Nhiệm vụ: Đọc giáo án Tiếng Anh và tìm ra 4-5 ĐIỂM NGHẼN NGÔN NGỮ (Language barriers) mà học sinh dễ mắc phải trong bài này (Ngữ pháp, từ vựng, phát âm, nghe hiểu...).
-      VD: "Em hay nhầm lẫn cách dùng thì hiện tại hoàn thành", "Em nghe không kịp tốc độ của file audio", "Từ vựng phần này quá nhiều và khó nhớ"... (Ngắn gọn dưới 15 từ).
+      Nhiệm vụ: Tìm ra 4-5 ĐIỂM NGHẼN NGÔN NGỮ (Language barriers) như từ vựng, ngữ pháp, phát âm, nghe hiểu.
+
+      ${standards 
+        ? `🔥 MỤC TIÊU TỐI THƯỢNG: Giáo viên đã chỉ định YÊU CẦU CẦN ĐẠT: "${standards}". Bạn phải phân tích trực diện vào những lỗi sai, rào cản khiến học sinh THẤT BẠI trước mục tiêu ngôn ngữ này.` 
+        : `🔍 MỤC TIÊU QUÉT RỘNG: Tìm ra các lỗi sai hoặc điểm nghẽn ngôn ngữ phổ biến nhất trong giáo án này.`
+      }
+
+      ĐỊNH DẠNG BẮT BUỘC: Biến thành phát biểu của học sinh ở ngôi thứ nhất. Ngắn gọn, dưới 15 từ.
+      VD: "Em hay nhầm thì hiện tại hoàn thành", "Em nghe không kịp audio", "Nhiều từ mới quá em không nhớ nổi".
     `,
     buildQuestions: (gaps: string[]) => [
       { id: "q1", type: "single_choice", text: "1. Mức độ hứng thú của em với tiết Tiếng Anh hôm nay?", options: ["A1 – Rất năng động, vui vẻ 🌟", "A2 – Bình thường 🙂", "A3 – Ngại giao tiếp, sợ nói sai 🤐", "A4 – Theo không kịp, đuối sức 😵"] },
@@ -76,12 +94,18 @@ const SUBJECT_CONFIGS: Record<string, any> = {
     ]
   },
 
-  // 4. MẶC ĐỊNH (KẾ THỪA CODE CŨ CHO CÁC MÔN CHƯA CẤU HÌNH)
+  // 4. MẶC ĐỊNH
   "DEFAULT": {
     buildPrompt: (processMode: string, standards: string) => `
       Bạn là Chuyên gia Kiểm định Giáo dục.
-      ${standards ? `YÊU CẦU CẦN ĐẠT: "${standards}"\nHãy bám sát chuẩn này.` : "Hãy phân tích nội dung giáo án."}
-      Tìm ra 4-5 khái niệm hoặc kỹ năng KHÓ NHẤT mà học sinh thường gặp khó khăn. Ngắn gọn dưới 15 từ.
+      Nhiệm vụ: Tìm ra 4-5 khái niệm hoặc kỹ năng KHÓ NHẤT mà học sinh thường gặp khó khăn.
+
+      ${standards 
+        ? `🔥 MỤC TIÊU TỐI THƯỢNG: Giáo viên đã chỉ định YÊU CẦU CẦN ĐẠT: "${standards}". Chỉ phân tích các điểm vướng mắc liên quan trực tiếp đến chuẩn này.` 
+        : `🔍 MỤC TIÊU QUÉT RỘNG: Phân tích các nội dung trọng tâm dễ gây nhầm lẫn nhất trong giáo án.`
+      }
+
+      ĐỊNH DẠNG BẮT BUỘC: Phát biểu của học sinh, ngôi thứ nhất, ngắn gọn dưới 15 từ. VD: "Em chưa hiểu cách phân loại", "Em không nhớ trình tự các bước".
     `,
     buildQuestions: (gaps: string[]) => [
       { id: "q1", type: "single_choice", text: "1. Cảm nhận chung của em về tiết học hôm nay?", options: ["A1 – Hứng thú 🤩", "A2 – Bình thường 🙂", "A3 – Hơi căng (bài khó/nhanh) 🤯", "A4 – Mệt, khó tập trung 😴"] },
@@ -94,7 +118,6 @@ const SUBJECT_CONFIGS: Record<string, any> = {
   }
 };
 
-// Clone cấu hình Toán học cho Vật lý và Hóa học
 SUBJECT_CONFIGS["Vật lý"] = SUBJECT_CONFIGS["Toán học"];
 SUBJECT_CONFIGS["Hóa học"] = SUBJECT_CONFIGS["Toán học"];
 
@@ -106,7 +129,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     // Nhận đầy đủ các biến (Kế thừa từ code cũ của bạn)
-    const { content, model = "gpt-4o-mini", apiKey, standards, processMode, subject } = body || {};
+    const { content, model = "gpt-5.4", apiKey, standards, processMode, subject } = body || {};
 
     const finalKey = apiKey || process.env.OPENAI_API_KEY;
     if (!finalKey) return NextResponse.json({ error: "Thiếu API Key" }, { status: 401 });
