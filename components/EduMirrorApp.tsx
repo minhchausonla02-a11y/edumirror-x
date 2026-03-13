@@ -384,14 +384,21 @@ function EduMirrorContent() {
                   </div>
 
                   <div className="bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100">
-                    <h3 className="text-sm font-bold text-indigo-800 mb-2 flex items-center gap-2">🎯 Hệ quy chiếu / Chuẩn đầu ra</h3>
-                    <textarea
-                      className="w-full h-24 p-4 rounded-xl border border-indigo-200 bg-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
-                      placeholder="VD: Học sinh biết cách giải..."
-                      value={standardsText}
-                      onChange={(e) => setStandardsText(e.target.value)}
-                    />
-                  </div>
+  <h3 className="text-sm font-bold text-indigo-800 mb-2 flex items-center gap-2">
+    🎯 Hệ quy chiếu / Chuẩn đầu ra
+  </h3>
+  <textarea
+    className="w-full h-24 p-4 rounded-xl border border-indigo-200 bg-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
+    placeholder="VD: Học sinh biết cách giải..."
+    value={standardsText}
+    onChange={(e) => setStandardsText(e.target.value)}
+  />
+  
+  {/* Hướng dẫn UX/UI - Mẹo sư phạm */}
+  <p className="mt-2.5 text-[11px] text-indigo-600/80 italic leading-relaxed pl-1">
+    <span className="font-bold text-indigo-600">💡 Mẹo sư phạm:</span> Để AI phân tích sắc bén nhất, thầy/cô chỉ nên nhập từ <span className="font-bold">1 đến tối đa 3 trọng tâm</span> của tiết học. Nếu để trống, AI sẽ tự động quét toàn bộ giáo án.
+  </p>
+</div>
                 </div>
 
                 <div className="lg:col-span-4 space-y-6">
