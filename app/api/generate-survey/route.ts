@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Hàm parse JSON an toàn (Kế thừa từ code cũ của bạn)
+// Hàm parse JSON an toàn
 function safeParse(text: string) {
   try {
     return JSON.parse(text);
@@ -128,29 +128,26 @@ SUBJECT_CONFIGS["Hóa học"] = SUBJECT_CONFIGS["Toán học"];
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    // Nhận đầy đủ các biến (Kế thừa từ code cũ của bạn)
-    const { content, model = "gpt-5.4", apiKey, standards, processMode, subject } = body || {};
+    // 🚀 LẤY THÊM className VÀ period TỪ FRONTEND GỬI LÊN
+    const { content, model = "gpt-5.4", apiKey, standards, processMode, subject, className, period } = body || {};
 
     const finalKey = apiKey || process.env.OPENAI_API_KEY;
     if (!finalKey) return NextResponse.json({ error: "Thiếu API Key" }, { status: 401 });
 
     const openai = new OpenAI({ apiKey: finalKey });
 
-    // 1. CHỌN NGĂN TỦ ĐÚNG MÔN HỌC (Hoặc về Mặc định)
     const config = SUBJECT_CONFIGS[subject] || SUBJECT_CONFIGS["DEFAULT"];
 
-    // 2. GỌI HÀM SINH PROMPT CHUẨN XÁC
     const systemPrompt = `
       ${config.buildPrompt(processMode, standards)}
       
       YÊU CẦU ĐẦU RA (JSON OBJECT TUYỆT ĐỐI THEO SCHEMA):
       {
-        "lesson_title": "Tên bài học ngắn gọn",
+        "lesson_title": "Tên bài học ngắn gọn (Tối đa 5-7 từ, KHÔNG tự chế thêm thông tin lớp/tiết vào đây)",
         "dynamic_knowledge_gaps": ["Lỗi/Khó khăn 1", "Lỗi/Khó khăn 2", "Lỗi/Khó khăn 3", "Lỗi/Khó khăn 4"]
       }
     `;
 
-    // 3. GỌI AI PHÂN TÍCH
     const completion = await openai.chat.completions.create({
       model: model,
       messages: [
@@ -162,10 +159,23 @@ export async function POST(req: Request) {
 
     const aiData = safeParse(completion.choices[0].message.content || "{}");
 
-    // 4. LẮP RÁP PHIẾU KHẢO SÁT CHUYÊN BIỆT
+    // 🚀 GHÉP CHUỖI TIÊU ĐỀ THÔNG MINH
+    // Nếu có tên lớp hoặc tiết, ghép thành format: [12A1 - Tiết 3] Bài tập mặt cầu
+    let finalTitle = aiData.lesson_title || `Phản hồi tiết học ${subject || ''}`;
+    
+    // Chỉ tạo tiền tố nếu có ít nhất 1 trong 2 thông tin
+    if (className || period) {
+      let prefixParts = [];
+      if (className) prefixParts.push(className.trim());
+      if (period) prefixParts.push(period.toLowerCase().includes('tiết') ? period.trim() : `Tiết ${period.trim()}`);
+      
+      const prefix = `[${prefixParts.join(" - ")}]`;
+      finalTitle = `${prefix} ${finalTitle}`;
+    }
+
     const survey_v2 = {
       type: `edumirror_${subject || 'standard'}`,
-      title: aiData.lesson_title || `Phản hồi tiết học ${subject || ''}`,
+      title: finalTitle,
       questions: config.buildQuestions(aiData.dynamic_knowledge_gaps || [])
     };
 

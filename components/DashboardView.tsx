@@ -5,6 +5,13 @@ function EmptyState({ msg }: { msg: string }) {
   return <div className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">{msg}</div>;
 }
 
+// 🚀 HÀM ĐỊNH DẠNG THỜI GIAN CHUẨN XÁC VÀ ĐẸP MẮT
+const formatSurveyDate = (dateString: string) => {
+  const d = new Date(dateString);
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+};
+
 // 🚀 RADAR TÌM KIẾM SÂU ĐỂ LẤY TÊN CÂU HỎI TÙY CHỌN
 const findQuestionTitle = (obj: any, targetKey: string): string | null => {
   if (!obj || typeof obj !== 'object') return null;
@@ -15,11 +22,9 @@ const findQuestionTitle = (obj: any, targetKey: string): string | null => {
           if (res) return res;
       }
   } else {
-      // Nếu tìm thấy đúng ID hoặc Name
       if (obj.id === targetKey || obj.name === targetKey || obj.key === targetKey) {
           return obj.title || obj.label || obj.question || obj.text || targetKey;
       }
-      // Quét sâu vào các lớp con
       for (let k in obj) {
           let res = findQuestionTitle(obj[k], targetKey);
           if (res) return res;
@@ -170,12 +175,13 @@ export default function DashboardView({ model }: { model?: string }) {
             {surveys.length > 0 ? (
             <>
                 <select 
-                    className="flex-1 p-3 border rounded-xl text-sm min-w-[200px] bg-gray-50 font-medium outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 p-3 border rounded-xl text-sm min-w-[280px] bg-gray-50 font-medium outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500"
                     value={selectedId} onChange={(e) => setSelectedId(e.target.value)}
                 >
                     {surveys.map(s => (
                     <option key={s.short_id} value={s.short_id}>
-                        {s.payload?.title ? s.payload.title.substring(0, 30) : "Phiếu..."} ({new Date(s.created_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })})
+                        {/* 🚀 ĐÃ NỚI RỘNG substring và dùng hàm format date mới */}
+                        {s.payload?.title ? s.payload.title.substring(0, 50) : "Phiếu khảo sát"} ({formatSurveyDate(s.created_at)})
                     </option>
                     ))}
                 </select>
