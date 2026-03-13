@@ -34,14 +34,16 @@ export async function POST(req: Request) {
       
       if (apiKey) {
         const openai = new OpenAI({ apiKey });
+        
+        // --- PROMPT ĐÃ ĐƯỢC NÂNG CẤP DÀNH CHO KHKT 2026 ---
         const prompt = `
-          Bạn là một Chuyên gia Tâm lý Học đường và Kỹ sư Dữ liệu (NLP).
+          Bạn là một Chuyên gia Tâm lý Học đường và Kỹ sư Dữ liệu (NLP) tại Việt Nam.
           Phân loại phản hồi ẩn danh của học sinh theo các tiêu chí sau:
           
-          1. isSpam: Rác vô nghĩa ("asdasd", "123").
-          2. isSOS: Báo động đỏ (Cầu cứu, bắt nạt, quấy rối, trầm cảm, bôi nhọ đời tư). ƯU TIÊN CAO NHẤT. VD: "Bạn A đánh em", "Áp lực quá", "Ông B ngoại tình".
-          3. isHarsh: Lời chê bai BÀI GIẢNG nhưng dùng từ ngữ thô lỗ. VD: "Dạy chán vãi, buồn ngủ".
-          4. Bình thường: Góp ý lịch sự ("Thầy giảng nhanh", "Chưa hiểu bài").
+          1. isSpam (Rác/Nhiễu): Các ký tự vô nghĩa ("asdasd", ":))", icon), các từ đùa cợt không ngữ cảnh ("Con vịt", "Thợ trộm gà"), HOẶC các câu ngoại ngữ mang tính chửi thề/spam không thuộc giao tiếp lớp học (VD: "Vattene, bastardo!"). Đưa vào đây để hệ thống loại bỏ.
+          2. isSOS (Báo động đỏ): Bất kỳ dấu hiệu/từ khóa nào về bạo lực học đường ("bạo lực ngôn từ", "bị tẩy chay", "đánh nhau"), bắt nạt, quấy rối, trầm cảm, ý định tự tử. ƯU TIÊN CAO NHẤT. Bắt nhầm còn hơn bỏ sót. Đưa ngay vào SOS.
+          3. isHarsh (Khiên bảo vệ): Dùng từ ngữ thô tục bằng tiếng Việt, chửi thề, xúc phạm giáo viên/bạn bè, hoặc lộ thông tin đời tư nhạy cảm, nhưng CHƯA đến mức nguy hiểm tâm lý như SOS.
+          4. Bình thường: Góp ý về bài giảng, tốc độ, cảm xúc học tập (dù khen hay chê nhưng dùng từ lịch sự).
           
           Trả về JSON ĐÚNG ĐỊNH DẠNG:
           {
@@ -50,7 +52,7 @@ export async function POST(req: Request) {
             "isSpam": boolean,
             "isHarsh": boolean,
             "isSOS": boolean,
-            "summary": "Tóm tắt ý chính. Nếu isHarsh=true, dịch sang ngôn ngữ sư phạm."
+            "summary": "Tóm tắt ý chính. Nếu isHarsh=true, dịch sang ngôn ngữ sư phạm nhẹ nhàng. Nếu isSpam=true, để trống."
           }
           
           Nội dung: "${openFeedback}"
@@ -69,14 +71,16 @@ export async function POST(req: Request) {
     }
 
     // ========================================================
-    // LỌC RÁC: NẾU LÀ SPAM -> CHẶN NGAY TỪ CỬA
+    // XỬ LÝ LỌC RÁC: GHI NHẬN ĐỂ HIỂN THỊ LÊN THÙNG RÁC GIAO DIỆN
     // ========================================================
     if (aiAnalysis.isSpam) {
-        console.log("🚫 AI đã chặn 1 tin rác Spam:", openFeedback);
-        return NextResponse.json({ ok: true, blocked: true });
+        // Log ra server để theo dõi, nhưng KHÔNG return chặn lại nữa
+        // để dữ liệu được đi tiếp vào database và hiện lên "Thùng rác"
+        console.log("🗑️ AI đã đưa 1 tin rác vào Thùng Rác:", openFeedback);
     }
 
     // 4. Bơm các Cờ AI vào dữ liệu để gửi lên Supabase
+    answers.is_spam = aiAnalysis.isSpam; // Thêm trường này để Frontend lọc được thùng rác
     answers.is_harsh = aiAnalysis.isHarsh;
     answers.is_sos = aiAnalysis.isSOS;
     answers.ai_summary = aiAnalysis.summary;
@@ -88,7 +92,7 @@ export async function POST(req: Request) {
     }
 
     // ========================================================
-    // LƯU DỮ LIỆU SẠCH VÀO SUPABASE
+    // LƯU DỮ LIỆU VÀO SUPABASE
     // ========================================================
     const supabase = await createClient();
     
