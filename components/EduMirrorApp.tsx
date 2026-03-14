@@ -79,9 +79,8 @@ function EduMirrorContent() {
   const [lessonText, setLessonText] = useState("");
   const [standardsText, setStandardsText] = useState("");
   const [subject, setSubject] = useState("Toán học");
-  const [grade, setGrade] = useState("Lớp 10");
   
-  // 🚀 ĐÃ THÊM BIẾN QUẢN LÝ TÊN LỚP VÀ TIẾT DẠY
+  // 🚀 BIẾN LƯU TÊN LỚP VÀ TIẾT DẠY
   const [className, setClassName] = useState(""); 
   const [period, setPeriod] = useState("");
 
@@ -174,7 +173,7 @@ function EduMirrorContent() {
       const res = await fetch("/api/generate-survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // 🚀 TRUYỀN THÊM className VÀ period XUỐNG API
+        // 🚀 ĐÃ TRUYỀN subject, className VÀ period XUỐNG API ĐỂ AI NHẬN DIỆN MÔN VÀ LỚP
         body: JSON.stringify({ model, content: lessonText, standards: standardsText, apiKey: saved, processMode, subject, className, period }),
       });
       const data = await res.json();
@@ -226,7 +225,7 @@ function EduMirrorContent() {
         <div className="mx-auto max-w-7xl px-6 py-3">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             
-            {/* 1. LOGO (CỘT TRÁI) */}
+            {/* 1. LOGO */}
             <div className="flex items-center gap-2">
               <span className="text-2xl">🪞</span>
               <div className="text-xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-purple-600">
@@ -234,10 +233,8 @@ function EduMirrorContent() {
               </div>
             </div>
 
-            {/* 2. CỤM CHỨC NĂNG (CỘT PHẢI) */}
+            {/* 2. CỤM CHỨC NĂNG */}
             <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6">
-              
-              {/* Ô chọn AI Model */}
               <div className="flex items-center bg-white p-1.5 rounded-xl border border-gray-200 shadow-sm transition-all hover:shadow-md">
                 <span className="pl-2 pr-1 text-[10px] font-bold text-gray-400 uppercase tracking-wider hidden sm:inline-block">
                   AI Model:
@@ -254,12 +251,9 @@ function EduMirrorContent() {
                   ))}
                 </select>
               </div>
-
-              {/* Ô thông tin Giáo viên (User Profile) */}
               <div className="flex-shrink-0 z-50">
                 <UserProfile />
               </div>
-
             </div>
           </div>
 
@@ -360,37 +354,52 @@ function EduMirrorContent() {
                   </div>
 
                   <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
-                    {/* 🚀 ĐÃ CẬP NHẬT GIAO DIỆN CHỨA TÊN LỚP VÀ TIẾT */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
-                      <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">📄 Nội dung bài dạy</h3>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <select value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-gray-50 border border-gray-200 text-xs rounded-lg px-2 py-1.5 outline-none font-medium focus:border-indigo-500">
-                          <option>Toán học</option><option>Vật lý</option><option>Ngữ văn</option><option>Tiếng Anh</option>
-                        </select>
-                        <select value={grade} onChange={(e) => setGrade(e.target.value)} className="bg-gray-50 border border-gray-200 text-xs rounded-lg px-2 py-1.5 outline-none font-medium focus:border-indigo-500">
-                          <option>Lớp 10</option><option>Lớp 11</option><option>Lớp 12</option>
-                        </select>
-                        
-                        <div className="h-6 w-px bg-gray-200 hidden sm:block"></div> 
-                        
-                        <input 
-                          type="text" 
-                          placeholder="Lớp (VD: 12A1)" 
-                          value={className}
-                          onChange={(e) => setClassName(e.target.value)}
-                          className="bg-white border border-gray-200 text-xs rounded-lg px-2 py-1.5 w-[100px] outline-none font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-gray-400"
-                        />
-                        <input 
-                          type="text" 
-                          placeholder="Tiết (VD: 3)" 
-                          value={period}
-                          onChange={(e) => setPeriod(e.target.value)}
-                          className="bg-white border border-gray-200 text-xs rounded-lg px-2 py-1.5 w-[80px] outline-none font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-gray-400"
-                        />
+                    {/* 🚀 ĐÃ CẬP NHẬT GIAO DIỆN CHỌN MÔN (PILLS) VÀ XÓA BỎ DROPDOWN LỚP */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-4">
+                      <div className="flex flex-col gap-2 w-full">
+                        <div className="flex items-center justify-between w-full">
+                          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">📄 Nội dung bài dạy</h3>
+                          
+                          {/* Khu vực nhập Lớp & Tiết */}
+                          <div className="flex items-center gap-2">
+                            <input 
+                              type="text" 
+                              placeholder="Lớp (VD: 12A1)" 
+                              value={className}
+                              onChange={(e) => setClassName(e.target.value)}
+                              className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 w-[110px] outline-none font-semibold text-gray-700 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-gray-400 placeholder:font-normal"
+                            />
+                            <span className="text-gray-300 font-bold">-</span>
+                            <input 
+                              type="text" 
+                              placeholder="Tiết (VD: 3)" 
+                              value={period}
+                              onChange={(e) => setPeriod(e.target.value)}
+                              className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 w-[90px] outline-none font-semibold text-gray-700 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-gray-400 placeholder:font-normal"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Thanh chọn Môn học dạng Pills (Nút bấm) */}
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {["Toán học", "Vật lý", "Hóa học", "Ngữ văn", "Tiếng Anh", "Sinh học", "Lịch sử", "Địa lý", "GDCD", "Tin học"].map((m) => (
+                            <button
+                              key={m}
+                              onClick={() => setSubject(m)}
+                              className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all border ${
+                                subject === m 
+                                  ? "bg-indigo-600 text-white border-indigo-600 shadow-sm scale-105" 
+                                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700"
+                              }`}
+                            >
+                              {m}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="relative group">
+                    <div className="relative group mt-2">
                       <textarea
                         className="w-full h-64 p-5 rounded-2xl border border-gray-200 bg-gray-50 text-sm focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none leading-relaxed"
                         placeholder="Dán nội dung giáo án vào đây..."
