@@ -200,6 +200,11 @@ function EduMirrorContent() {
     }
   };
 
+  // 🚀 HÀM ĐÃ ĐƯỢC BỔ SUNG LẠI
+  const handleOpenQRInNewTab = () => {
+    if (qrUrl) window.open(qrUrl, "_blank");
+  };
+
   return (
     <div className="min-h-screen bg-[#05050A] text-gray-300 font-sans relative selection:bg-purple-500/30 transition-colors duration-500">
       {loading && <AILoading />}
