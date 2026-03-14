@@ -5,17 +5,26 @@ function EmptyState({ msg }: { msg: string }) {
   return <div className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">{msg}</div>;
 }
 
-// 🚀 HÀM ĐỊNH DẠNG THỜI GIAN CHUẨN XÁC VÀ ĐẸP MẮT
+// 🚀 HÀM ĐỊNH DẠNG THỜI GIAN
 const formatSurveyDate = (dateString: string) => {
   const d = new Date(dateString);
   const pad = (n: number) => n.toString().padStart(2, '0');
   return `${pad(d.getHours())}:${pad(d.getMinutes())} ${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 };
 
-// 🚀 RADAR TÌM KIẾM SÂU ĐỂ LẤY TÊN CÂU HỎI TÙY CHỌN
+// 🚀 HÀM TÁCH TÊN MÔN HỌC TỪ DỮ LIỆU NGẦM (KHÔNG LÀM HỎNG BACKEND CŨ)
+const extractSubject = (typeStr?: string) => {
+  if (!typeStr) return "";
+  if (typeStr.startsWith("edumirror_")) {
+      const subj = typeStr.replace("edumirror_", "");
+      return subj === "standard" ? "" : subj;
+  }
+  return "";
+};
+
+// RADAR TÌM KIẾM
 const findQuestionTitle = (obj: any, targetKey: string): string | null => {
   if (!obj || typeof obj !== 'object') return null;
-  
   if (Array.isArray(obj)) {
       for (let item of obj) {
           let res = findQuestionTitle(item, targetKey);
@@ -162,28 +171,46 @@ export default function DashboardView({ model }: { model?: string }) {
   const spamFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb === 'object' && fb.is_spam) || [];
   const normalFeedbacks = stats?.feedbacks?.filter((fb: any) => typeof fb !== 'object' || (!fb.is_sos && !fb.is_spam)) || [];
 
+  // 🚀 LẤY RA MÔN HỌC CỦA PHIẾU ĐANG ĐƯỢC CHỌN (ĐỂ HIỂN THỊ LÊN THẺ TAG)
+  const currentSurvey = surveys.find(s => s.short_id === selectedId);
+  const currentSubject = currentSurvey ? extractSubject(currentSurvey.payload?.type) : "";
+
   return (
     <div className="space-y-8 font-sans animate-fade-in pb-12">
       
       {/* HEADER */}
       <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">📊 Báo cáo lớp học</h2>
-          <p className="text-sm text-gray-500 mt-1">{stats ? `Dữ liệu từ ${stats.total} học sinh` : "Chọn phiếu để xem"}</p>
+          {/* 🚀 THẺ TAG MÔN HỌC */}
+          <div className="flex flex-wrap items-center gap-3 mb-1">
+            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">📊 Báo cáo lớp học</h2>
+            {currentSubject && (
+              <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all">
+                📚 {currentSubject}
+              </span>
+            )}
+          </div>
+          <p className="text-sm text-gray-500">{stats ? `Dữ liệu từ ${stats.total} học sinh` : "Chọn phiếu để xem"}</p>
         </div>
+        
         <div className="flex gap-2 w-full md:w-auto items-center">
             {surveys.length > 0 ? (
             <>
                 <select 
-                    className="flex-1 p-3 border rounded-xl text-sm min-w-[280px] bg-gray-50 font-medium outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 p-3 border rounded-xl text-sm min-w-[300px] max-w-[450px] bg-gray-50 font-medium outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500"
                     value={selectedId} onChange={(e) => setSelectedId(e.target.value)}
                 >
-                    {surveys.map(s => (
-                    <option key={s.short_id} value={s.short_id}>
-                        {/* 🚀 ĐÃ NỚI RỘNG substring và dùng hàm format date mới */}
-                        {s.payload?.title ? s.payload.title.substring(0, 50) : "Phiếu khảo sát"} ({formatSurveyDate(s.created_at)})
-                    </option>
-                    ))}
+                    {surveys.map(s => {
+                      // 🚀 GẮN TIỀN TỐ MÔN HỌC VÀO DROPDOWN
+                      const subj = extractSubject(s.payload?.type);
+                      const prefix = subj ? `[${subj}] ` : "";
+                      const title = s.payload?.title ? s.payload.title.substring(0, 45) : "Phiếu khảo sát";
+                      return (
+                        <option key={s.short_id} value={s.short_id}>
+                            {prefix}{title} ({formatSurveyDate(s.created_at)})
+                        </option>
+                      );
+                    })}
                 </select>
                 <button onClick={fetchStats} className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 border border-indigo-100" title="Làm mới">🔄</button>
                 <button onClick={handleDelete} disabled={deleting} className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 border border-red-100 transition-colors" title="Xóa phiếu này">{deleting ? "..." : "🗑️"}</button>
