@@ -73,7 +73,6 @@ function EduMirrorContent() {
   // STATE
   const [mounted, setMounted] = useState(false);
   const [apiKey, setApiKey] = useState("");
-  // 🚀 ĐẶT MẶC ĐỊNH LÀ BẢN TIÊU CHUẨN GPT-5.4
   const [model, setModel] = useState("gpt-5.4");
   const [editingKey, setEditingKey] = useState(false);
 
@@ -81,6 +80,11 @@ function EduMirrorContent() {
   const [standardsText, setStandardsText] = useState("");
   const [subject, setSubject] = useState("Toán học");
   const [grade, setGrade] = useState("Lớp 10");
+  
+  // 🚀 ĐÃ THÊM BIẾN QUẢN LÝ TÊN LỚP VÀ TIẾT DẠY
+  const [className, setClassName] = useState(""); 
+  const [period, setPeriod] = useState("");
+
   const [processMode, setProcessMode] = useState<"standard" | "premium">("standard");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -170,8 +174,8 @@ function EduMirrorContent() {
       const res = await fetch("/api/generate-survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // 🚀 Truyền đúng cái `model` đang chọn xuống Backend
-        body: JSON.stringify({ model, content: lessonText, standards: standardsText, apiKey: saved, processMode, subject }),
+        // 🚀 TRUYỀN THÊM className VÀ period XUỐNG API
+        body: JSON.stringify({ model, content: lessonText, standards: standardsText, apiKey: saved, processMode, subject, className, period }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error);
@@ -356,17 +360,36 @@ function EduMirrorContent() {
                   </div>
 
                   <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
-                    <div className="flex justify-between items-center mb-4">
+                    {/* 🚀 ĐÃ CẬP NHẬT GIAO DIỆN CHỨA TÊN LỚP VÀ TIẾT */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-3">
                       <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">📄 Nội dung bài dạy</h3>
-                      <div className="flex gap-2">
-                        <select value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-gray-50 border border-gray-200 text-xs rounded-lg px-2 py-1 outline-none font-medium">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <select value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-gray-50 border border-gray-200 text-xs rounded-lg px-2 py-1.5 outline-none font-medium focus:border-indigo-500">
                           <option>Toán học</option><option>Vật lý</option><option>Ngữ văn</option><option>Tiếng Anh</option>
                         </select>
-                        <select value={grade} onChange={(e) => setGrade(e.target.value)} className="bg-gray-50 border border-gray-200 text-xs rounded-lg px-2 py-1 outline-none font-medium">
+                        <select value={grade} onChange={(e) => setGrade(e.target.value)} className="bg-gray-50 border border-gray-200 text-xs rounded-lg px-2 py-1.5 outline-none font-medium focus:border-indigo-500">
                           <option>Lớp 10</option><option>Lớp 11</option><option>Lớp 12</option>
                         </select>
+                        
+                        <div className="h-6 w-px bg-gray-200 hidden sm:block"></div> 
+                        
+                        <input 
+                          type="text" 
+                          placeholder="Lớp (VD: 12A1)" 
+                          value={className}
+                          onChange={(e) => setClassName(e.target.value)}
+                          className="bg-white border border-gray-200 text-xs rounded-lg px-2 py-1.5 w-[100px] outline-none font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-gray-400"
+                        />
+                        <input 
+                          type="text" 
+                          placeholder="Tiết (VD: 3)" 
+                          value={period}
+                          onChange={(e) => setPeriod(e.target.value)}
+                          className="bg-white border border-gray-200 text-xs rounded-lg px-2 py-1.5 w-[80px] outline-none font-medium focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-gray-400"
+                        />
                       </div>
                     </div>
+
                     <div className="relative group">
                       <textarea
                         className="w-full h-64 p-5 rounded-2xl border border-gray-200 bg-gray-50 text-sm focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all resize-none leading-relaxed"
@@ -384,21 +407,21 @@ function EduMirrorContent() {
                   </div>
 
                   <div className="bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100">
-  <h3 className="text-sm font-bold text-indigo-800 mb-2 flex items-center gap-2">
-    🎯 Hệ quy chiếu / Chuẩn đầu ra
-  </h3>
-  <textarea
-    className="w-full h-24 p-4 rounded-xl border border-indigo-200 bg-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
-    placeholder="VD: Học sinh biết cách giải..."
-    value={standardsText}
-    onChange={(e) => setStandardsText(e.target.value)}
-  />
-  
-  {/* Hướng dẫn UX/UI - Mẹo sư phạm */}
-  <p className="mt-2.5 text-[11px] text-indigo-600/80 italic leading-relaxed pl-1">
-    <span className="font-bold text-indigo-600">💡 Mẹo sư phạm:</span> Để AI phân tích sắc bén nhất, thầy/cô chỉ nên nhập từ <span className="font-bold">1 đến tối đa 3 trọng tâm</span> của tiết học. Nếu để trống, AI sẽ tự động quét toàn bộ giáo án.
-  </p>
-</div>
+                    <h3 className="text-sm font-bold text-indigo-800 mb-2 flex items-center gap-2">
+                      🎯 Hệ quy chiếu / Chuẩn đầu ra
+                    </h3>
+                    <textarea
+                      className="w-full h-24 p-4 rounded-xl border border-indigo-200 bg-white text-sm focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none shadow-inner"
+                      placeholder="VD: Học sinh biết cách giải phương trình..."
+                      value={standardsText}
+                      onChange={(e) => setStandardsText(e.target.value)}
+                    />
+                    
+                    {/* Hướng dẫn UX/UI */}
+                    <p className="mt-2.5 text-[11px] text-indigo-600/80 italic leading-relaxed pl-1">
+                      <span className="font-bold text-indigo-600">💡 Mẹo sư phạm:</span> Để AI phân tích sắc bén nhất, thầy/cô chỉ nên nhập từ <span className="font-bold">1 đến tối đa 3 trọng tâm</span> của tiết học. Nếu để trống, AI sẽ tự động quét toàn bộ giáo án.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="lg:col-span-4 space-y-6">
@@ -429,7 +452,7 @@ function EduMirrorContent() {
                           {loading ? "⏳ Đang phân tích & Sinh phiếu..." : "✨ Sinh Phiếu Khảo sát"}
                         </button>
                         <button
-                          onClick={() => { setLessonText(""); setStandardsText(""); setSurvey(null); setSelectedFile(null); setSurveyId(null); setQrUrl(""); }}
+                          onClick={() => { setLessonText(""); setStandardsText(""); setSurvey(null); setSelectedFile(null); setSurveyId(null); setQrUrl(""); setClassName(""); setPeriod(""); }}
                           className="w-full py-2 text-gray-500 text-xs hover:text-white underline"
                         >
                           Làm mới
@@ -485,14 +508,12 @@ function EduMirrorContent() {
 
           {activeTab === "dashboard" && (
             <section className="rounded-3xl border bg-white shadow-sm p-8 min-h-[600px]">
-              {/* 🚀 TRUYỀN BIẾN MODEL XUỐNG DASHBOARD */}
               <DashboardView model={model} />
             </section>
           )}
 
           {activeTab === "ai" && (
             <section className="rounded-3xl border bg-white shadow-sm p-8 min-h-[600px]">
-              {/* 🚀 TRUYỀN BIẾN MODEL XUỐNG TRẠM TƯ VẤN AI */}
               <AISuggestionsView lessonText={lessonText} apiKey={apiKey} model={model} />
             </section>
           )}
