@@ -355,47 +355,51 @@ function EduMirrorContent() {
 
                   <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm">
                     {/* 🚀 ĐÃ CẬP NHẬT GIAO DIỆN CHỌN MÔN (PILLS) VÀ XÓA BỎ DROPDOWN LỚP */}
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-4">
-                      <div className="flex flex-col gap-2 w-full">
-                        <div className="flex items-center justify-between w-full">
-                          <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">📄 Nội dung bài dạy</h3>
-                          
-                          {/* Khu vực nhập Lớp & Tiết */}
-                          <div className="flex items-center gap-2">
-                            <input 
-                              type="text" 
-                              placeholder="Lớp (VD: 12A1)" 
-                              value={className}
-                              onChange={(e) => setClassName(e.target.value)}
-                              className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 w-[110px] outline-none font-semibold text-gray-700 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-gray-400 placeholder:font-normal"
-                            />
-                            <span className="text-gray-300 font-bold">-</span>
-                            <input 
-                              type="text" 
-                              placeholder="Tiết (VD: 3)" 
-                              value={period}
-                              onChange={(e) => setPeriod(e.target.value)}
-                              className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 w-[90px] outline-none font-semibold text-gray-700 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-gray-400 placeholder:font-normal"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Thanh chọn Môn học dạng Pills (Nút bấm) */}
-                        <div className="flex flex-wrap gap-2 mt-1">
-                          {["Toán học", "Vật lý", "Hóa học", "Ngữ văn", "Tiếng Anh", "Sinh học", "Lịch sử", "Địa lý", "GDCD", "Tin học"].map((m) => (
-                            <button
-                              key={m}
-                              onClick={() => setSubject(m)}
-                              className={`px-3 py-1.5 rounded-full text-[11px] font-bold transition-all border ${
-                                subject === m 
-                                  ? "bg-indigo-600 text-white border-indigo-600 shadow-sm scale-105" 
-                                  : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50 hover:text-gray-700"
-                              }`}
-                            >
-                              {m}
-                            </button>
-                          ))}
-                        </div>
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3 w-full">
+                      <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2 whitespace-nowrap">
+                        📄 Nội dung bài dạy
+                      </h3>
+                      
+                      <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                        {/* Dropdown Môn học (Đã gộp 10 môn) */}
+                        <select 
+                          value={subject} 
+                          onChange={(e) => setSubject(e.target.value)} 
+                          className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 outline-none font-semibold text-gray-700 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all cursor-pointer min-w-[120px]"
+                        >
+                          <option>Toán học</option>
+                          <option>Vật lý</option>
+                          <option>Hóa học</option>
+                          <option>Sinh học</option>
+                          <option>Ngữ văn</option>
+                          <option>Tiếng Anh</option>
+                          <option>Lịch sử</option>
+                          <option>Địa lý</option>
+                          <option>GDCD</option>
+                          <option>Tin học</option>
+                        </select>
+                        
+                        <div className="h-5 w-px bg-gray-200 hidden sm:block mx-1"></div> 
+                        
+                        {/* Ô nhập Lớp */}
+                        <input 
+                          type="text" 
+                          placeholder="Lớp (VD: 12A1)" 
+                          value={className}
+                          onChange={(e) => setClassName(e.target.value)}
+                          className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 w-[110px] outline-none font-semibold text-gray-700 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-gray-400 placeholder:font-normal"
+                        />
+                        
+                        <span className="text-gray-300 font-bold">-</span>
+                        
+                        {/* Ô nhập Tiết */}
+                        <input 
+                          type="text" 
+                          placeholder="Tiết (VD: 3)" 
+                          value={period}
+                          onChange={(e) => setPeriod(e.target.value)}
+                          className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 w-[90px] outline-none font-semibold text-gray-700 focus:bg-white focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-gray-400 placeholder:font-normal"
+                        />
                       </div>
                     </div>
 
