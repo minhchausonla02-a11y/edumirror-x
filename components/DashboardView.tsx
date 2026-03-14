@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 
 function EmptyState({ msg }: { msg: string }) {
-  return <div className="text-xs text-gray-400 italic text-center py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">{msg}</div>;
+  return <div className="text-xs text-gray-500 italic text-center py-6 bg-white/5 rounded-2xl border border-dashed border-white/10">{msg}</div>;
 }
 
 const formatSurveyDate = (dateString: string) => {
@@ -93,7 +93,6 @@ export default function DashboardView({ model }: { model?: string }) {
              setStats(data.stats);
              setSurveyPayload(data.surveyPayload); 
              
-             // 🚀 CHUẨN HÓA DỮ LIỆU ĐỂ CÓ THỂ CHỈNH SỬA
              const normalized = (data.stats.feedbacks || []).map((fb: any) => {
                  if (typeof fb === 'string') return { raw_text: fb, is_sos: false, is_spam: false, is_harsh: false };
                  return { ...fb };
@@ -112,7 +111,6 @@ export default function DashboardView({ model }: { model?: string }) {
 
   useEffect(() => { fetchStats(); }, [selectedId]);
 
-  // 🚀 HÀM ĐIỀU HƯỚNG CÂU PHẢN HỒI (NORMAL <-> SOS <-> SPAM)
   const handleMoveFeedback = (textToMove: string, targetLabel: 'normal' | 'sos' | 'spam') => {
       const updated = editableFeedbacks.map(fb => {
           if (fb.raw_text === textToMove) {
@@ -128,10 +126,8 @@ export default function DashboardView({ model }: { model?: string }) {
       setHasUnsavedChanges(true);
   };
 
-  // 🚀 HÀM XÁC NHẬN LƯU (Mô phỏng lưu dữ liệu chuẩn bị cho AI)
   const handleSaveChanges = async () => {
       setIsSavingLabels(true);
-      // Giả lập độ trễ lưu Database để tạo UX chuyên nghiệp
       await new Promise(r => setTimeout(r, 800)); 
       setHasUnsavedChanges(false);
       setIsSavingLabels(false);
@@ -141,7 +137,6 @@ export default function DashboardView({ model }: { model?: string }) {
     setAnalyzing(true);
     try {
         const savedKey = localStorage.getItem("edumirror_key");
-        // AI CHỈ ĐỌC DỮ LIỆU ĐÃ ĐƯỢC GIÁO VIÊN DUYỆT (NORMAL)
         const normalFeedbacks = editableFeedbacks.filter(fb => !fb.is_sos && !fb.is_spam);
         const textArray = normalFeedbacks.map(fb => fb.raw_text);
         
@@ -172,11 +167,11 @@ export default function DashboardView({ model }: { model?: string }) {
 
   const handleDelete = async () => {
       if (!selectedId) return;
-      if (!confirm("Bạn có chắc chắn muốn xóa vĩnh viễn phiếu này?")) return;
+      if (!confirm("⚠️ CẢNH BÁO LƯỢNG TỬ: Bạn có chắc chắn muốn xóa vĩnh viễn bản ghi dữ liệu này?")) return;
       setDeleting(true);
       try {
           const res = await fetch(`/api/delete-survey?id=${selectedId}`, { method: "DELETE" });
-          if (res.ok) { alert("Đã xóa thành công!"); fetchSurveys(); } 
+          if (res.ok) { alert("Đã xóa dữ liệu thành công!"); fetchSurveys(); } 
           else { alert("Lỗi khi xóa phiếu."); }
       } catch (e) { alert("Lỗi kết nối server."); } 
       finally { setDeleting(false); }
@@ -184,51 +179,58 @@ export default function DashboardView({ model }: { model?: string }) {
 
   const ProgressBar = ({ label, val, total, color }: any) => {
     const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+    const neonShadow = color.includes('pink') ? 'shadow-[0_0_8px_#ec4899]' 
+                     : color.includes('emerald') ? 'shadow-[0_0_8px_#10b981]' 
+                     : color.includes('blue') ? 'shadow-[0_0_8px_#3b82f6]'
+                     : color.includes('purple') ? 'shadow-[0_0_8px_#a855f7]'
+                     : color.includes('red') ? 'shadow-[0_0_8px_#ef4444]'
+                     : color.includes('amber') ? 'shadow-[0_0_8px_#f59e0b]'
+                     : '';
+
     return (
-      <div className="mb-3 group">
-        <div className="flex justify-between text-xs mb-1 font-medium text-gray-700">
-          <span className="truncate max-w-[80%]" title={label}>{label}</span>
-          <span className="text-gray-900 font-bold">{val || 0} ({pct}%)</span>
+      <div className="mb-4 group">
+        <div className="flex justify-between text-[11px] mb-1.5 font-semibold text-gray-400 uppercase tracking-wide">
+          <span className="truncate max-w-[80%] text-gray-300" title={label}>{label}</span>
+          <span className="text-gray-100 font-mono">{val || 0} <span className="opacity-50">({pct}%)</span></span>
         </div>
-        <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
-          <div className={`h-2 rounded-full ${color} transition-all duration-700 group-hover:opacity-80`} style={{ width: `${pct}%` }}></div>
+        <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden border border-white/5">
+          <div className={`h-1.5 rounded-full ${color} ${neonShadow} transition-all duration-1000 ease-out`} style={{ width: `${pct}%` }}></div>
         </div>
       </div>
     );
   };
 
   const showData = !!stats;
-
-  // PHÂN LOẠI DỰA TRÊN DỮ LIỆU CÓ THỂ CHỈNH SỬA (editableFeedbacks)
   const sosFeedbacks = editableFeedbacks.filter((fb: any) => fb.is_sos && !fb.is_spam);
   const spamFeedbacks = editableFeedbacks.filter((fb: any) => fb.is_spam);
   const normalFeedbacks = editableFeedbacks.filter((fb: any) => !fb.is_sos && !fb.is_spam);
-
   const currentSurvey = surveys.find(s => s.short_id === selectedId);
   const currentSubject = currentSurvey ? extractSubject(currentSurvey.payload?.type) : "";
 
   return (
-    <div className="space-y-8 font-sans animate-fade-in pb-12">
+    <div className="space-y-8 font-sans text-gray-200 animate-fade-in pb-12 max-w-7xl mx-auto">
       
-      {/* HEADER */}
-      <div className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
+      {/* HEADER COMMAND BAR */}
+      <div className="bg-[#0A0A12]/80 backdrop-blur-xl p-5 rounded-3xl border border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.5)] flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-3 mb-1">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">📊 Báo cáo lớp học</h2>
+            <h2 className="text-xl font-bold text-gray-100 flex items-center gap-2 tracking-wide uppercase">
+               <span className="text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]">📊</span> Báo cáo lớp học
+            </h2>
             {currentSubject && (
-              <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all">
-                📚 {currentSubject}
+              <span className="bg-purple-500/10 text-purple-300 border border-purple-500/30 px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)]">
+                {currentSubject}
               </span>
             )}
           </div>
-          <p className="text-sm text-gray-500">{stats ? `Dữ liệu từ ${stats.total} học sinh` : "Chọn phiếu để xem"}</p>
+          <p className="text-sm text-gray-500 font-mono mt-1">{stats ? `Mẫu thu thập: ${stats.total} biến số` : "Đang chờ chỉ định tệp dữ liệu..."}</p>
         </div>
         
-        <div className="flex gap-2 w-full md:w-auto items-center">
+        <div className="flex gap-3 w-full md:w-auto items-center">
             {surveys.length > 0 ? (
             <>
                 <select 
-                    className="flex-1 p-3 border rounded-xl text-sm min-w-[300px] max-w-[450px] bg-gray-50 font-medium outline-none cursor-pointer focus:ring-2 focus:ring-indigo-500"
+                    className="flex-1 p-3 border rounded-xl text-sm min-w-[300px] max-w-[450px] bg-[#05050A] text-gray-200 border-white/10 font-mono outline-none cursor-pointer focus:ring-1 focus:ring-purple-500/50 shadow-inner [&>option]:bg-[#0D0D18]"
                     value={selectedId} onChange={(e) => setSelectedId(e.target.value)}
                 >
                     {surveys.map(s => {
@@ -242,41 +244,51 @@ export default function DashboardView({ model }: { model?: string }) {
                       );
                     })}
                 </select>
-                <button onClick={fetchStats} className="p-3 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-100 border border-indigo-100" title="Làm mới">🔄</button>
-                <button onClick={handleDelete} disabled={deleting} className="p-3 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 border border-red-100 transition-colors" title="Xóa phiếu này">{deleting ? "..." : "🗑️"}</button>
+                <button onClick={fetchStats} className="p-3 bg-white/5 text-gray-300 rounded-xl hover:bg-white/10 border border-white/10 transition-colors" title="Đồng bộ lại">🔄</button>
+                <button onClick={handleDelete} disabled={deleting} className="p-3 bg-red-500/10 text-red-400 rounded-xl hover:bg-red-500/20 border border-red-500/20 transition-colors" title="Tiêu hủy tệp">{deleting ? "..." : "🗑️"}</button>
             </>
-            ) : <div className="text-red-500 text-sm p-2">Chưa có phiếu nào.</div>}
+            ) : <div className="text-amber-500 text-sm p-2 font-mono">Chưa có tệp dữ liệu nào trong kho.</div>}
         </div>
       </div>
 
       {loading ? (
-        <div className="text-center py-24 text-indigo-500"><p className="text-sm font-bold animate-pulse">Đang tải dữ liệu...</p></div>
+        <div className="text-center py-32"><p className="text-sm font-mono text-purple-500 animate-pulse tracking-widest uppercase">Đang nạp dữ liệu từ máy chủ...</p></div>
       ) : showData ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           
-          <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-gradient-to-br from-indigo-600 to-purple-700 p-8 rounded-3xl shadow-lg text-white flex flex-col sm:flex-row justify-between items-center relative overflow-hidden">
-             <div className="relative z-10">
-                <div className="text-xs opacity-80 uppercase font-bold tracking-widest mb-1">Tổng phiếu</div>
-                <div className="text-6xl font-bold tracking-tight">{stats.total || 0}</div>
-             </div>
-             <div className="relative z-10 text-right mt-4 sm:mt-0">
-                <div className="text-xs opacity-80 uppercase font-bold tracking-widest mb-2">Cảm xúc chủ đạo</div>
-                <div className="text-3xl font-bold bg-white/20 px-4 py-2 rounded-2xl backdrop-blur-sm inline-block">
-                  {stats.feeling && Object.keys(stats.feeling).length > 0 ? Object.entries(stats.feeling).sort((a:any, b:any) => b[1] - a[1])[0]?.[0] : "—"}
+          {/* HERO CARD - TỔNG PHIẾU */}
+          <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-gradient-to-br from-purple-900/40 to-[#05050A] border border-purple-500/30 p-8 rounded-3xl shadow-[inset_0_0_30px_rgba(168,85,247,0.1)] flex flex-col sm:flex-row justify-between items-center relative overflow-hidden">
+             <div className="relative z-10 flex items-center gap-6">
+                <div className="w-24 h-24 rounded-full border-[6px] border-purple-500/30 flex items-center justify-center shadow-[0_0_30px_rgba(168,85,247,0.4)] bg-[#05050A]">
+                   <div className="text-5xl font-extrabold text-white drop-shadow-[0_0_15px_#a855f7]">{stats.total || 0}</div>
+                </div>
+                <div>
+                   <div className="text-sm text-purple-300 uppercase font-bold tracking-widest mb-1">Mật độ Dữ liệu</div>
+                   <div className="text-xs text-gray-400 font-mono">Trạng thái: <span className={stats.total > 20 ? "text-emerald-400" : "text-amber-400"}>{stats.total > 20 ? 'Ổn định' : 'Thiếu hụt'}</span></div>
                 </div>
              </div>
-             <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-10 rounded-full blur-3xl -mr-16 -mt-16"></div>
+             
+             <div className="relative z-10 text-right mt-6 sm:mt-0 flex flex-col items-end">
+                <div className="text-[10px] text-gray-400 uppercase font-bold tracking-widest mb-3">Chỉ số Cảm xúc Cao nhất</div>
+                <div className="text-2xl font-bold bg-white/5 border border-white/10 px-6 py-3 rounded-2xl backdrop-blur-md inline-block shadow-[0_4px_20px_rgba(0,0,0,0.5)] text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-400">
+                  {stats.feeling && Object.keys(stats.feeling).length > 0 ? Object.entries(stats.feeling).sort((a:any, b:any) => b[1] - a[1])[0]?.[0] : "Chưa xác định"}
+                </div>
+             </div>
+             <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2"><span className="bg-pink-100 text-pink-600 p-1 rounded text-sm">🎭</span> Cảm xúc</h3>
+          {/* CHARTS CARDS */}
+          <div className="bg-[#0D0D18] p-6 rounded-3xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] relative overflow-hidden group transition-all hover:border-pink-500/30">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-pink-500 to-rose-500 opacity-30 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_#ec4899]"></div>
+            <h3 className="font-bold text-gray-200 mb-6 flex items-center gap-2 uppercase tracking-wide text-sm"><span className="text-pink-400 drop-shadow-[0_0_5px_#ec4899] text-lg">🎭</span> Cảm xúc</h3>
             {stats.feeling && Object.keys(stats.feeling).length > 0 ? 
                 Object.entries(stats.feeling).map(([k, v]: any) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-pink-500" />) 
-                : <EmptyState msg="Chưa có dữ liệu" />}
+                : <EmptyState msg="Chưa thu thập đủ dữ liệu" />}
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2"><span className="bg-emerald-100 text-emerald-600 p-1 rounded text-sm">🧠</span> Mức độ hiểu</h3>
+          <div className="bg-[#0D0D18] p-6 rounded-3xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] relative overflow-hidden group transition-all hover:border-emerald-500/30">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500 opacity-30 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_#10b981]"></div>
+            <h3 className="font-bold text-gray-200 mb-6 flex items-center gap-2 uppercase tracking-wide text-sm"><span className="text-emerald-400 drop-shadow-[0_0_5px_#10b981] text-lg">🧠</span> Mức độ hiểu</h3>
             {stats.understanding && Object.keys(stats.understanding).length > 0 ? (
                 Object.entries(stats.understanding)
                   .sort((a:any, b:any) => a[0].localeCompare(b[0]))
@@ -286,68 +298,71 @@ export default function DashboardView({ model }: { model?: string }) {
                       const colorMap: Record<string, string> = { "B1": "bg-red-500", "B2": "bg-orange-400", "B3": "bg-blue-400", "B4": "bg-emerald-500" };
                       return <ProgressBar key={k} label={labelMap[code] || k} val={v} total={stats.total} color={colorMap[code] || "bg-gray-400"} />;
                   })
-            ) : <EmptyState msg="Chưa có dữ liệu" />}
+            ) : <EmptyState msg="Chưa thu thập đủ dữ liệu" />}
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-red-100 shadow-sm relative overflow-hidden row-span-2">
-            <h3 className="font-bold text-red-600 mb-6 flex items-center gap-2 relative z-10"><span className="bg-red-100 text-red-600 p-1 rounded text-sm">⚠️</span> Điểm nghẽn</h3>
+          <div className="bg-red-950/10 p-6 rounded-3xl border border-red-500/20 shadow-[0_8px_30px_rgba(0,0,0,0.5)] relative overflow-hidden row-span-2 group">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-orange-500 shadow-[0_0_15px_#ef4444]"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-red-600/10 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+            <h3 className="font-bold text-red-400 mb-6 flex items-center gap-2 relative z-10 uppercase tracking-wide text-sm"><span className="text-xl drop-shadow-[0_0_5px_#ef4444]">⚠️</span> Điểm nghẽn</h3>
             <div className="space-y-3 relative z-10 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {stats.difficulties && Object.keys(stats.difficulties).length > 0 ? 
                 Object.entries(stats.difficulties).sort((a:any, b:any) => b[1] - a[1]).map(([k, v]: any) => (
-                  <div key={k} className="flex justify-between items-center bg-red-50 p-3 rounded-xl border border-red-100">
-                    <span className="text-xs font-medium text-gray-800 leading-snug max-w-[80%]">{k}</span>
-                    <span className="text-xs font-bold bg-white text-red-600 px-2 py-1 rounded shadow-sm">{v}</span>
+                  <div key={k} className="flex justify-between items-center bg-[#05050A] p-3 rounded-xl border border-red-500/30 hover:bg-red-500/10 transition-colors shadow-inner">
+                    <span className="text-[11px] font-medium text-gray-300 leading-relaxed max-w-[80%]">{k}</span>
+                    <span className="text-xs font-bold bg-red-500/20 text-red-400 border border-red-500/50 px-2.5 py-1 rounded-lg shadow-[0_0_10px_rgba(239,68,68,0.2)] font-mono">{v}</span>
                   </div>
                 )) 
-              : <div className="text-center py-8 text-green-600 text-xs font-bold">Lớp nắm bài tốt!</div>}
+              : <div className="text-center py-10 text-emerald-500 text-xs font-bold tracking-wider uppercase border border-dashed border-emerald-500/30 rounded-xl bg-emerald-500/5">Hệ thống an toàn. Không có điểm nghẽn.</div>}
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm">
-            <h3 className="font-bold text-blue-600 mb-6 flex items-center gap-2"><span className="bg-blue-100 text-blue-600 p-1 rounded text-sm">💡</span> Mong muốn</h3>
+          <div className="bg-[#0D0D18] p-6 rounded-3xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] relative overflow-hidden group transition-all hover:border-blue-500/30">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-400 to-cyan-400 opacity-30 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_#3b82f6]"></div>
+            <h3 className="font-bold text-gray-200 mb-6 flex items-center gap-2 uppercase tracking-wide text-sm"><span className="text-blue-400 drop-shadow-[0_0_5px_#3b82f6] text-lg">💡</span> Mong muốn</h3>
             <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
               {stats.adjustments && Object.keys(stats.adjustments).length > 0 ? 
                   Object.entries(stats.adjustments).map(([k, v]: any) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-blue-500" />)
-                  : <EmptyState msg="Chưa có dữ liệu" />}
+                  : <EmptyState msg="Chưa thu thập đủ dữ liệu" />}
             </div>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-purple-100 shadow-sm">
-            <h3 className="font-bold text-purple-600 mb-6 flex items-center gap-2"><span className="bg-purple-100 text-purple-600 p-1 rounded text-sm">🎨</span> Phong cách học</h3>
+          <div className="bg-[#0D0D18] p-6 rounded-3xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] relative overflow-hidden group transition-all hover:border-purple-500/30">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-purple-400 to-fuchsia-400 opacity-30 group-hover:opacity-100 transition-opacity shadow-[0_0_10px_#a855f7]"></div>
+            <h3 className="font-bold text-gray-200 mb-6 flex items-center gap-2 uppercase tracking-wide text-sm"><span className="text-purple-400 drop-shadow-[0_0_5px_#a855f7] text-lg">🎨</span> Phong cách học</h3>
             <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
               {stats.styles && Object.keys(stats.styles).length > 0 ? 
                   Object.entries(stats.styles).map(([k, v]: any) => <ProgressBar key={k} label={k} val={v} total={stats.total} color="bg-purple-500" />)
-                  : <EmptyState msg="Chưa có dữ liệu" />}
+                  : <EmptyState msg="Chưa thu thập đủ dữ liệu" />}
             </div>
           </div>
 
+          {/* KHẢO SÁT BỔ SUNG */}
           {stats?.custom_charts && Object.keys(stats.custom_charts).length > 0 && (
-            <div className="col-span-1 md:col-span-2 lg:col-span-3 mt-2">
-                <div className="flex items-center gap-2 mb-4 px-2">
-                   <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
-                      <span className="bg-amber-100 text-amber-600 p-1.5 rounded-lg text-sm shadow-sm">📝</span> 
-                      Khảo sát bổ sung (Tùy chọn)
+            <div className="col-span-1 md:col-span-2 lg:col-span-3 mt-4">
+                <div className="flex items-center gap-3 mb-6 px-2">
+                   <h3 className="text-lg font-bold text-gray-200 flex items-center gap-2 uppercase tracking-wide">
+                      <span className="text-amber-400 drop-shadow-[0_0_8px_#f59e0b]">⚡</span> Khảo sát tùy chọn
                    </h3>
-                   <div className="flex-1 h-px bg-amber-200 ml-2"></div>
+                   <div className="flex-1 h-px bg-gradient-to-r from-amber-500/30 to-transparent"></div>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {Object.entries(stats.custom_charts).map(([qKey, chartData]: any) => {
                         let parsedPayload = surveyPayload;
-                        if (typeof surveyPayload === 'string') {
-                            try { parsedPayload = JSON.parse(surveyPayload); } catch(e){}
-                        }
+                        if (typeof surveyPayload === 'string') { try { parsedPayload = JSON.parse(surveyPayload); } catch(e){} }
                         let qTitle = findQuestionTitle(parsedPayload, qKey) || qKey;
+                        
                         return (
-                          <div key={qKey} className="bg-white p-6 rounded-3xl border border-amber-100 shadow-sm relative overflow-hidden">
-                              <div className="absolute top-0 right-0 w-16 h-16 bg-amber-50 rounded-bl-full -z-10"></div>
-                              <h4 className="font-bold text-gray-800 mb-5 text-sm leading-snug">{qTitle}</h4>
+                          <div key={qKey} className="bg-[#0D0D18] p-6 rounded-3xl border border-amber-500/20 shadow-[0_8px_30px_rgba(0,0,0,0.5)] relative overflow-hidden group">
+                              <div className="absolute top-0 right-0 w-20 h-20 bg-amber-500/10 rounded-bl-full -z-10 blur-xl"></div>
+                              <h4 className="font-bold text-gray-200 mb-6 text-sm leading-relaxed border-b border-white/5 pb-3">{qTitle}</h4>
                               <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
                                   {Object.keys(chartData).length > 0 ? (
                                       Object.entries(chartData)
                                         .sort((a:any, b:any) => b[1] - a[1]) 
                                         .map(([optKey, count]: any) => (
-                                          <ProgressBar key={optKey} label={optKey} val={count} total={stats.total} color="bg-amber-400" />
+                                          <ProgressBar key={optKey} label={optKey} val={count} total={stats.total} color="bg-amber-500" />
                                       ))
                                   ) : <EmptyState msg="Chưa có dữ liệu" />}
                               </div>
@@ -359,69 +374,73 @@ export default function DashboardView({ model }: { model?: string }) {
           )}
 
           {/* ========================================================= */}
-          {/* LỜI NHẮN & AI (ĐÃ NÂNG CẤP HUMAN-IN-THE-LOOP) */}
+          {/* KHU VỰC NLP AI & LỜI NHẮN (HUMAN-IN-THE-LOOP) */}
           {/* ========================================================= */}
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-sm col-span-1 md:col-span-2 lg:col-span-3">
-            
+          <div className="bg-[#0A0A12] p-6 lg:p-8 rounded-[2rem] border border-purple-500/20 shadow-[0_10px_50px_rgba(0,0,0,0.6)] col-span-1 md:col-span-2 lg:col-span-3 mt-4 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-b from-purple-600/5 to-blue-600/5 rounded-full blur-[100px] -z-10 pointer-events-none"></div>
+
             {/* THANH ĐIỀU KHIỂN & XÁC NHẬN */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-200">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 bg-[#05050A] p-5 rounded-2xl border border-white/5 shadow-inner">
                 <div className="flex flex-col">
-                  <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                    <span className="bg-white p-1 rounded shadow-sm">🧠</span> Huấn luyện phân loại AI
+                  <h3 className="font-bold text-gray-200 text-sm flex items-center gap-2 uppercase tracking-widest">
+                    <span className="text-xl drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]">🧠</span> Trạm Huấn Luyện AI
                   </h3>
-                  <p className="text-[11px] text-gray-500 mt-1">Thầy/cô có thể điều chỉnh lại các câu AI phân loại sai trước khi lưu.</p>
+                  <p className="text-[11px] text-gray-500 mt-2 font-mono">Hiệu chỉnh nhãn dán thủ công để tối ưu hóa thuật toán NLP.</p>
                 </div>
                 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-4">
                     {hasUnsavedChanges && (
-                        <span className="text-xs font-bold text-amber-600 animate-pulse flex items-center gap-1">
-                            ⚠️ Có thay đổi chưa lưu
+                        <span className="text-[10px] font-bold text-amber-500 animate-pulse flex items-center gap-1 drop-shadow-[0_0_5px_#f59e0b] uppercase tracking-wider bg-amber-500/10 px-3 py-1.5 rounded-lg border border-amber-500/20">
+                            ⚠️ Cần đồng bộ
                         </span>
                     )}
                     <button 
                         onClick={handleSaveChanges} 
                         disabled={!hasUnsavedChanges || isSavingLabels}
-                        className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm flex items-center gap-2
+                        className={`text-xs font-bold px-5 py-3 rounded-xl transition-all flex items-center gap-2 uppercase tracking-wider
                             ${hasUnsavedChanges 
-                                ? "bg-amber-500 hover:bg-amber-600 text-white animate-bounce-slight" 
-                                : "bg-gray-200 text-gray-400 cursor-not-allowed"}`}
+                                ? "bg-amber-600 hover:bg-amber-500 text-white shadow-[0_0_20px_rgba(217,119,6,0.5)]" 
+                                : "bg-white/5 text-gray-600 border border-white/5 cursor-not-allowed"}`}
                     >
-                        {isSavingLabels ? "⏳ Đang lưu..." : "💾 Xác nhận & Lưu"}
+                        {isSavingLabels ? "⏳ ĐANG GHI NHỚ..." : "💾 ĐỒNG BỘ DATA"}
                     </button>
                     
                     <button 
                         onClick={analyzeFeedback} 
                         disabled={analyzing || hasUnsavedChanges} 
-                        className={`text-xs text-white px-4 py-2 rounded-xl shadow transition-all font-bold
+                        className={`text-xs text-white px-6 py-3 rounded-xl transition-all font-extrabold tracking-widest flex items-center gap-2 uppercase
                             ${hasUnsavedChanges 
-                                ? "bg-gray-300 cursor-not-allowed" 
-                                : "bg-gradient-to-r from-violet-600 to-indigo-600 hover:scale-105"}`}
+                                ? "bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700" 
+                                : "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 shadow-[0_0_25px_rgba(168,85,247,0.5)] border border-purple-400/30"}`}
                     >
-                        {analyzing ? "Đang đọc..." : "✨ AI Phân tích Nhóm"}
+                        {analyzing ? "⏳ ĐANG PHÂN TÍCH..." : "✨ KÍCH HOẠT AI NLP"}
                     </button>
                 </div>
             </div>
 
             {/* KẾT QUẢ AI PHÂN TÍCH */}
             {aiResult && (
-                <div className="mb-8 bg-indigo-50/60 rounded-2xl border border-indigo-100 overflow-hidden animate-fade-in">
-                    <div className="p-3 bg-indigo-100/50 flex justify-between items-center border-b border-indigo-200">
-                        <span className="text-xs font-bold text-indigo-800 uppercase">🤖 Kết quả phân tích nhóm</span>
-                        <button onClick={goToSolution} className="text-xs bg-white text-indigo-700 border border-indigo-200 px-3 py-1 rounded-lg font-bold shadow-sm hover:bg-indigo-50 transition-colors">
-                            💡 Nhờ AI tư vấn giải pháp ngay →
+                <div className="mb-10 bg-gradient-to-br from-purple-900/40 to-[#0D0D18] rounded-2xl border border-purple-500/50 overflow-hidden animate-fade-in shadow-[0_0_40px_rgba(168,85,247,0.2)] relative">
+                    <div className="absolute top-0 left-0 w-1 h-full bg-purple-400 shadow-[0_0_15px_#a855f7]"></div>
+                    <div className="p-4 bg-black/40 flex justify-between items-center border-b border-purple-500/20 backdrop-blur-md">
+                        <span className="text-[11px] font-bold text-purple-300 uppercase tracking-widest flex items-center gap-2 ml-2">
+                          🤖 BÁO CÁO PHÂN TÍCH KHỐI NHÓM (NLP)
+                        </span>
+                        <button onClick={goToSolution} className="text-[11px] bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/50 px-4 py-2 rounded-lg font-bold shadow-[0_0_15px_rgba(168,85,247,0.6)] transition-colors uppercase tracking-wider">
+                            💡 TƯ VẤN SƯ PHẠM →
                         </button>
                     </div>
-                    <div className="p-4 space-y-3">
+                    <div className="p-6 grid gap-5 grid-cols-1 md:grid-cols-2">
                         {aiResult.map((item: any, idx: number) => (
-                            <div key={idx} className="flex items-start gap-3 p-3 bg-white rounded-xl border border-gray-100 shadow-sm">
-                                <div className={`w-10 h-10 rounded-lg flex flex-col items-center justify-center flex-shrink-0 ${item.type === 'negative' ? 'bg-red-50 text-red-600' : 'bg-emerald-50 text-emerald-600'}`}>
-                                    <span className="text-lg font-bold">{item.count}</span>
+                            <div key={idx} className="flex items-start gap-4 p-5 bg-[#05050A] rounded-xl border border-white/5 shadow-inner hover:border-purple-500/30 transition-colors">
+                                <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 border ${item.type === 'negative' ? 'bg-red-500/10 border-red-500/40 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'}`}>
+                                    <span className="text-2xl font-extrabold font-mono">{item.count}</span>
                                 </div>
                                 <div>
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <span className="text-[10px] font-bold uppercase text-gray-400 tracking-wider">{item.category}</span>
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-[9px] font-bold uppercase text-purple-200 tracking-widest bg-purple-500/20 border border-purple-500/30 px-2.5 py-1 rounded shadow-[inset_0_0_8px_rgba(168,85,247,0.2)]">{item.category}</span>
                                     </div>
-                                    <p className="text-sm text-gray-800 font-medium leading-snug">{item.summary}</p>
+                                    <p className="text-sm text-gray-300 font-medium leading-relaxed">{item.summary}</p>
                                 </div>
                             </div>
                         ))}
@@ -431,27 +450,26 @@ export default function DashboardView({ model }: { model?: string }) {
 
             {/* 1. KHU VỰC SOS */}
             {sosFeedbacks.length > 0 && (
-              <div className="mb-6 bg-red-50 border border-red-200 rounded-xl shadow-sm overflow-hidden">
+              <div className="mb-8 bg-red-950/20 border border-red-500/40 rounded-2xl shadow-[0_0_30px_rgba(239,68,68,0.15)] overflow-hidden">
                 <details className="group" open>
-                  <summary className="p-4 cursor-pointer flex items-center justify-between hover:bg-red-100 transition-colors list-none outline-none">
-                     <h4 className="text-red-700 font-bold flex items-center gap-2 text-sm uppercase tracking-wide">
-                       <span className="text-xl">🚨</span> Cảnh báo an toàn ({sosFeedbacks.length})
+                  <summary className="p-4 cursor-pointer flex items-center justify-between hover:bg-red-900/30 transition-colors list-none outline-none">
+                     <h4 className="text-red-400 font-bold flex items-center gap-3 text-xs uppercase tracking-widest drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                       <span className="text-xl animate-pulse">🚨</span> CẢNH BÁO AN TOÀN CẤP 1 ({sosFeedbacks.length})
                      </h4>
                      <span className="text-red-500 font-bold group-open:rotate-180 transition-transform">▼</span>
                   </summary>
                   
-                  <div className="p-4 pt-0 space-y-3 bg-red-50">
+                  <div className="p-4 pt-0 space-y-3 bg-transparent">
                     {sosFeedbacks.map((fb: any, idx: number) => (
-                      <div key={idx} className="bg-white rounded-lg border border-red-200 shadow-sm overflow-hidden flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-3 gap-3">
-                        <div className="text-red-900 text-sm font-bold italic border-l-4 border-red-500 pl-3 flex-1">
+                      <div key={idx} className="bg-[#05050A] rounded-xl border border-red-500/30 shadow-inner flex flex-col sm:flex-row items-stretch sm:items-center justify-between p-4 gap-4">
+                        <div className="text-red-300 text-sm font-medium italic border-l-4 border-red-500 pl-4 flex-1 leading-relaxed">
                           "{fb.raw_text}"
                         </div>
-                        {/* NÚT ĐIỀU KHIỂN */}
                         <div className="flex gap-2 shrink-0">
-                            <button onClick={() => handleMoveFeedback(fb.raw_text, 'normal')} className="text-[10px] font-bold bg-gray-100 hover:bg-emerald-100 hover:text-emerald-700 text-gray-600 px-2 py-1.5 rounded transition-colors">
-                                🔙 Khôi phục (Bình thường)
+                            <button onClick={() => handleMoveFeedback(fb.raw_text, 'normal')} className="text-[10px] font-bold bg-white/5 hover:bg-emerald-500/20 hover:text-emerald-400 hover:border-emerald-500/50 text-gray-400 px-3 py-2 rounded-lg border border-white/10 transition-all uppercase tracking-wider">
+                                🔙 Khôi phục
                             </button>
-                            <button onClick={() => handleMoveFeedback(fb.raw_text, 'spam')} className="text-[10px] font-bold bg-gray-100 hover:bg-gray-300 text-gray-600 px-2 py-1.5 rounded transition-colors">
+                            <button onClick={() => handleMoveFeedback(fb.raw_text, 'spam')} className="text-[10px] font-bold bg-white/5 hover:bg-white/10 text-gray-400 px-3 py-2 rounded-lg border border-white/10 transition-all uppercase tracking-wider">
                                 🗑️ Bỏ rác
                             </button>
                         </div>
@@ -462,80 +480,82 @@ export default function DashboardView({ model }: { model?: string }) {
               </div>
             )}
 
-            {/* 2. KHU VỰC LỜI NHẮN ẨN DANH (HỢP LỆ) */}
+            {/* 2. KHU VỰC LỜI NHẮN HỢP LỆ */}
             <div className="mb-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                    💌 Lời nhắn hợp lệ ({normalFeedbacks.length})
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-6 gap-4 border-b border-white/5 pb-4">
+                  <h3 className="font-bold text-gray-200 text-sm flex items-center gap-2 uppercase tracking-widest">
+                    <span className="text-purple-400">💌</span> Lời nhắn hợp lệ ({normalFeedbacks.length})
                   </h3>
-                  <div className="flex items-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-200">
-                    <span className={`text-[10px] font-bold transition-colors ${showRaw ? 'text-red-600' : 'text-gray-500'}`}>
-                      {showRaw ? '👁️ Đang hiện bản gốc' : '🛡️ Đã bật khiên bảo vệ'}
+                  <div className="flex items-center gap-3 bg-[#05050A] px-4 py-2 rounded-full border border-white/10 shadow-inner">
+                    <span className={`text-[10px] font-bold uppercase tracking-widest transition-colors ${showRaw ? 'text-red-400 drop-shadow-[0_0_5px_#ef4444]' : 'text-gray-500'}`}>
+                      {showRaw ? '👁️ HIỆN BẢN GỐC' : '🛡️ ĐÃ CHE MỜ (SAFE)'}
                     </span>
                     <button 
                       onClick={() => setShowRaw(!showRaw)}
-                      className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${showRaw ? 'bg-red-500' : 'bg-emerald-400'}`}
+                      className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors focus:outline-none border border-white/10 ${showRaw ? 'bg-red-600 shadow-[0_0_15px_#ef4444]' : 'bg-emerald-600 shadow-[0_0_15px_#10b981]'}`}
                     >
-                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${showRaw ? 'translate-x-4.5' : 'translate-x-1'}`} />
+                      <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${showRaw ? 'translate-x-5' : 'translate-x-1'}`} />
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar pb-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar pb-2">
                   {normalFeedbacks.length > 0 ? normalFeedbacks.map((fb: any, i: number) => {
                       const isHarsh = fb.is_harsh;
-                      let textToDisplay = (isHarsh && !showRaw) ? "Nội dung nhạy cảm đã bị che. Tắt Khiên để xem." : fb.raw_text;
+                      let textToDisplay = (isHarsh && !showRaw) ? "Nội dung nhạy cảm đã bị ẩn. Tắt Khiên để xem." : fb.raw_text;
                       const isHiddenHarsh = isHarsh && !showRaw;
 
                       return (
-                        <div key={i} className={`group p-3.5 rounded-xl text-xs transition-all duration-300 border border-gray-100 flex flex-col justify-between h-full
-                            ${isHiddenHarsh ? 'bg-gray-50 text-gray-500' : 'bg-white text-gray-700 shadow-sm hover:shadow-md'}
+                        <div key={i} className={`group p-5 rounded-2xl text-sm transition-all duration-300 border flex flex-col justify-between h-full relative overflow-hidden
+                            ${isHiddenHarsh ? 'bg-white/5 border-white/5 text-gray-500' : 'bg-[#05050A] border-white/10 text-gray-300 hover:border-purple-500/40 hover:shadow-[0_0_25px_rgba(168,85,247,0.15)]'}
                         `}>
-                            <div>
-                                {isHiddenHarsh && <div className="mb-1"><span className="inline-block bg-gray-300 text-gray-700 px-1.5 py-0.5 rounded text-[9px] font-bold not-italic">🔒 Đã khóa</span></div>}
-                                <span className={`leading-relaxed ${isHiddenHarsh ? 'italic font-medium' : 'italic'}`}>
+                            {/* Hiệu ứng viền chạy khi hover */}
+                            {!isHiddenHarsh && <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_15px_#a855f7]"></div>}
+
+                            <div className="relative z-10">
+                                {isHiddenHarsh && <div className="mb-3"><span className="inline-block bg-black text-gray-500 border border-gray-700 px-2 py-0.5 rounded text-[9px] font-mono tracking-widest not-italic">🔒 ENCRYPTED</span></div>}
+                                <span className={`leading-relaxed ${isHiddenHarsh ? 'italic font-mono text-xs' : 'font-medium text-[13px]'}`}>
                                     {isHiddenHarsh ? textToDisplay : `"${textToDisplay}"`}
                                 </span>
                             </div>
                             
-                            {/* NÚT ĐIỀU KHIỂN (Hiện khi hover) */}
-                            <div className="mt-3 pt-2 border-t border-gray-100 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <button onClick={() => handleMoveFeedback(fb.raw_text, 'sos')} className="text-[10px] font-bold text-red-500 hover:bg-red-50 px-2 py-1 rounded transition-colors" title="Chuyển vào Cảnh báo">
-                                    🚨 Đánh dấu SOS
+                            <div className="mt-5 pt-3 border-t border-white/5 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity relative z-10">
+                                <button onClick={() => handleMoveFeedback(fb.raw_text, 'sos')} className="text-[9px] font-bold text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-colors border border-transparent hover:border-red-500/30 uppercase tracking-widest">
+                                    🚨 Gắn cờ SOS
                                 </button>
-                                <button onClick={() => handleMoveFeedback(fb.raw_text, 'spam')} className="text-[10px] font-bold text-gray-400 hover:bg-gray-100 hover:text-gray-700 px-2 py-1 rounded transition-colors" title="Chuyển vào Thùng rác">
+                                <button onClick={() => handleMoveFeedback(fb.raw_text, 'spam')} className="text-[9px] font-bold text-gray-500 hover:bg-white/10 hover:text-gray-300 px-3 py-1.5 rounded-lg transition-colors border border-transparent hover:border-white/10 uppercase tracking-widest">
                                     🗑️ Bỏ rác
                                 </button>
                             </div>
                         </div>
                       );
-                  }) : <EmptyState msg="Chưa có lời nhắn hợp lệ" />}
+                  }) : <EmptyState msg="Kho lưu trữ trống." />}
                 </div>
             </div>
 
             {/* 3. KHU VỰC THÙNG RÁC AI */}
             {spamFeedbacks.length > 0 && (
-                <div className="mt-6 border-t border-gray-100 pt-4">
+                <div className="mt-8 border-t border-white/10 pt-6">
                     <button 
                         onClick={() => setShowTrash(!showTrash)} 
-                        className="text-xs text-gray-500 hover:text-gray-800 flex items-center gap-2 font-bold transition-colors"
+                        className="text-[11px] text-gray-500 hover:text-gray-300 flex items-center gap-2 font-bold transition-colors uppercase tracking-widest"
                     >
-                        🗑️ Thùng rác AI đã lọc ({spamFeedbacks.length}) {showTrash ? "▲" : "▼"}
+                        🗑️ THÙNG RÁC AI ĐÃ LỌC ({spamFeedbacks.length}) {showTrash ? "▲" : "▼"}
                     </button>
                     
                     {showTrash && (
-                        <div className="mt-3 space-y-2 max-h-60 overflow-y-auto custom-scrollbar p-3 bg-gray-50 rounded-xl border border-gray-200">
+                        <div className="mt-4 space-y-3 max-h-60 overflow-y-auto custom-scrollbar p-4 bg-[#05050A] rounded-2xl border border-white/5 shadow-inner">
                             {spamFeedbacks.map((fb: any, i: number) => (
-                                <div key={i} className="flex justify-between items-center bg-white p-2 rounded border border-gray-100 shadow-sm">
-                                    <div className="text-gray-400 text-[11px] italic pr-2">
-                                        <span className="font-bold text-red-400 mr-2">[Bị chặn]</span>
-                                        "{fb.raw_text}"
+                                <div key={i} className="flex flex-col md:flex-row justify-between md:items-center bg-[#0A0A12] p-3.5 rounded-xl border border-white/5 gap-4">
+                                    <div className="text-gray-500 text-[11px] italic pr-2 flex-1 line-through decoration-gray-700 font-mono">
+                                        <span className="font-bold text-red-500/50 mr-3 not-italic bg-red-500/10 px-1.5 py-0.5 rounded">BLOCKED</span>
+                                        {fb.raw_text}
                                     </div>
                                     <div className="flex gap-2 shrink-0">
-                                        <button onClick={() => handleMoveFeedback(fb.raw_text, 'normal')} className="text-[10px] font-bold bg-emerald-50 text-emerald-600 hover:bg-emerald-100 px-2 py-1 rounded transition-colors border border-emerald-100">
+                                        <button onClick={() => handleMoveFeedback(fb.raw_text, 'normal')} className="text-[9px] font-bold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 px-3 py-1.5 rounded-lg transition-colors border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)] uppercase tracking-wider">
                                             ✅ Khôi phục
                                         </button>
-                                        <button onClick={() => handleMoveFeedback(fb.raw_text, 'sos')} className="text-[10px] font-bold bg-red-50 text-red-600 hover:bg-red-100 px-2 py-1 rounded transition-colors border border-red-100">
+                                        <button onClick={() => handleMoveFeedback(fb.raw_text, 'sos')} className="text-[9px] font-bold bg-red-500/10 text-red-400 hover:bg-red-500/20 px-3 py-1.5 rounded-lg transition-colors border border-red-500/20 uppercase tracking-wider">
                                             🚨 SOS
                                         </button>
                                     </div>
@@ -550,10 +570,10 @@ export default function DashboardView({ model }: { model?: string }) {
 
         </div>
       ) : (
-        <div className="text-center py-24 bg-gray-50 rounded-[2.5rem] border-2 border-dashed border-gray-200">
-            <div className="text-5xl opacity-20 mb-4">📭</div>
-            <h3 className="text-xl font-bold text-gray-400">Chưa có dữ liệu</h3>
-            <p className="text-sm text-gray-400 mt-2">Hãy chọn phiếu khác hoặc đợi học sinh phản hồi.</p>
+        <div className="text-center py-32 bg-[#0D0D18] rounded-[3rem] border border-white/5 shadow-[inset_0_0_50px_rgba(0,0,0,0.5)]">
+            <div className="text-6xl opacity-20 mb-6 drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">📭</div>
+            <h3 className="text-xl font-bold text-gray-400 tracking-widest uppercase">Lõi Dữ Liệu Trống</h3>
+            <p className="text-xs text-gray-600 mt-3 font-mono">Vui lòng chọn một mã định danh từ Command Bar phía trên để trích xuất.</p>
         </div>
       )}
     </div>
