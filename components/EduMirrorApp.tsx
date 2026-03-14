@@ -22,6 +22,8 @@ const AVAILABLE_MODELS = [
   { id: "gpt-5.4-pro", name: "GPT-5.4 Pro (Siêu trí tuệ - Tác vụ phức tạp)" },
 ];
 
+const SUBJECTS = ["Toán học", "Vật lý", "Hóa học", "Sinh học", "Ngữ văn", "Tiếng Anh", "Lịch sử", "Địa lý", "GDCD", "Tin học"];
+
 type TopTab = "upload" | "dashboard" | "ai";
 
 const MobilePreview = ({ survey }: { survey: SurveyV2UI }) => {
@@ -200,7 +202,6 @@ function EduMirrorContent() {
     }
   };
 
-  // 🚀 HÀM ĐÃ ĐƯỢC BỔ SUNG LẠI
   const handleOpenQRInNewTab = () => {
     if (qrUrl) window.open(qrUrl, "_blank");
   };
@@ -271,11 +272,11 @@ function EduMirrorContent() {
       </header>
 
       {mounted ? (
-        <main className="mx-auto max-w-7xl px-6 py-10 space-y-8">
+        <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 space-y-8">
           {activeTab === "upload" && (
             <>
-              {/* API KEY PANEL */}
-              <section className="bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.3)]">
+              {/* API KEY PANEL (Giữ nguyên) */}
+              <section className="bg-white/5 backdrop-blur-md p-5 rounded-2xl border border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.3)] max-w-5xl mx-auto">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex items-start gap-4">
                     <div className="mt-0.5 h-10 w-10 rounded-xl bg-purple-500/10 flex items-center justify-center border border-purple-500/30 shadow-[inset_0_0_10px_rgba(168,85,247,0.2)]">
@@ -283,9 +284,7 @@ function EduMirrorContent() {
                     </div>
                     <div>
                       <div className="text-sm font-bold text-gray-200 tracking-wide">Kết nối AI cho tiết học</div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Cấp quyền truy cập hệ thống phân tích lõi.
-                      </div>
+                      <div className="text-xs text-gray-500 mt-1">Cấp quyền truy cập hệ thống phân tích lõi.</div>
                       {apiKey ? (
                         <div className="mt-2 inline-flex items-center gap-2 text-[11px] uppercase tracking-wider">
                           <span className="px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold shadow-[0_0_8px_rgba(16,185,129,0.2)]">● Sẵn sàng</span>
@@ -321,119 +320,146 @@ function EduMirrorContent() {
                 </div>
               </section>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-fade-in">
+              {/* KHÔNG GIAN BỐ CỤC MỚI: 1 CỘT (TOP-TO-BOTTOM FLOW) */}
+              <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
                 
-                {/* CỘT TRÁI */}
-                <div className="lg:col-span-8 space-y-6">
-                  
-                  {/* Toggles */}
-                  <div className="bg-blue-500/5 p-4 rounded-2xl border border-blue-500/20 flex items-center justify-between backdrop-blur-sm">
+                {/* DÒNG 1: VISION AI & THÔNG TIN LỚP HỌC */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Vision AI */}
+                  <div className="bg-blue-500/5 p-5 rounded-3xl border border-blue-500/20 flex items-center justify-between backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
                     <div>
                       <h4 className="text-sm font-bold text-blue-400 flex items-center gap-2 drop-shadow-[0_0_5px_rgba(96,165,250,0.5)]"><span>👁️‍🗨️</span> Mắt thần Vision AI</h4>
-                      <p className="text-[11px] text-blue-300/60 mt-1 uppercase tracking-wider">Quét công thức Toán/Lý/Hóa từ hình ảnh</p>
+                      <p className="text-[11px] text-blue-300/60 mt-1.5 uppercase tracking-wider">Quét công thức Toán/Lý/Hóa từ hình ảnh</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" checked={useVisionParsing} onChange={(e) => setUseVisionParsing(e.target.checked)}/>
-                      <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 shadow-[inset_0_2px_4px_rgba(0,0,0,0.6)]"></div>
+                      <div className="w-12 h-6 bg-black/50 border border-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500 shadow-inner"></div>
                     </label>
                   </div>
 
-                  <div className="bg-white/5 p-6 rounded-3xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.5)] backdrop-blur-md relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl -z-10"></div>
-                    
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4 w-full border-b border-white/5 pb-4">
-                      <h3 className="text-base font-bold text-gray-200 flex items-center gap-2 uppercase tracking-widest">
-                        📄 Khối dữ liệu bài dạy
-                      </h3>
-                      
-                      <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-                        <select 
-                          value={subject} onChange={(e) => setSubject(e.target.value)} 
-                          className="bg-black/50 border border-white/10 text-sm rounded-lg px-3 py-2 outline-none font-bold text-purple-300 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all cursor-pointer min-w-[120px] [&>option]:bg-[#0A0A12] shadow-inner"
-                        >
-                          <option>Toán học</option><option>Vật lý</option><option>Hóa học</option><option>Sinh học</option><option>Ngữ văn</option><option>Tiếng Anh</option><option>Lịch sử</option><option>Địa lý</option><option>GDCD</option><option>Tin học</option>
-                        </select>
-                        
-                        <div className="h-5 w-px bg-white/10 hidden sm:block mx-1"></div> 
-                        
+                  {/* Thông tin Lớp & Tiết */}
+                  <div className="bg-white/5 p-5 rounded-3xl border border-white/10 flex flex-col justify-center backdrop-blur-sm shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
+                     <h4 className="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-3">Định vị Không gian & Thời gian</h4>
+                     <div className="flex items-center gap-3">
                         <input 
                           type="text" placeholder="Lớp (VD: 12A1)" value={className} onChange={(e) => setClassName(e.target.value)}
-                          className="bg-black/50 border border-white/10 text-sm rounded-lg px-3 py-2 w-[110px] outline-none font-mono text-gray-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all placeholder:text-gray-600 shadow-inner"
+                          className="flex-1 bg-black/50 border border-white/10 text-sm rounded-xl px-4 py-2 outline-none font-mono text-gray-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all placeholder:text-gray-600 shadow-inner"
                         />
                         <span className="text-gray-600 font-bold">-</span>
                         <input 
                           type="text" placeholder="Tiết (VD: 3)" value={period} onChange={(e) => setPeriod(e.target.value)}
-                          className="bg-black/50 border border-white/10 text-sm rounded-lg px-3 py-2 w-[90px] outline-none font-mono text-gray-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all placeholder:text-gray-600 shadow-inner"
+                          className="w-[100px] bg-black/50 border border-white/10 text-sm rounded-xl px-4 py-2 outline-none font-mono text-gray-200 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/50 transition-all placeholder:text-gray-600 shadow-inner text-center"
                         />
-                      </div>
-                    </div>
+                     </div>
+                  </div>
+                </div>
 
-                    <div className="relative group">
+                {/* DÒNG 2: NÚT CHỌN MÔN (TACTILE BUTTONS) */}
+                <div className="bg-[#0A0A12]/80 p-6 rounded-3xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.4)] backdrop-blur-md">
+                   <h3 className="text-xs font-bold text-gray-400 flex items-center gap-2 uppercase tracking-widest mb-4">
+                      <span className="text-purple-400">📚</span> Phân hệ Môn học
+                   </h3>
+                   <div className="flex flex-wrap gap-3">
+                      {SUBJECTS.map((sub) => (
+                         <button 
+                            key={sub}
+                            onClick={() => setSubject(sub)}
+                            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 border 
+                                ${subject === sub 
+                                   ? "bg-purple-600/20 border-purple-500 text-purple-300 shadow-[0_0_15px_rgba(168,85,247,0.4)] transform scale-105" 
+                                   : "bg-black/50 border-white/5 text-gray-500 hover:text-gray-300 hover:border-white/20 hover:bg-white/5"}`}
+                         >
+                            {sub}
+                         </button>
+                      ))}
+                   </div>
+                </div>
+
+                {/* DÒNG 3: MA TRẬN NHẬP LIỆU BÀI DẠY (MATRIX GRID) */}
+                <div className="bg-white/5 p-1.5 rounded-3xl border border-white/10 shadow-[0_8px_30px_rgba(0,0,0,0.6)] backdrop-blur-md relative">
+                   <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl -z-10 pointer-events-none"></div>
+                   
+                   <div className="bg-[#05050A] rounded-[1.3rem] overflow-hidden relative border border-white/5">
+                      {/* Grid Overlay Matrix Effect */}
+                      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(168,85,247,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(168,85,247,0.05)_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+                      
+                      {/* Tiêu đề góc */}
+                      <div className="absolute top-4 left-5 pointer-events-none">
+                         <span className="bg-black/80 px-3 py-1 rounded border border-white/10 text-[10px] font-mono text-purple-400 tracking-widest uppercase shadow-[0_0_10px_rgba(168,85,247,0.2)]">
+                            [ RADAR QUÉT VĂN BẢN ]
+                         </span>
+                      </div>
+
                       <textarea
-                        className="w-full h-72 p-5 rounded-2xl border border-white/10 bg-black/40 text-sm text-gray-300 focus:bg-black/60 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30 outline-none transition-all resize-none leading-relaxed font-mono shadow-inner"
-                        placeholder="[ Cổng nạp văn bản: Dán nội dung giáo án vào đây... ]"
+                        className="relative z-10 w-full h-[400px] bg-transparent text-sm text-purple-50 placeholder:text-gray-600/50 p-6 pt-14 focus:outline-none focus:ring-inset focus:ring-1 focus:ring-purple-500/30 transition-all resize-none leading-relaxed font-mono custom-scrollbar"
+                        placeholder="Dán nội dung giáo án vào khu vực này để tiến hành đồng bộ..."
                         value={lessonText}
                         onChange={(e) => setLessonText(e.target.value)}
                       />
-                      <div className="absolute bottom-4 right-4">
-                        <label className="cursor-pointer bg-white/10 hover:bg-white/20 border border-white/10 text-gray-300 text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg flex items-center gap-2 transition-all backdrop-blur-md">
-                          📁 Tải Tệp Lên
+                      
+                      <div className="absolute bottom-5 right-5 z-20">
+                        <label className="cursor-pointer bg-white/10 hover:bg-white/20 border border-white/10 text-gray-200 text-xs font-bold px-5 py-3 rounded-xl shadow-[0_4px_15px_rgba(0,0,0,0.5)] flex items-center gap-2 transition-all backdrop-blur-md group">
+                          <span className="text-lg group-hover:animate-bounce">📁</span> Tải Tệp Lên
                           <input type="file" accept=".pdf,.doc,.docx,.txt,image/*" className="hidden" onChange={handleFileChange} />
                         </label>
                       </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-purple-900/20 to-black p-6 rounded-3xl border border-purple-500/20 shadow-[inset_0_0_20px_rgba(168,85,247,0.05)]">
-                    <h3 className="text-sm font-bold text-purple-300 mb-3 flex items-center gap-2 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
-                      🎯 Thông số đầu ra (Targeting)
-                    </h3>
-                    <textarea
-                      className="w-full h-24 p-4 rounded-xl border border-purple-500/30 bg-black/60 text-sm text-gray-300 focus:ring-1 focus:ring-purple-500 outline-none transition-all resize-none shadow-inner"
-                      placeholder="VD: Học sinh nắm được khái niệm tích phân..."
-                      value={standardsText}
-                      onChange={(e) => setStandardsText(e.target.value)}
-                    />
-                  </div>
+                   </div>
                 </div>
 
-                {/* CỘT PHẢI */}
-                <div className="lg:col-span-4 space-y-6">
-                  <div className="bg-[#0D0D18] p-6 rounded-3xl border border-white/10 shadow-[0_10px_40px_rgba(0,0,0,0.8)] relative overflow-hidden">
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-purple-600/20 rounded-full blur-3xl z-0"></div>
-                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-blue-600/20 rounded-full blur-3xl z-0"></div>
+                {/* DÒNG 4: HỆ QUY CHIẾU (TARGETING) */}
+                <div className="bg-gradient-to-br from-purple-900/20 to-black p-6 rounded-3xl border border-purple-500/20 shadow-[inset_0_0_20px_rgba(168,85,247,0.05)]">
+                  <h3 className="text-sm font-bold text-purple-300 mb-3 flex items-center gap-2 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(168,85,247,0.5)]">
+                    🎯 Thiết lập Chuẩn đầu ra (Targeting)
+                  </h3>
+                  <textarea
+                    className="w-full h-24 p-4 rounded-xl border border-purple-500/30 bg-black/60 text-sm text-gray-300 focus:ring-1 focus:ring-purple-500 outline-none transition-all resize-none shadow-inner"
+                    placeholder="VD: Học sinh nắm được khái niệm tích phân (Nhập từ 1-3 mục tiêu cốt lõi)..."
+                    value={standardsText}
+                    onChange={(e) => setStandardsText(e.target.value)}
+                  />
+                </div>
+
+                {/* DÒNG 5: TRUNG TÂM TÁC VỤ (NUCLEAR COMMAND) - TRÀN BOTTOM */}
+                <div className="bg-[#0D0D18] p-8 rounded-[2rem] border border-purple-500/30 shadow-[0_10px_50px_rgba(0,0,0,0.8)] relative overflow-hidden mt-10">
+                  <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-full bg-gradient-to-r from-purple-600/10 to-blue-600/10 blur-3xl z-0 pointer-events-none"></div>
+                  
+                  <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
                     
-                    <div className="relative z-10">
-                      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-6 border-b border-white/5 pb-2">Hạt nhân xử lý</h3>
-                      
-                      <div className="grid grid-cols-2 gap-3 mb-8">
-                        <button onClick={() => setProcessMode("standard")} className={`py-3 rounded-xl text-xs font-bold transition-all border flex flex-col items-center gap-1 ${processMode === "standard" ? "bg-white/10 border-white/20 text-white shadow-inner" : "border-transparent text-gray-600 hover:bg-white/5"}`}>
-                          <span className="text-base">🚀</span><span>Tốc độ</span>
-                        </button>
-                        <button onClick={() => setProcessMode("premium")} className={`py-3 rounded-xl text-xs font-bold transition-all border flex flex-col items-center gap-1 ${processMode === "premium" ? "bg-gradient-to-br from-amber-500/20 to-orange-600/20 border-orange-500/50 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.2)]" : "border-transparent text-gray-600 hover:bg-white/5"}`}>
-                          <span className="text-base">💎</span><span>Cao cấp</span>
-                        </button>
-                      </div>
-
-                      <div className="space-y-4">
-                        <button
-                          onClick={handleGenerateSurvey}
-                          disabled={loading}
-                          className="w-full font-bold text-base bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white py-4 rounded-xl shadow-[0_0_20px_rgba(168,85,247,0.4)] transform transition active:scale-95 disabled:opacity-50 disabled:shadow-none flex items-center justify-center gap-3 tracking-wide"
-                        >
-                          {loading ? <span className="animate-pulse">⏳ Đang đồng bộ...</span> : "✨ KHỞI TẠO PHIẾU"}
-                        </button>
-                        <button onClick={() => { setLessonText(""); setStandardsText(""); setSurvey(null); setSelectedFile(null); setSurveyId(null); setQrUrl(""); setClassName(""); setPeriod(""); }} className="w-full py-2 text-gray-500 text-[11px] uppercase tracking-widest hover:text-gray-300 transition-colors">
-                          Làm mới hệ thống
-                        </button>
-                      </div>
+                    {/* Select Mode */}
+                    <div className="flex-shrink-0 w-full md:w-auto">
+                       <h3 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 text-center md:text-left">Động cơ Xử lý</h3>
+                       <div className="flex bg-black/50 p-1.5 rounded-2xl border border-white/10 shadow-inner">
+                          <button onClick={() => setProcessMode("standard")} className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${processMode === "standard" ? "bg-white/10 text-white shadow-md" : "text-gray-500 hover:text-gray-300"}`}>
+                            <span>🚀</span> Tốc độ
+                          </button>
+                          <button onClick={() => setProcessMode("premium")} className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${processMode === "premium" ? "bg-gradient-to-br from-amber-500/20 to-orange-600/20 border border-orange-500/30 text-orange-400 shadow-[0_0_15px_rgba(249,115,22,0.2)]" : "text-gray-500 hover:text-gray-300 border border-transparent"}`}>
+                            <span>💎</span> Cao cấp
+                          </button>
+                       </div>
                     </div>
+
+                    {/* BIG NUCLEAR BUTTON */}
+                    <div className="flex-1 w-full flex flex-col items-center">
+                      <button
+                        onClick={handleGenerateSurvey}
+                        disabled={loading}
+                        className="w-full max-w-md font-extrabold text-lg tracking-widest uppercase bg-gradient-to-r from-purple-600 via-indigo-500 to-blue-600 hover:from-purple-500 hover:via-indigo-400 hover:to-blue-500 text-white py-5 rounded-2xl shadow-[0_0_30px_rgba(168,85,247,0.5)] transform transition-all hover:scale-105 active:scale-95 disabled:opacity-50 disabled:hover:scale-100 disabled:shadow-none flex items-center justify-center gap-3 border border-white/20"
+                      >
+                        {loading ? <span className="animate-pulse">⏳ ĐANG KÍCH HOẠT HỆ THỐNG...</span> : "✨ KHỞI TẠO PHIẾU KHẢO SÁT"}
+                      </button>
+                      <button onClick={() => { setLessonText(""); setStandardsText(""); setSurvey(null); setSelectedFile(null); setSurveyId(null); setQrUrl(""); setClassName(""); setPeriod(""); }} className="mt-4 text-[10px] text-gray-500 uppercase tracking-widest hover:text-gray-300 transition-colors border-b border-transparent hover:border-gray-500 pb-0.5">
+                        [ Hủy lệnh & Làm mới ]
+                      </button>
+                    </div>
+
                   </div>
                 </div>
+
               </div>
 
+              {/* TRẠM CHỈNH SỬA & PREVIEW (Giữ nguyên như trước) */}
               {survey && (
-                <div className="bg-[#0A0A12]/80 backdrop-blur-xl p-6 md:p-8 rounded-[2rem] border border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.1)] animate-fade-in-up mt-8">
+                <div className="bg-[#0A0A12]/80 backdrop-blur-xl p-6 md:p-8 rounded-[2rem] border border-purple-500/30 shadow-[0_0_50px_rgba(168,85,247,0.1)] animate-fade-in-up max-w-6xl mx-auto mt-12">
                   <h3 className="text-xl md:text-2xl font-bold text-gray-200 mb-8 flex items-center gap-3 border-b border-white/10 pb-4 tracking-wide">
                     <span className="text-purple-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.8)]">🛠️</span> Trạm hiệu chỉnh Dữ liệu
                   </h3>
