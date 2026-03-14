@@ -91,7 +91,7 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
             </div>
             <div>
                 <h2 className="text-2xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-blue-400 uppercase tracking-widest drop-shadow-[0_0_8px_rgba(168,85,247,0.5)]">
-                    Cố vấn Sư phạm Lượng tử
+                    CỐ VẤN SƯ PHẠM AI
                 </h2>
                 <div className="flex items-center gap-3 mt-1.5">
                     <span className="text-[10px] text-gray-500 uppercase tracking-widest bg-white/5 px-2 py-1 rounded">Engine: <span className="font-bold text-purple-400">{model}</span></span>
