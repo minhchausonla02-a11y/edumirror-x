@@ -184,13 +184,16 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                           
                           <div className={`p-4 rounded-2xl shadow-lg text-sm max-w-[85%] overflow-x-auto backdrop-blur-md leading-relaxed font-mono
                               ${msg.role === 'user' ? 'bg-purple-600/20 border border-purple-500/30 text-purple-100 rounded-tr-sm' : 'bg-white/5 border border-white/10 text-gray-300 rounded-tl-sm'}`}>
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkMath]}
-                                    rehypePlugins={[rehypeKatex]}
-                                    className="prose prose-invert max-w-none prose-p:my-1 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10 prose-code:text-emerald-300 katex-display:text-emerald-300 [&_.katex]:text-emerald-300"
-                                >
-                                    {preprocessLaTeX(msg.content)}
-                                </ReactMarkdown>
+                                
+                                {/* 👇 ĐÃ SỬA LỖI TYPESCRIPT Ở ĐÂY: Bọc thẻ div ra ngoài */}
+                                <div className="prose prose-invert max-w-none prose-p:my-1 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10 prose-code:text-emerald-300 katex-display:text-emerald-300 [&_.katex]:text-emerald-300">
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkMath]}
+                                        rehypePlugins={[rehypeKatex]}
+                                    >
+                                        {preprocessLaTeX(msg.content)}
+                                    </ReactMarkdown>
+                                </div>
                           </div>
                       </div>
                   ))}
