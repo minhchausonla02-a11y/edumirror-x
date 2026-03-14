@@ -6,10 +6,24 @@ import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
 
 export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
-  const preprocessLaTeX = (content: string) => {
-    const blockRep = content.replace(/\\\[(.*?)\\\]/gs, '$$$1$$');
-    const inlineRep = blockRep.replace(/\\\((.*?)\\\)/gs, '$$$1$$');
-    return inlineRep;
+  
+  // 🚀 BỘ LỌC ĐẶC BIỆT: Khử màu trắng của AI & Xử lý Toán học
+  const processAIHtml = (content: string) => {
+    if (!content) return "";
+    
+    // 1. Render Toán học
+    let processed = content.replace(/\\\[(.*?)\\\]/gs, '$$$1$$').replace(/\\\((.*?)\\\)/gs, '$$$1$$');
+    
+    // 2. Ép các class màu sáng cứng đầu do AI trả về thành Dark Mode
+    processed = processed.replace(/bg-white/g, "bg-transparent")
+                         .replace(/bg-gray-[0-9]{2,3}/g, "bg-white/5")
+                         .replace(/text-gray-(700|800|900)/g, "text-gray-200")
+                         .replace(/text-gray-(500|600)/g, "text-gray-400")
+                         .replace(/border-gray-[0-9]{2,3}/g, "border-white/10")
+                         .replace(/text-[a-z]+-(600|700|800)/g, "text-blue-400")
+                         .replace(/bg-[a-z]+-(50|100)/g, "bg-blue-500/10")
+                         .replace(/shadow(-[a-z]+)?/g, "shadow-none");
+    return processed;
   };
   
   const [stats, setStats] = useState<any>(null);
@@ -117,7 +131,7 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
         <div className="animate-fade-in-up bg-[#0D0D18] p-8 md:p-10 rounded-[2.5rem] border border-purple-500/20 shadow-[0_0_50px_rgba(0,0,0,0.8)] relative">
             <div className="absolute top-0 left-0 w-2 h-full bg-gradient-to-b from-purple-500 via-blue-500 to-transparent opacity-80"></div>
             
-            {/* Vùng hiển thị Markdown tùy chỉnh CSS cho Dark Mode */}
+            {/* Vùng hiển thị Markdown tùy chỉnh CSS cho Dark Mode + Khóa CSS nền rác của AI */}
             <div className="prose prose-invert max-w-none 
                 prose-headings:text-purple-300 prose-headings:uppercase prose-headings:tracking-wider prose-headings:font-bold
                 prose-h3:text-lg prose-h3:border-b prose-h3:border-white/5 prose-h3:pb-2 prose-h3:text-blue-400
@@ -127,8 +141,9 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                 prose-blockquote:border-l-purple-500 prose-blockquote:bg-white/5 prose-blockquote:p-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic
                 [&_ol]:space-y-2 [&_ul]:space-y-2
                 katex-display:text-center katex-display:my-4 katex-display:text-xl katex-display:text-emerald-300
-                [&_.katex]:text-emerald-300 font-mono text-sm"
-                dangerouslySetInnerHTML={{ __html: preprocessLaTeX(solution) }}
+                [&_.katex]:text-emerald-300 font-mono text-sm
+                [&>div]:!bg-transparent [&>div]:!border-none [&>div]:!shadow-none [&>div]:!text-gray-200"
+                dangerouslySetInnerHTML={{ __html: processAIHtml(solution) }}
             ></div>
             
             <div className="mt-10 text-right border-t border-white/10 pt-6">
@@ -184,14 +199,12 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                           
                           <div className={`p-4 rounded-2xl shadow-lg text-sm max-w-[85%] overflow-x-auto backdrop-blur-md leading-relaxed font-mono
                               ${msg.role === 'user' ? 'bg-purple-600/20 border border-purple-500/30 text-purple-100 rounded-tr-sm' : 'bg-white/5 border border-white/10 text-gray-300 rounded-tl-sm'}`}>
-                                
-                                {/* 👇 ĐÃ SỬA LỖI TYPESCRIPT Ở ĐÂY: Bọc thẻ div ra ngoài */}
                                 <div className="prose prose-invert max-w-none prose-p:my-1 prose-pre:bg-black/50 prose-pre:border prose-pre:border-white/10 prose-code:text-emerald-300 katex-display:text-emerald-300 [&_.katex]:text-emerald-300">
                                     <ReactMarkdown
                                         remarkPlugins={[remarkMath]}
                                         rehypePlugins={[rehypeKatex]}
                                     >
-                                        {preprocessLaTeX(msg.content)}
+                                        {processAIHtml(msg.content)}
                                     </ReactMarkdown>
                                 </div>
                           </div>
