@@ -499,31 +499,31 @@ export default function DashboardView({ model }: { model?: string }) {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar pb-2">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar pb-2 items-start">
                   {normalFeedbacks.length > 0 ? normalFeedbacks.map((fb: any, i: number) => {
                       const isHarsh = fb.is_harsh;
-                      let textToDisplay = (isHarsh && !showRaw) ? "Nội dung nhạy cảm đã bị ẩn. Tắt Khiên để xem." : fb.raw_text;
+                      let textToDisplay = (isHarsh && !showRaw) ? "Nội dung nhạy cảm đã bị ẩn. Bật Raw Mode để xem." : fb.raw_text;
                       const isHiddenHarsh = isHarsh && !showRaw;
 
                       return (
-                        <div key={i} className={`group p-5 rounded-2xl text-sm transition-all duration-300 border flex flex-col justify-between h-full relative overflow-hidden
-                            ${isHiddenHarsh ? 'bg-white/5 border-white/5 text-gray-500' : 'bg-[#05050A] border-white/10 text-gray-300 hover:border-purple-500/40 hover:shadow-[0_0_25px_rgba(168,85,247,0.15)]'}
+                        <div key={i} className={`group p-4 rounded-xl text-sm transition-all duration-300 border relative overflow-hidden
+                            ${isHiddenHarsh ? 'bg-white/5 border-white/5 text-gray-500' : 'bg-[#05050A] border-white/10 text-gray-300 hover:border-purple-500/40 hover:shadow-[0_0_20px_rgba(168,85,247,0.15)]'}
                         `}>
                             {/* Hiệu ứng viền chạy khi hover */}
                             {!isHiddenHarsh && <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-purple-500 to-blue-500 opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_15px_#a855f7]"></div>}
 
-                            <div className="relative z-10">
-                                {isHiddenHarsh && <div className="mb-3"><span className="inline-block bg-black text-gray-500 border border-gray-700 px-2 py-0.5 rounded text-[9px] font-mono tracking-widest not-italic">🔒 ENCRYPTED</span></div>}
+                            <div className="relative z-10 pr-2">
+                                {isHiddenHarsh && <div className="mb-2"><span className="inline-block bg-black text-gray-500 border border-gray-700 px-2 py-0.5 rounded text-[9px] font-mono tracking-widest not-italic">🔒 ENCRYPTED</span></div>}
                                 <span className={`leading-relaxed ${isHiddenHarsh ? 'italic font-mono text-xs' : 'font-medium text-[13px]'}`}>
                                     {isHiddenHarsh ? textToDisplay : `"${textToDisplay}"`}
                                 </span>
                             </div>
                             
-                            <div className="mt-5 pt-3 border-t border-white/5 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity relative z-10">
-                                <button onClick={() => handleMoveFeedback(fb.raw_text, 'sos')} className="text-[9px] font-bold text-red-400 hover:bg-red-500/10 px-3 py-1.5 rounded-lg transition-colors border border-transparent hover:border-red-500/30 uppercase tracking-widest">
-                                    🚨 Gắn cờ SOS
+                            <div className="mt-3 pt-2 border-t border-white/5 flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity relative z-10">
+                                <button onClick={() => handleMoveFeedback(fb.raw_text, 'sos')} className="text-[9px] font-bold text-red-400 hover:bg-red-500/10 px-2.5 py-1.5 rounded-md transition-colors border border-transparent hover:border-red-500/30 uppercase tracking-widest">
+                                    🚨 Gắn cờ
                                 </button>
-                                <button onClick={() => handleMoveFeedback(fb.raw_text, 'spam')} className="text-[9px] font-bold text-gray-500 hover:bg-white/10 hover:text-gray-300 px-3 py-1.5 rounded-lg transition-colors border border-transparent hover:border-white/10 uppercase tracking-widest">
+                                <button onClick={() => handleMoveFeedback(fb.raw_text, 'spam')} className="text-[9px] font-bold text-gray-500 hover:bg-white/10 hover:text-gray-300 px-2.5 py-1.5 rounded-md transition-colors border border-transparent hover:border-white/10 uppercase tracking-widest">
                                     🗑️ Bỏ rác
                                 </button>
                             </div>
