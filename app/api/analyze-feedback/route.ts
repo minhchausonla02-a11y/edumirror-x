@@ -20,17 +20,11 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({ apiKey: finalKey });
 
-    // 🚀 BƯỚC NÂNG CẤP: DỊCH TÊN MODEL TỪ GIAO DIỆN SANG TÊN API THẬT BÊN DƯỚI LÕI
-    let realOpenAIModel = "gpt-4o"; // Mặc định an toàn
+    // 🚀 BƯỚC NÂNG CẤP ĐỒNG BỘ: ĐỊNH TUYẾN MODEL THÔNG MINH
+    let realOpenAIModel = model; 
     
-    if (model === "gpt-4o") {
-      realOpenAIModel = "gpt-4o";
-    } else if (model === "gpt-4.5") {
-      realOpenAIModel = "gpt-4.5-preview"; // Chạy model 4.5 thực tế
-    } else if (model === "gpt-5" || model === "gpt-5.4") {
-      // ⚠️ THỦ THUẬT CHỐNG SẬP WEB: 
-      // Do model 5.4 là concept tương lai, ta ép nó chạy ngầm bằng gpt-4o 
-      // để luôn có kết quả mượt mà, không bị báo lỗi Model Not Found khi giám khảo thử.
+    // Chỉ bọc lót riêng gpt-4.5 đẩy về gpt-4o, còn lại (gpt-4o, gpt-5, gpt-5.4) giữ nguyên bản!
+    if (model === "gpt-4.5") {
       realOpenAIModel = "gpt-4o"; 
     }
 
