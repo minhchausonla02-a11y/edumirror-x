@@ -29,6 +29,29 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
   const [stats, setStats] = useState<any>(null);
   const [solution, setSolution] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  // 🚀 BƯỚC 1: HIỆU ỨNG LOADING CHỮ CHẠY
+  const loadingMessages = [
+    "Khởi tạo lõi AI phân tích đa tầng...",
+    "Đang bóc tách số liệu thống kê lớp học...",
+    "Đang nội suy tâm lý và điểm nghẽn của học sinh...",
+    "Đang đối chiếu dữ liệu thực tế với giáo án gốc...",
+    "Đang kiến tạo các giải pháp sư phạm chuyên biệt...",
+    "Đang đóng gói Báo cáo 4 Tầng. Quá trình này đòi hỏi sự tỉ mỉ..."
+  ];
+  
+  const [loadingIndex, setLoadingIndex] = useState(0);
+
+  useEffect(() => {
+    let interval: any;
+    if (loading) { 
+      interval = setInterval(() => {
+        setLoadingIndex((prev) => (prev + 1 < loadingMessages.length ? prev + 1 : prev));
+      }, 15000); // 15 giây đổi câu 1 lần
+    } else {
+      setLoadingIndex(0); 
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
 
   // Chat State
   const [chatInput, setChatInput] = useState("");
@@ -114,15 +137,31 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
             </div>
          </div>
          
-         {/* Nút bấm chỉ hiện khi chưa có giải pháp */}
+         {/* Nút bấm hoặc Hiệu ứng Loading */}
          {!solution && stats && (
-             <button 
-                onClick={handleAnalyze} 
-                disabled={loading}
-                className="w-full md:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white px-8 py-4 rounded-xl font-bold tracking-widest uppercase shadow-[0_0_25px_rgba(168,85,247,0.5)] transition-all z-10 border border-white/10"
-             >
-                {loading ? "⏳ ĐANG PHÂN TÍCH LÕI..." : "✨ KÍCH HOẠT QUY TRÌNH"}
-             </button>
+             loading ? (
+                // 🚀 BƯỚC 2: GIAO DIỆN LOADING HIỆU ỨNG CYBER
+                <div className="flex flex-col items-center justify-center p-6 space-y-4 bg-[#0D0E15] rounded-xl border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.2)] w-full md:w-[400px]">
+                    <div className="relative flex items-center justify-center h-12 w-12">
+                        <div className="absolute inset-0 rounded-full border-t-2 border-b-2 border-purple-500 animate-spin"></div>
+                        <div className="absolute inset-2 rounded-full border-l-2 border-r-2 border-blue-400 animate-[spin_2s_linear_reverse]"></div>
+                        <div className="text-purple-400 text-[10px] font-bold">AI</div>
+                    </div>
+                    <div className="text-center space-y-1">
+                        <p className="text-purple-300 font-medium animate-pulse text-sm transition-all duration-500 min-h-[40px] flex items-center justify-center">
+                            {loadingMessages[loadingIndex]}
+                        </p>
+                    </div>
+                </div>
+             ) : (
+                // Nút bấm bình thường khi chưa phân tích
+                <button 
+                    onClick={handleAnalyze} 
+                    className="w-full md:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white px-8 py-4 rounded-xl font-bold tracking-widest uppercase shadow-[0_0_25px_rgba(168,85,247,0.5)] transition-all z-10 border border-white/10"
+                >
+                    ✨ KÍCH HOẠT QUY TRÌNH
+                </button>
+             )
          )}
       </div>
 
