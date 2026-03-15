@@ -23,7 +23,7 @@ export async function POST(req: Request) {
         apiModel = "gpt-4o"; 
     }
 
-    // PROMPT 4 TẦNG (Giữ nguyên logic xịn xò gốc)
+    // PROMPT 4 TẦNG (Đã bổ sung "Luật Thép" về trình bày Công thức Toán học)
     const prompt = `
       Bạn là Chuyên gia Phân tích Dữ liệu Giáo dục & Sư phạm (EduMirror X).
       
@@ -33,6 +33,13 @@ export async function POST(req: Request) {
 
       NHIỆM VỤ: 
       Phân tích sâu và đưa ra báo cáo cải tiến dạy học theo cấu trúc 4 TẦNG chuẩn khoa học.
+      
+      🔥 QUY TẮC TRÌNH BÀY CÔNG THỨC TOÁN/LÝ/HÓA BẮT BUỘC:
+      - TUYỆT ĐỐI KHÔNG viết công thức dạng text thô sơ (ví dụ cấm viết: 3^x, 9^(x+1), log_2(x)).
+      - BẮT BUỘC phải dùng định dạng HTML hoặc Unicode để công thức hiển thị chuẩn sư phạm.
+      - Dùng thẻ HTML <sup> để viết số mũ, lũy thừa (VD: 3<sup>2x</sup>, 9<sup>x+1</sup>, a<sup>f(x)</sup>).
+      - Dùng thẻ HTML <sub> để viết chỉ số dưới (VD: log<sub>2</sub>x, H<sub>2</sub>O).
+      - Sử dụng các ký hiệu toán học chuẩn xác: ≠, ≥, ≤, ×, ÷, √, ⇒, ⇔.
       
       YÊU CẦU ĐẦU RA (HTML trong thẻ div, giao diện đẹp):
       <div class="space-y-6 font-sans text-gray-800">
