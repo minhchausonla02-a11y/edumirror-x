@@ -155,10 +155,13 @@ function SurveyForm() {
               </div>
             )}
 
-            {/* DẠNG 3: TEXT */}
+          {/* DẠNG 3: TEXT */}
             {q.type === "text" && (
-              <textarea className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-indigo-500 focus:bg-white outline-none text-sm min-h-[80px]" 
-                placeholder="Câu trả lời của em (có thể bỏ trống)..." onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })} />
+              <textarea 
+                className="w-full p-3 bg-gray-50 rounded-xl border border-gray-200 focus:border-indigo-500 focus:bg-white outline-none text-sm min-h-[80px] text-gray-900 placeholder:text-gray-400 font-medium" 
+                placeholder="Góc ẩn danh: Em chưa hiểu rõ phần nào, hay muốn tiết học sau thay đổi điều gì? Hãy thoải mái chia sẻ để thầy cô hỗ trợ nhé..." 
+                onChange={(e) => setAnswers({ ...answers, [q.id]: e.target.value })} 
+              />
             )}
           </div>
         ))}
