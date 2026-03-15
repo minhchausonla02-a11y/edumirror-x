@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
+// 🚀 NÂNG CẤP 1: Import hệ thống điều hướng không tải lại trang của Next.js
+import { useRouter } from "next/navigation";
 
 function EmptyState({ msg }: { msg: string }) {
   return <div className="text-xs text-gray-500 italic text-center py-6 bg-white/5 rounded-2xl border border-dashed border-white/10">{msg}</div>;
@@ -40,6 +42,9 @@ const findQuestionTitle = (obj: any, targetKey: string): string | null => {
 };
 
 export default function DashboardView({ model }: { model?: string }) {
+  // 🚀 NÂNG CẤP 2: Khởi tạo Router
+  const router = useRouter();
+
   const [surveys, setSurveys] = useState<any[]>([]);
   const [selectedId, setSelectedId] = useState<string>("");
   const [stats, setStats] = useState<any>(null);
@@ -162,7 +167,9 @@ export default function DashboardView({ model }: { model?: string }) {
     const problemText = aiResult.map((item: any) => `- ${item.category}: ${item.summary}`).join("\n");
     localStorage.setItem("current_diagnosis", problemText);
     localStorage.setItem("current_stats", JSON.stringify(stats));
-    window.location.href = "/?tab=ai&mode=solve";
+    
+    // 🚀 NÂNG CẤP 3: Sử dụng router.push để chuyển tab mượt mà, giữ nguyên dữ liệu giáo án
+    router.push("/?tab=ai&mode=solve");
   };
 
   const handleDelete = async () => {
