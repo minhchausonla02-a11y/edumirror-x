@@ -32,11 +32,15 @@ const SUBJECT_CONFIGS: Record<string, any> = {
       }
       
       ${processMode === "premium" 
-        ? `💎 CHẾ ĐỘ CAO CẤP (BLOOM VẬN DỤNG): KHÔNG dùng các câu nói chung chung. Hãy tạo ra các tình huống "bẫy" sai lầm bản chất logic. VD: "Em ra nghiệm x=2 nhưng quên loại điều kiện x>0", "Em phân tích nhầm hằng đẳng thức khi phá ngoặc".` 
-        : `🚀 CHẾ ĐỘ TỐC ĐỘ (NHẬN BIẾT): Tìm các lỗi bề mặt, cực kỳ ngắn gọn. VD: "Em hay quên đổi dấu", "Em không nhớ cách kẻ đường cao".`
+        ? `💎 CHẾ ĐỘ CAO CẤP (BLOOM VẬN DỤNG): Tìm các "bẫy" sai lầm bản chất logic, nhưng phải diễn đạt thật bình dân. VD: "Em hay nhầm điều kiện của ẩn", "Em phá ngoặc quên đổi dấu".` 
+        : `🚀 CHẾ ĐỘ TỐC ĐỘ (NHẬN BIẾT): Tìm các lỗi bề mặt. VD: "Em hay quên công thức", "Em không biết vẽ hình".`
       }
       
-      ĐỊNH DẠNG BẮT BUỘC: Biến các lỗi/khó khăn đó thành phát biểu của học sinh ở ngôi thứ nhất. Dưới 20 từ.
+      ĐỊNH DẠNG BẮT BUỘC:
+      1. Bắt buộc bằng Tiếng Việt.
+      2. Phát biểu ở ngôi thứ nhất ("Em...").
+      3. CỰC KỲ NGẮN GỌN (Tuyệt đối dưới 10 từ).
+      4. Văn phong nói tự nhiên, dễ đọc lướt.
     `,
     buildQuestions: (gaps: string[]) => [
       { id: "q1", type: "single_choice", text: "1. Cảm nhận chung của em về tiết Toán hôm nay?", options: ["A1 – Rất cuốn, thích thú 🤩", "A2 – Bình thường 🙂", "A3 – Hơi ngợp (nhiều công thức/số liệu) 🤯", "A4 – Mệt, khó tập trung 😴"] },
@@ -60,11 +64,15 @@ const SUBJECT_CONFIGS: Record<string, any> = {
       }
 
       ${processMode === "premium" 
-        ? `💎 CHẾ ĐỘ CAO CẤP (TƯ DUY PHẢN BIỆN): Áp dụng thang đo cảm thụ văn học. Đưa ra khó khăn về tư duy. VD: "Em khó phân biệt được thái độ tác giả với lời nhân vật", "Em lúng túng khi móc nối chi tiết văn bản với bài học xã hội".` 
-        : `🚀 CHẾ ĐỘ TỐC ĐỘ (BỀ MẶT): Ngắn gọn, chung chung. VD: "Em khó đồng cảm với nhân vật", "Em không biết cách lập dàn ý".`
+        ? `💎 CHẾ ĐỘ CAO CẤP (TƯ DUY PHẢN BIỆN): Đưa ra khó khăn về tư duy nhưng phải ngắn gọn. VD: "Em khó nắm bắt ẩn ý tác giả", "Em hay bí từ khi liên hệ thực tế".` 
+        : `🚀 CHẾ ĐỘ TỐC ĐỘ (BỀ MẶT): VD: "Em khó đồng cảm với nhân vật", "Em không biết lập dàn ý".`
       }
 
-      ĐỊNH DẠNG BẮT BUỘC: Biến thành phát biểu của học sinh ở ngôi thứ nhất. Dưới 20 từ.
+      ĐỊNH DẠNG BẮT BUỘC:
+      1. Bắt buộc bằng Tiếng Việt.
+      2. Phát biểu ở ngôi thứ nhất ("Em...").
+      3. CỰC KỲ NGẮN GỌN (Tuyệt đối dưới 10 từ).
+      4. Văn phong nói tự nhiên, dễ đọc lướt.
     `,
     buildQuestions: (gaps: string[]) => [
       { id: "q1", type: "single_choice", text: "1. Cảm xúc của em sau tiết Văn hôm nay?", options: ["A1 – Rất chạm đến cảm xúc, lôi cuốn ✨", "A2 – Bình thường, dễ nghe 🙂", "A3 – Hơi khô khan, buồn ngủ 🥱", "A4 – Quá trừu tượng, khó cảm nhận 😵‍💫"] },
@@ -88,11 +96,15 @@ const SUBJECT_CONFIGS: Record<string, any> = {
       }
 
       ${processMode === "premium" 
-        ? `💎 CHẾ ĐỘ CAO CẤP (NGỮ DỤNG HỌC): Đẩy mạnh phân tích phản xạ giao tiếp và ngữ cảnh. VD: "Em biết từ vựng nhưng không phản xạ kịp để ghép thành câu", "Em hay nhầm cấu trúc câu điều kiện loại 2 với loại 3 khi làm bài".` 
-        : `🚀 CHẾ ĐỘ TỐC ĐỘ (NHẬN BIẾT): Ngắn gọn. VD: "Em hay nhầm thì hiện tại hoàn thành", "Nhiều từ mới quá em không nhớ nổi".`
+        ? `💎 CHẾ ĐỘ CAO CẤP (NGỮ DỤNG HỌC): Phân tích phản xạ giao tiếp nhưng phải siêu ngắn gọn. VD: "Em biết từ nhưng phản xạ nói chậm", "Em hay nhầm cấu trúc đảo ngữ".` 
+        : `🚀 CHẾ ĐỘ TỐC ĐỘ (NHẬN BIẾT): VD: "Em hay nhầm thì hiện tại hoàn thành", "Nhiều từ mới quá em không nhớ".`
       }
 
-      ĐỊNH DẠNG BẮT BUỘC: Biến thành phát biểu của học sinh ở ngôi thứ nhất. Dưới 20 từ.
+      ĐỊNH DẠNG BẮT BUỘC:
+      1. Bắt buộc bằng Tiếng Việt.
+      2. Phát biểu ở ngôi thứ nhất ("Em...").
+      3. CỰC KỲ NGẮN GỌN (Tuyệt đối dưới 10 từ).
+      4. Văn phong nói tự nhiên, dễ đọc lướt.
     `,
     buildQuestions: (gaps: string[]) => [
       { id: "q1", type: "single_choice", text: "1. Mức độ hứng thú của em với tiết Tiếng Anh hôm nay?", options: ["A1 – Rất năng động, vui vẻ 🌟", "A2 – Bình thường 🙂", "A3 – Ngại giao tiếp, sợ nói sai 🤐", "A4 – Theo không kịp, đuối sức 😵"] },
@@ -116,11 +128,15 @@ const SUBJECT_CONFIGS: Record<string, any> = {
       }
 
       ${processMode === "premium" 
-        ? `💎 CHẾ ĐỘ CAO CẤP: Đưa ra các nguyên nhân thất bại sâu xa về mặt logic và tư duy. Phân tích chi tiết hơn bình thường. VD: "Em thuộc lý thuyết nhưng không biết áp dụng vào bài tập thực hành".` 
-        : `🚀 CHẾ ĐỘ TỐC ĐỘ: Ngắn gọn. VD: "Em chưa hiểu cách phân loại", "Em không nhớ trình tự các bước".`
+        ? `💎 CHẾ ĐỘ CAO CẤP: Đưa ra các nguyên nhân thất bại sâu xa về mặt logic nhưng phải tóm gọn lại. VD: "Em thuộc lý thuyết nhưng không biết vận dụng", "Em hay nhầm lẫn thứ tự thực hiện".` 
+        : `🚀 CHẾ ĐỘ TỐC ĐỘ: VD: "Em chưa hiểu cách phân loại", "Em không nhớ trình tự các bước".`
       }
 
-      ĐỊNH DẠNG BẮT BUỘC: Phát biểu của học sinh, ngôi thứ nhất. Dưới 20 từ.
+      ĐỊNH DẠNG BẮT BUỘC:
+      1. Bắt buộc bằng Tiếng Việt.
+      2. Phát biểu ở ngôi thứ nhất ("Em...").
+      3. CỰC KỲ NGẮN GỌN (Tuyệt đối dưới 10 từ).
+      4. Văn phong nói tự nhiên, dễ đọc lướt.
     `,
     buildQuestions: (gaps: string[]) => [
       { id: "q1", type: "single_choice", text: "1. Cảm nhận chung của em về tiết học hôm nay?", options: ["A1 – Hứng thú 🤩", "A2 – Bình thường 🙂", "A3 – Hơi căng (bài khó/nhanh) 🤯", "A4 – Mệt, khó tập trung 😴"] },
