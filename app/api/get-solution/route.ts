@@ -6,8 +6,8 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    
-    // 👇 NHẬN TRỰC TIẾP MODEL TỪ GIAO DIỆN (Tuyệt đối không can thiệp hay tự đổi tên)
+    // 👇 LẤY MODEL TỪ BODY
+    // Lưu ý: stats là dữ liệu từ Dashboard gửi sang
     const { stats, lessonText, apiKey, model = "gpt-5.4" } = body;
     
     const finalKey = apiKey || process.env.OPENAI_API_KEY;
@@ -15,7 +15,15 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({ apiKey: finalKey });
 
-    // PROMPT 4 TẦNG (Giữ nguyên 100% logic xịn xò gốc)
+    // 🚀 BƯỚC CẤU HÌNH MODEL THEO YÊU CẦU MỚI NHẤT
+    let apiModel = model; 
+    
+    // Chỉ bọc lót riêng gpt-4.5 đẩy về gpt-4o, còn lại (gpt-4o, gpt-5, gpt-5.4) giữ nguyên bản!
+    if (model === "gpt-4.5") {
+        apiModel = "gpt-4o"; 
+    }
+
+    // PROMPT 4 TẦNG (Giữ nguyên logic xịn xò gốc)
     const prompt = `
       Bạn là Chuyên gia Phân tích Dữ liệu Giáo dục & Sư phạm (EduMirror X).
       
@@ -50,10 +58,10 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    // 🚀 CHẠY THẲNG MODEL MÀ NGƯỜI DÙNG CHỌN
     const response = await openai.chat.completions.create({
-      model: model, // Giao diện truyền vào "gpt-5", API sẽ chạy đúng "gpt-5". Truyền "gpt-4.5", chạy đúng "gpt-4.5".
+      model: apiModel, // 👈 QUAN TRỌNG: Dùng biến apiModel đã bọc lót 4.5
       messages: [{ role: "user", content: prompt }],
+      
     });
 
     return NextResponse.json({ result: response.choices[0].message.content });
