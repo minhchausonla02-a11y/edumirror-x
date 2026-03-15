@@ -38,6 +38,33 @@ html, body {
   background: rgba(168, 85, 247, 0.7); /* Sáng lên khi di chuột vào */
 }
 
+/* ========================================= */
+/* HIỆU ỨNG LOGO EDUMIRROR X (NEON & ĐỔI MÀU) */
+/* ========================================= */
+.animate-rgb-shift {
+  animation: rgbShift 8s linear infinite;
+}
+
+.neon-text {
+  text-shadow: 
+    0 0 5px #fff,
+    0 0 10px #fff,
+    0 0 20px #00e6e6,
+    0 0 40px #00e6e6,
+    0 0 80px #00e6e6;
+}
+
+.neon-icon {
+  filter: drop-shadow(0 0 8px rgba(0, 255, 255, 0.8)) 
+          drop-shadow(0 0 20px rgba(0, 255, 255, 0.5));
+}
+
+@keyframes rgbShift {
+  0% { filter: hue-rotate(0deg); }
+  50% { filter: hue-rotate(180deg); }
+  100% { filter: hue-rotate(360deg); }
+}
+
 /* Ẩn các class cũ không còn dùng tới để code nhẹ hơn */
 @layer base {
   :root { --radius: 0.5rem; }

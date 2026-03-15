@@ -215,11 +215,17 @@ function EduMirrorContent() {
         <div className="mx-auto max-w-7xl px-6 py-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-blue-600 p-[1px] shadow-[0_0_15px_rgba(168,85,247,0.4)]">
-                 <div className="w-full h-full bg-[#05050A] rounded-xl flex items-center justify-center text-xl">🪞</div>
+            {/* LOGO MỚI VỚI HIỆU ỨNG RỰC SÁNG VÀ ĐỔI MÀU AI */}
+            <div className="flex items-center gap-3 cursor-pointer animate-rgb-shift">
+              {/* Box Icon chứa emoji hoặc hình ảnh logo */}
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 p-[1px] neon-icon">
+                 <div className="w-full h-full bg-[#05050A] rounded-xl flex items-center justify-center text-xl">
+                   🪞
+                 </div>
               </div>
-              <div className="text-xl font-extrabold tracking-wide bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-blue-400 drop-shadow-[0_0_8px_rgba(168,85,247,0.3)]">
+              
+              {/* Tên ứng dụng */}
+              <div className="text-2xl font-black tracking-wider text-white neon-text">
                 EduMirror X
               </div>
             </div>
