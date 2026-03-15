@@ -6,16 +6,16 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    // 👇 LẤY MODEL TỪ BODY
-    // Lưu ý: stats là dữ liệu từ Dashboard gửi sang
-    const { stats, lessonText, apiKey, model = "gpt-4o-mini" } = body;
+    
+    // 👇 NHẬN TRỰC TIẾP MODEL TỪ GIAO DIỆN (Tuyệt đối không can thiệp hay tự đổi tên)
+    const { stats, lessonText, apiKey, model = "gpt-5.4" } = body;
     
     const finalKey = apiKey || process.env.OPENAI_API_KEY;
     if (!finalKey) return NextResponse.json({ error: "Thiếu API Key" }, { status: 401 });
 
     const openai = new OpenAI({ apiKey: finalKey });
 
-    // PROMPT 4 TẦNG (Giữ nguyên logic xịn xò cũ)
+    // PROMPT 4 TẦNG (Giữ nguyên 100% logic xịn xò gốc)
     const prompt = `
       Bạn là Chuyên gia Phân tích Dữ liệu Giáo dục & Sư phạm (EduMirror X).
       
@@ -50,10 +50,10 @@ export async function POST(req: Request) {
       </div>
     `;
 
+    // 🚀 CHẠY THẲNG MODEL MÀ NGƯỜI DÙNG CHỌN
     const response = await openai.chat.completions.create({
-      model: model, // 👈 QUAN TRỌNG: Dùng biến model
+      model: model, // Giao diện truyền vào "gpt-5", API sẽ chạy đúng "gpt-5". Truyền "gpt-4.5", chạy đúng "gpt-4.5".
       messages: [{ role: "user", content: prompt }],
-      
     });
 
     return NextResponse.json({ result: response.choices[0].message.content });
