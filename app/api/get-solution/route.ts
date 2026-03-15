@@ -15,6 +15,19 @@ export async function POST(req: Request) {
 
     const openai = new OpenAI({ apiKey: finalKey });
 
+    // 🚀 BƯỚC NÂNG CẤP: BỘ CHUYỂN ĐỔI MODEL AN TOÀN (CHỈ THÊM ĐOẠN NÀY)
+    let realOpenAIModel = "gpt-4o-mini"; // Mặc định
+    
+    if (model === "gpt-4o" || model === "gpt-4o-mini") {
+      realOpenAIModel = model;
+    } else if (model === "gpt-4.5") {
+      realOpenAIModel = "gpt-4.5-preview"; 
+    } else if (model === "gpt-5" || model === "gpt-5.4") {
+      realOpenAIModel = "gpt-4o"; // Ép chạy ngầm model mạnh nhất hiện tại để chống sập web
+    } else {
+      realOpenAIModel = model; // Fallback an toàn
+    }
+
     // PROMPT 4 TẦNG (Giữ nguyên logic xịn xò cũ)
     const prompt = `
       Bạn là Chuyên gia Phân tích Dữ liệu Giáo dục & Sư phạm (EduMirror X).
@@ -51,7 +64,7 @@ export async function POST(req: Request) {
     `;
 
     const response = await openai.chat.completions.create({
-      model: model, // 👈 QUAN TRỌNG: Dùng biến model
+      model: realOpenAIModel, // 👈 QUAN TRỌNG: Đã đổi sang biến an toàn
       messages: [{ role: "user", content: prompt }],
       
     });

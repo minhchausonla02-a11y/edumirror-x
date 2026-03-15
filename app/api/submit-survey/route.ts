@@ -112,8 +112,8 @@ export async function POST(req: Request) {
               "summary": "Tóm tắt ngắn gọn."
             }`;
 
-            const completion = await openai.chat.completions.create({
-              model: "gpt-4o-mini",
+           const completion = await openai.chat.completions.create({
+             model: "gpt-4o-mini", // SỬA ĐÚNG TÊN MODEL THẬT ĐỂ TRÁNH LỖI
               messages: [{ role: "system", content: prompt }],
               response_format: { type: "json_object" },
               temperature: 0.1 // Cố định nhiệt độ thấp để AI tuân thủ luật phân tích logic

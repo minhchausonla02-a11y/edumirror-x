@@ -138,6 +138,17 @@ export async function POST(req: Request) {
 
     const config = SUBJECT_CONFIGS[subject] || SUBJECT_CONFIGS["DEFAULT"];
 
+    // 🚀 BƯỚC NÂNG CẤP: DỊCH TÊN MODEL TỪ GIAO DIỆN SANG TÊN API THẬT
+    let realOpenAIModel = "gpt-4o"; // Mặc định an toàn
+    
+    if (model === "gpt-4o") {
+      realOpenAIModel = "gpt-4o";
+    } else if (model === "gpt-4.5") {
+      realOpenAIModel = "gpt-4.5-preview"; 
+    } else if (model === "gpt-5" || model === "gpt-5.4") {
+      realOpenAIModel = "gpt-4o"; // Ép chạy ngầm model mạnh nhất hiện tại để chống sập web
+    }
+
     const systemPrompt = `
       ${config.buildPrompt(processMode, standards)}
       
@@ -149,7 +160,7 @@ export async function POST(req: Request) {
     `;
 
     const completion = await openai.chat.completions.create({
-      model: model,
+      model: realOpenAIModel, // 🚀 ĐÃ CẬP NHẬT GỌI ĐÚNG BIẾN AN TOÀN
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: `Nội dung bài dạy:\n${content.substring(0, 15000)}` }
