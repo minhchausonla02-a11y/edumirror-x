@@ -418,30 +418,82 @@ export default function DashboardView({ model }: { model?: string }) {
                 </div>
             </div>
 
-            {/* KẾT QUẢ AI PHÂN TÍCH */}
+          {/* KẾT QUẢ AI PHÂN TÍCH (ĐÃ NÂNG CẤP GOM NHÓM & TÔ MÀU) */}
             {aiResult && (
                 <div className="mb-10 bg-gradient-to-br from-purple-900/40 to-[#0D0D18] rounded-2xl border border-purple-500/50 overflow-hidden animate-fade-in shadow-[0_0_40px_rgba(168,85,247,0.2)] relative">
                     <div className="absolute top-0 left-0 w-1 h-full bg-purple-400 shadow-[0_0_15px_#a855f7]"></div>
                     <div className="p-4 bg-black/40 flex justify-between items-center border-b border-purple-500/20 backdrop-blur-md">
                         <span className="text-[11px] font-bold text-purple-300 uppercase tracking-widest flex items-center gap-2 ml-2">
-                          🤖 BÁO CÁO PHÂN TÍCH KHỐI NHÓM (NLP)
+                            🤖 BÁO CÁO PHÂN TÍCH KHỐI NHÓM (NLP)
                         </span>
                         <button onClick={goToSolution} className="text-[11px] bg-purple-600 hover:bg-purple-500 text-white border border-purple-400/50 px-4 py-2 rounded-lg font-bold shadow-[0_0_15px_rgba(168,85,247,0.6)] transition-colors uppercase tracking-wider">
                             💡 TƯ VẤN SƯ PHẠM →
                         </button>
                     </div>
-                    <div className="p-6 grid gap-5 grid-cols-1 md:grid-cols-2">
-                        {aiResult.map((item: any, idx: number) => (
-                            <div key={idx} className="flex items-start gap-4 p-5 bg-[#05050A] rounded-xl border border-white/5 shadow-inner hover:border-purple-500/30 transition-colors">
-                                <div className={`w-14 h-14 rounded-xl flex flex-col items-center justify-center flex-shrink-0 border ${item.type === 'negative' ? 'bg-red-500/10 border-red-500/40 text-red-400 shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]'}`}>
-                                    <span className="text-2xl font-extrabold font-mono">{item.count}</span>
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <span className="text-[9px] font-bold uppercase text-purple-200 tracking-widest bg-purple-500/20 border border-purple-500/30 px-2.5 py-1 rounded shadow-[inset_0_0_8px_rgba(168,85,247,0.2)]">{item.category}</span>
+                    
+                    {/* KHU VỰC HIỂN THỊ GOM NHÓM */}
+                    <div className="p-6 grid gap-6 grid-cols-1 md:grid-cols-2">
+                        {Object.entries(
+                            // 🚀 Thuật toán gom nhóm nhanh gọn ngay trong lúc Render
+                            aiResult.reduce((acc: any, item: any) => {
+                                if (!acc[item.category]) acc[item.category] = { items: [], totalCount: 0 };
+                                acc[item.category].items.push(item);
+                                acc[item.category].totalCount += (item.count || 1);
+                                return acc;
+                            }, {})
+                        ).map(([category, group]: [string, any], idx: number) => (
+                            <div key={idx} className="bg-[#05050A] border border-white/10 rounded-xl p-5 shadow-inner hover:border-purple-500/40 transition-all flex flex-col">
+                                
+                                {/* Header của từng Nhóm */}
+                                <div className="flex items-center justify-between border-b border-gray-800 pb-3 mb-4">
+                                    <span className="px-3 py-1 bg-purple-500/20 text-purple-300 text-[10px] font-bold rounded shadow-[inset_0_0_8px_rgba(168,85,247,0.3)] uppercase tracking-widest">
+                                        {category}
+                                    </span>
+                                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400 font-bold text-xs shadow-[0_0_10px_rgba(168,85,247,0.2)]" title="Tổng số phiếu của nhóm này">
+                                        {group.totalCount}
                                     </div>
-                                    <p className="text-sm text-gray-300 font-medium leading-relaxed">{item.summary}</p>
                                 </div>
+
+                                {/* Danh sách ý kiến bên trong nhóm (Tô màu theo cảm xúc) */}
+                                <ul className="space-y-3">
+                                    {group.items.map((item: any, i: number) => {
+                                        // 🎨 Logic tô màu dựa trên "type" trả về từ AI
+                                        let colorClass = "text-amber-400"; // Trung tính (Góp ý)
+                                        let bgClass = "bg-amber-500/10";
+                                        let borderClass = "border-amber-500/30";
+                                        let icon = "▶"; 
+
+                                        if (item.type === 'positive') {
+                                            colorClass = "text-emerald-400"; // Tích cực (Lời khen)
+                                            bgClass = "bg-emerald-500/10";
+                                            borderClass = "border-emerald-500/30";
+                                            icon = "✓";
+                                        } else if (item.type === 'negative') {
+                                            colorClass = "text-red-400"; // Tiêu cực (Điểm nghẽn)
+                                            bgClass = "bg-red-500/10";
+                                            borderClass = "border-red-500/30";
+                                            icon = "⚠";
+                                        }
+
+                                        return (
+                                            <li key={i} className={`flex items-start gap-3 p-3 rounded-lg border ${borderClass} ${bgClass} transition-colors`}>
+                                                <span className={`mt-0.5 text-xs font-black ${colorClass} drop-shadow-md`}>
+                                                    {icon}
+                                                </span>
+                                                <div className="flex-1">
+                                                    <p className="text-[13px] text-gray-200 leading-relaxed font-medium">
+                                                        {item.summary}
+                                                        {item.count > 1 && (
+                                                            <span className={`ml-2 text-[10px] font-mono px-1.5 py-0.5 rounded border ${borderClass} ${colorClass} opacity-80 inline-block`}>
+                                                                {item.count} phiếu
+                                                            </span>
+                                                        )}
+                                                    </p>
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
                             </div>
                         ))}
                     </div>
