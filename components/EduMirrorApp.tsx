@@ -215,21 +215,26 @@ function EduMirrorContent() {
         <div className="mx-auto max-w-7xl px-6 py-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             
-            {/* LOGO MỚI VỚI HIỆU ỨNG RỰC SÁNG VÀ ĐỔI MÀU AI */}
-            <div className="flex items-center gap-3 cursor-pointer animate-rgb-shift">
-              {/* Box Icon chứa emoji hoặc hình ảnh logo */}
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 p-[1px] neon-icon">
-                 <div className="w-full h-full bg-[#05050A] rounded-xl flex items-center justify-center text-xl">
-                   🪞
-                 </div>
+           {/* KHU VỰC LOGO: PHA LÊ & NEON (CODE MỚI) */}
+            <div className="flex items-center gap-3 md:gap-4 cursor-pointer hover:scale-105 transition-transform duration-300">
+              
+              {/* Icon Khối Pha lê */}
+              <div className="w-12 h-12 md:w-14 md:h-14 relative flex items-center justify-center rounded-xl bg-black/20 border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.3)]">
+                {/* Gọi file ảnh crystal-logo.png từ thư mục public */}
+                <img 
+                  src="/crystal-logo.png" 
+                  alt="EduMirror Core" 
+                  className="w-[120%] h-[120%] object-contain drop-shadow-[0_0_15px_rgba(168,85,247,0.6)]" 
+                />
               </div>
               
-              {/* Tên ứng dụng */}
-              <div className="text-2xl font-black tracking-wider text-white neon-text">
-                EduMirror X
+              {/* Tên ứng dụng EduMirror X */}
+              <div className="text-2xl md:text-3xl font-black tracking-widest flex items-baseline">
+                <span className="text-glow-cyan">EduMirror</span>
+                <span className="text-outline-neon ml-1 md:ml-2 text-3xl md:text-4xl">X</span>
               </div>
-            </div>
 
+            </div>
             <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6">
               <div className="flex items-center bg-white/5 p-1 rounded-xl border border-white/10 shadow-inner backdrop-blur-sm">
                 <span className="pl-3 pr-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest hidden sm:inline-block">

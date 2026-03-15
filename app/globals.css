@@ -69,3 +69,17 @@ html, body {
 @layer base {
   :root { --radius: 0.5rem; }
 }
+/* --- HIỆU ỨNG CHỮ EDUMIRROR (Sáng Cyan/Trắng mờ) --- */
+.text-glow-cyan {
+  color: #e0f2fe; /* Màu trắng hơi ngả xanh dương */
+  text-shadow: 0 0 10px rgba(34, 211, 238, 0.6),
+               0 0 20px rgba(34, 211, 238, 0.3);
+}
+
+/* --- HIỆU ỨNG CHỮ X (Viền rỗng phát sáng) --- */
+.text-outline-neon {
+  color: transparent; /* Làm trong suốt ruột chữ */
+  -webkit-text-stroke: 2px #22d3ee; /* Tạo viền màu Cyan */
+  text-shadow: 0 0 15px rgba(34, 211, 238, 0.8),
+               0 0 30px rgba(34, 211, 238, 0.4);
+}
