@@ -415,7 +415,8 @@ function EduMirrorContent() {
                   </h3>
                   <textarea
                     className="w-full h-24 p-4 rounded-xl border border-[#1c3664] bg-[#091128] text-sm text-white focus:ring-1 focus:ring-[#00e5ff] focus:border-[#00e5ff] outline-none transition-all resize-none shadow-inner placeholder:text-[#8b9bc0]"
-                    placeholder="VD: Học sinh nắm được khái niệm tích phân (Nhập từ 1-3 mục tiêu cốt lõi)..."
+                    placeholder="Nhập các chuẩn đầu ra cần đạt (khuyên dùng 2 đến 3 mục tiêu). 
+Hệ thống AI sẽ dùng dữ liệu này làm 'kim chỉ nam' để sinh câu hỏi trắc nghiệm và đánh giá chính xác năng lực học sinh..."
                     value={standardsText}
                     onChange={(e) => setStandardsText(e.target.value)}
                   />
