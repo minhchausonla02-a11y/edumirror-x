@@ -5,14 +5,16 @@ import { NextResponse } from "next/server";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Hàm parse JSON an toàn
+// Hàm parse JSON an toàn (Bọc lót rất kỹ cho Gemini)
 function safeParse(text: string) {
   try {
-    return JSON.parse(text);
+    // Xóa bỏ các ký tự thừa thãi (như markdown ```json ... ```) mà AI có thể sinh ra
+    const cleanText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    return JSON.parse(cleanText);
   } catch (e) {
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) return JSON.parse(jsonMatch[0]);
-    throw new Error("INVALID_JSON_OUTPUT");
+    throw new Error("Không thể trích xuất JSON từ phản hồi của AI.");
   }
 }
 
@@ -166,10 +168,11 @@ export async function POST(req: Request) {
 
     const config = SUBJECT_CONFIGS[subject] || SUBJECT_CONFIGS["DEFAULT"];
 
+    // 🚀 BỔ SUNG LỆNH ÉP KHUÔN JSON TRỰC TIẾP VÀO PROMPT ĐỂ GEMINI KHÔNG LỆCH CẤU TRÚC
     const systemPrompt = `
       ${config.buildPrompt(processMode, standards)}
       
-      YÊU CẦU ĐẦU RA (JSON OBJECT TUYỆT ĐỐI THEO SCHEMA):
+      YÊU CẦU ĐẦU RA (JSON OBJECT TUYỆT ĐỐI THEO SCHEMA, KHÔNG GIẢI THÍCH, KHÔNG CHIA BỐ CỤC MARKDOWN):
       {
         "lesson_title": "Tên bài học ngắn gọn (Tối đa 5-7 từ, KHÔNG tự chế thêm thông tin lớp/tiết vào đây)",
         "dynamic_knowledge_gaps": ["Lỗi/Khó khăn 1", "Lỗi/Khó khăn 2", "Lỗi/Khó khăn 3", "Lỗi/Khó khăn 4"]
@@ -187,14 +190,9 @@ export async function POST(req: Request) {
 
       const genAI = new GoogleGenerativeAI(finalGeminiKey);
       
-      // Khởi tạo model và ép kiểu đầu ra là JSON để khỏi vỡ cấu trúc
-      const geminiModel = genAI.getGenerativeModel({ 
-        model: model,
-        generationConfig: { responseMimeType: "application/json" }
-      });
+      // Khởi tạo model BÌNH THƯỜNG (Không ép kiểu MIME JSON vì dễ gây lỗi trên tài khoản Free)
+      const geminiModel = genAI.getGenerativeModel({ model: model });
 
-      // Gemini không dùng mảng "messages" với role "system" giống OpenAI, 
-      // nên ta ghép prompt hệ thống và nội dung bài dạy thành 1 chuỗi lệnh duy nhất.
       const combinedPrompt = `${systemPrompt}\n\nNội dung bài dạy:\n${content.substring(0, 15000)}`;
 
       const result = await geminiModel.generateContent(combinedPrompt);
