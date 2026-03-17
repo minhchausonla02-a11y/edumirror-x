@@ -19,19 +19,14 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
     
     // 3. LỘT XÁC TAILWIND LIGHT SANG DARK-SCIFI BẰNG REGEX DIỆN RỘNG
     processed = processed
-      // Ép MỌI nền sáng (red-50, green-50, orange-50...) thành nền kính mờ vũ trụ
       .replace(/bg-[a-zA-Z]+-50/g, "bg-[#12254a]/60 backdrop-blur-sm shadow-[inset_0_0_15px_rgba(0,229,255,0.05)]")
       .replace(/bg-[a-zA-Z]+-100/g, "bg-[#091128]/80")
       .replace(/bg-white/g, "bg-transparent")
-      
-      // Đổi toàn bộ chữ xám/đen của AI thành màu Trắng hoặc Xanh phát sáng
       .replace(/text-[a-zA-Z]+-800/g, "text-white font-medium drop-shadow-sm")
       .replace(/text-[a-zA-Z]+-900/g, "text-white font-bold")
-      .replace(/text-[a-zA-Z]+-700/g, "text-[#00ff9d]") // Các text nhấn sẽ đổi sang màu Neon Xanh ngọc
-      .replace(/text-[a-zA-Z]+-600/g, "text-[#00e5ff]") // Các text phụ đổi sang Cyan
-      
-      // Ép viền thành màu chuẩn, có hiệu ứng hover sáng lên
-      .replace(/border-[a-zA-Z]+-[200|300]/g, "border-[#1c3664] hover:border-[#00e5ff]/50 transition-all duration-300 hover:shadow-[0_0_15px_rgba(0,229,255,0.2)]");
+      .replace(/text-[a-zA-Z]+-700/g, "text-[#00ff9d]") 
+      .replace(/text-[a-zA-Z]+-600/g, "text-[#00e5ff]") 
+      .replace(/border-[a-zA-Z]+-(200|300)/g, "border-[#1c3664] hover:border-[#00e5ff]/50 transition-all duration-300 hover:shadow-[0_0_15px_rgba(0,229,255,0.2)]");
 
     return processed;
   };
@@ -40,7 +35,7 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
   const [solution, setSolution] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // 🚀 BƯỚC 1: HIỆU ỨNG LOADING CHỮ CHẠY (CYBERPUNK STYLE)
+  // 🚀 BƯỚC 1: HIỆU ỨNG LOADING CHỮ CHẠY
   const loadingMessages = [
     "Khởi tạo lõi AI phân tích đa tầng...",
     "Đang bóc tách số liệu thống kê lớp học...",
@@ -57,7 +52,7 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
     if (loading) { 
       interval = setInterval(() => {
         setLoadingIndex((prev) => (prev + 1 < loadingMessages.length ? prev + 1 : prev));
-      }, 15000); // 15 giây đổi câu 1 lần
+      }, 15000); 
     } else {
       setLoadingIndex(0); 
     }
@@ -148,39 +143,37 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
             </div>
          </div>
          
-         {/* Nút bấm hoặc Hiệu ứng Loading */}
-         {!solution && stats && (
-             loading ? (
-                // 🚀 BƯỚC 2: GIAO DIỆN LOADING RADAR
-                <div className="flex flex-col items-center justify-center p-6 space-y-4 bg-[#040b16] rounded-xl border border-[#00e5ff]/40 shadow-[inset_0_0_20px_rgba(0,229,255,0.1)] w-full md:w-[400px]">
-                    <div className="relative flex items-center justify-center h-12 w-12">
-                        <div className="absolute inset-0 rounded-full border-t-2 border-b-2 border-[#00e5ff] animate-spin shadow-[0_0_10px_#00e5ff]"></div>
-                        <div className="absolute inset-2 rounded-full border-l-2 border-r-2 border-[#2196f3] animate-[spin_2s_linear_reverse] shadow-[0_0_8px_#2196f3]"></div>
-                        <div className="text-[#00e5ff] text-[10px] font-bold drop-shadow-[0_0_5px_#00e5ff]">AI</div>
-                    </div>
-                    <div className="text-center space-y-1">
-                        <p className="text-[#00e5ff] font-medium animate-pulse text-sm transition-all duration-500 min-h-[40px] flex items-center justify-center font-mono drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">
-                            {loadingMessages[loadingIndex]}
-                        </p>
-                    </div>
+         {/* TÁCH LOGIC ĐIỀU KIỆN ĐỂ TRÁNH VERCEL BUILD ERROR */}
+         {!solution && stats && loading && (
+            <div className="flex flex-col items-center justify-center p-6 space-y-4 bg-[#040b16] rounded-xl border border-[#00e5ff]/40 shadow-[inset_0_0_20px_rgba(0,229,255,0.1)] w-full md:w-[400px]">
+                <div className="relative flex items-center justify-center h-12 w-12">
+                    <div className="absolute inset-0 rounded-full border-t-2 border-b-2 border-[#00e5ff] animate-spin shadow-[0_0_10px_#00e5ff]"></div>
+                    <div className="absolute inset-2 rounded-full border-l-2 border-r-2 border-[#2196f3] animate-[spin_2s_linear_reverse] shadow-[0_0_8px_#2196f3]"></div>
+                    <div className="text-[#00e5ff] text-[10px] font-bold drop-shadow-[0_0_5px_#00e5ff]">AI</div>
                 </div>
-             ) : (
-                // Nút bấm bình thường khi chưa phân tích
-                <button 
-                    onClick={handleAnalyze} 
-                    className="w-full md:w-auto bg-gradient-to-r from-[#00e5ff] to-[#2196f3] text-[#040b16] hover:shadow-[0_0_25px_rgba(0,229,255,0.8)] px-8 py-4 rounded-xl font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(0,229,255,0.4)] transition-all z-10 hover:-translate-y-1 flex items-center justify-center gap-2"
-                >
-                    ✨ KÍCH HOẠT QUY TRÌNH
-                </button>
-             )
+                <div className="text-center space-y-1">
+                    <p className="text-[#00e5ff] font-medium animate-pulse text-sm transition-all duration-500 min-h-[40px] flex items-center justify-center font-mono drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">
+                        {loadingMessages[loadingIndex]}
+                    </p>
+                </div>
+            </div>
+         )}
+
+         {!solution && stats && !loading && (
+            <button 
+                onClick={handleAnalyze} 
+                className="w-full md:w-auto bg-gradient-to-r from-[#00e5ff] to-[#2196f3] text-[#040b16] hover:shadow-[0_0_25px_rgba(0,229,255,0.8)] px-8 py-4 rounded-xl font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(0,229,255,0.4)] transition-all z-10 hover:-translate-y-1 flex items-center justify-center gap-2"
+            >
+                ✨ KÍCH HOẠT QUY TRÌNH
+            </button>
          )}
       </div>
 
-      {/* HIỂN THỊ NỘI DUNG GIẢI PHÁP */}
+      {/* HIỂN THỊ NỘI DUNG GIẢI PHÁP - ĐÃ TÁCH KHỐI ĐỂ AN TOÀN */}
       {solution && (
         <div className="animate-fade-in-up bg-[#12254a]/40 backdrop-blur-md p-8 md:p-10 rounded-[2.5rem] border border-[#1c3664] shadow-[0_0_30px_rgba(0,229,255,0.1)] relative">
             
-            {/* Vùng hiển thị Markdown tùy chỉnh CSS cho Dark-SciFi Mode */}
+            {/* Vùng hiển thị Markdown */}
             <div className="prose max-w-none 
                 prose-headings:text-[#00e5ff] prose-headings:uppercase prose-headings:tracking-wider prose-headings:font-bold prose-headings:drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]
                 prose-h3:text-lg prose-h3:border-b prose-h3:border-[#1c3664] prose-h3:pb-2 prose-h3:text-[#00e5ff]
@@ -191,7 +184,6 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                 [&_ol]:space-y-2 [&_ul]:space-y-2
                 katex-display:text-center katex-display:my-4 katex-display:text-xl katex-display:text-[#00ff9d] katex-display:drop-shadow-[0_0_8px_#00ff9d]
                 [&_.katex]:text-[#00ff9d] font-mono text-sm
-                /* CHỐNG TÀNG HÌNH: Ép tất cả các text bên trong đều hiển thị màu trắng nếu bị miss class */
                 [&>div]:!bg-transparent [&>div]:!border-none [&>div]:!shadow-none [&_div]:!text-white [&_p]:!text-white [&_span]:!text-white"
                 dangerouslySetInnerHTML={{ __html: processAIHtml(solution) }}
             ></div>
@@ -202,7 +194,10 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                 </button>
             </div>
         </div>
-      ) : !stats && (
+      )}
+
+      {/* HIỂN THỊ MÀN HÌNH CHỜ NẾU CHƯA CÓ STATS */}
+      {!solution && !stats && (
         <div className="text-center py-28 bg-[#12254a]/40 backdrop-blur-xl rounded-[3rem] border border-[#1c3664] shadow-sm">
             <div className="text-5xl opacity-30 mb-6 drop-shadow-[0_0_10px_#00e5ff]">🔌</div>
             <p className="text-lg font-bold text-[#8b9bc0] tracking-widest uppercase">Mất kết nối Dữ liệu Lõi</p>
@@ -230,7 +225,6 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
 
               {/* Nội dung Chat */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-transparent relative custom-scrollbar z-0">
-                  {/* Lưới tọa độ chìm trong nền chat */}
                   <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(0,229,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,229,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px] -z-10"></div>
                   
                   {/* Lời chào AI */}
