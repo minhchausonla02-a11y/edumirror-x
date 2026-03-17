@@ -7,21 +7,21 @@ import 'katex/dist/katex.min.css';
 
 export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
   
-  // 🚀 BỘ LỌC ĐẶC BIỆT: Khử màu Dark Mode của AI & Xử lý Toán học cho LIGHT THEME
+  // 🚀 BỘ LỌC ĐẶC BIỆT: Đã được cấu hình lại để ép HTML của AI về chuẩn DARK-SCIFI
   const processAIHtml = (content: string) => {
     if (!content) return "";
     
     // 1. Render Toán học
     let processed = content.replace(/\\\[(.*?)\\\]/gs, '$$$1$$').replace(/\\\((.*?)\\\)/gs, '$$$1$$');
     
-    // 2. Ép các class AI về chuẩn Light Mode
-    processed = processed.replace(/bg-transparent/g, "bg-white")
-                         .replace(/bg-white\/5/g, "bg-slate-50")
-                         .replace(/text-gray-[1-4]00/g, "text-slate-800")
-                         .replace(/border-white\/10/g, "border-slate-200")
-                         .replace(/text-blue-[3-4]00/g, "text-blue-700")
-                         .replace(/bg-blue-500\/10/g, "bg-blue-50")
-                         .replace(/text-white/g, "text-slate-800");
+    // 2. Ép các class AI về chuẩn Dark Mode
+    processed = processed.replace(/bg-white/g, "bg-transparent")
+                         .replace(/bg-slate-50/g, "bg-[#12254a]/30")
+                         .replace(/text-slate-[8-9]00/g, "text-white")
+                         .replace(/text-gray-[1-9]00/g, "text-[#8b9bc0]")
+                         .replace(/border-slate-[2-3]00/g, "border-[#1c3664]")
+                         .replace(/text-blue-[6-7]00/g, "text-[#00e5ff]")
+                         .replace(/bg-blue-50/g, "bg-[#00e5ff]/10");
     return processed;
   };
   
@@ -29,7 +29,7 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
   const [solution, setSolution] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // 🚀 BƯỚC 1: HIỆU ỨNG LOADING CHỮ CHẠY
+  // 🚀 BƯỚC 1: HIỆU ỨNG LOADING CHỮ CHẠY (CYBERPUNK STYLE)
   const loadingMessages = [
     "Khởi tạo lõi AI phân tích đa tầng...",
     "Đang bóc tách số liệu thống kê lớp học...",
@@ -109,30 +109,30 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
       
       setChatHistory(prev => [...prev, { role: 'ai', content: data.result }]);
     } catch (e) {
-      setChatHistory(prev => [...prev, { role: 'ai', content: "⚠️ Mất kết nối tới trung tâm phân tích. Vui lòng thử lại." }]);
+      setChatHistory(prev => [...prev, { role: 'ai', content: "⚠️ MẤT KẾT NỐI TỚI TRUNG TÂM PHÂN TÍCH. VUI LÒNG THỬ LẠI." }]);
     } finally {
       setChatLoading(false);
     }
   };
 
   return (
-    <div className="space-y-8 animate-fade-in font-sans pb-12 max-w-6xl mx-auto">
+    <div className="space-y-8 animate-fade-in font-sans pb-12 max-w-6xl mx-auto text-white">
       
       {/* --- PHẦN 1: HEADER TRẠM ĐIỀU KHIỂN --- */}
-      <div className="bg-white p-6 rounded-[2rem] border border-blue-100 shadow-lg flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-         <div className="absolute top-0 right-0 w-64 h-64 bg-blue-50 rounded-full blur-3xl -z-10"></div>
+      <div className="bg-[#12254a]/40 backdrop-blur-xl p-6 rounded-[2rem] border border-[#1c3664] shadow-[0_0_30px_rgba(0,229,255,0.05)] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+         <div className="absolute top-0 right-0 w-64 h-64 bg-[#00e5ff]/10 rounded-full blur-[80px] -z-10 pointer-events-none"></div>
          
          <div className="flex items-center gap-5 z-10">
-            <div className="w-16 h-16 bg-blue-50 border border-blue-200 rounded-2xl flex items-center justify-center text-3xl shadow-sm">
+            <div className="w-16 h-16 bg-[#040b16] border border-[#00e5ff]/50 rounded-2xl flex items-center justify-center text-3xl shadow-[0_0_15px_rgba(0,229,255,0.3)] drop-shadow-md">
                🤖
             </div>
             <div>
-                <h2 className="text-2xl font-extrabold text-blue-800 uppercase tracking-widest">
+                <h2 className="text-2xl font-extrabold text-[#00e5ff] uppercase tracking-widest drop-shadow-[0_0_8px_#00e5ff]">
                     CỐ VẤN SƯ PHẠM AI
                 </h2>
                 <div className="flex items-center gap-3 mt-1.5">
-                    <span className="text-[10px] text-slate-500 uppercase tracking-widest bg-slate-50 border border-slate-200 px-2 py-1 rounded">Engine: <span className="font-bold text-blue-600">{model}</span></span>
-                    <span className="text-[10px] text-emerald-600 font-mono flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Kích hoạt phân tích 4 tầng</span>
+                    <span className="text-[10px] text-[#8b9bc0] uppercase tracking-widest bg-[#091128] border border-[#1c3664] px-2 py-1 rounded">Engine: <span className="font-bold text-[#00e5ff]">{model}</span></span>
+                    <span className="text-[10px] text-[#00ff9d] font-mono flex items-center gap-1.5 drop-shadow-[0_0_5px_#00ff9d]"><span className="w-1.5 h-1.5 rounded-full bg-[#00ff9d] animate-pulse shadow-[0_0_5px_#00ff9d]"></span> Kích hoạt phân tích 4 tầng</span>
                 </div>
             </div>
          </div>
@@ -140,15 +140,15 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
          {/* Nút bấm hoặc Hiệu ứng Loading */}
          {!solution && stats && (
              loading ? (
-                // 🚀 BƯỚC 2: GIAO DIỆN LOADING HIỆU ỨNG SƯ PHẠM (SÁNG)
-                <div className="flex flex-col items-center justify-center p-6 space-y-4 bg-white rounded-xl border border-blue-100 shadow-sm w-full md:w-[400px]">
+                // 🚀 BƯỚC 2: GIAO DIỆN LOADING RADAR
+                <div className="flex flex-col items-center justify-center p-6 space-y-4 bg-[#040b16] rounded-xl border border-[#00e5ff]/40 shadow-[inset_0_0_20px_rgba(0,229,255,0.1)] w-full md:w-[400px]">
                     <div className="relative flex items-center justify-center h-12 w-12">
-                        <div className="absolute inset-0 rounded-full border-t-2 border-b-2 border-blue-600 animate-spin"></div>
-                        <div className="absolute inset-2 rounded-full border-l-2 border-r-2 border-indigo-400 animate-[spin_2s_linear_reverse]"></div>
-                        <div className="text-blue-600 text-[10px] font-bold">AI</div>
+                        <div className="absolute inset-0 rounded-full border-t-2 border-b-2 border-[#00e5ff] animate-spin shadow-[0_0_10px_#00e5ff]"></div>
+                        <div className="absolute inset-2 rounded-full border-l-2 border-r-2 border-[#2196f3] animate-[spin_2s_linear_reverse] shadow-[0_0_8px_#2196f3]"></div>
+                        <div className="text-[#00e5ff] text-[10px] font-bold drop-shadow-[0_0_5px_#00e5ff]">AI</div>
                     </div>
                     <div className="text-center space-y-1">
-                        <p className="text-blue-700 font-medium animate-pulse text-sm transition-all duration-500 min-h-[40px] flex items-center justify-center">
+                        <p className="text-[#00e5ff] font-medium animate-pulse text-sm transition-all duration-500 min-h-[40px] flex items-center justify-center font-mono drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">
                             {loadingMessages[loadingIndex]}
                         </p>
                     </div>
@@ -157,7 +157,7 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                 // Nút bấm bình thường khi chưa phân tích
                 <button 
                     onClick={handleAnalyze} 
-                    className="w-full md:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-4 rounded-xl font-bold tracking-widest uppercase shadow-md transition-all z-10 hover:-translate-y-1"
+                    className="w-full md:w-auto bg-gradient-to-r from-[#00e5ff] to-[#2196f3] text-[#040b16] hover:shadow-[0_0_25px_rgba(0,229,255,0.8)] px-8 py-4 rounded-xl font-bold tracking-widest uppercase shadow-[0_0_15px_rgba(0,229,255,0.4)] transition-all z-10 hover:-translate-y-1 flex items-center justify-center gap-2"
                 >
                     ✨ KÍCH HOẠT QUY TRÌNH
                 </button>
@@ -167,74 +167,79 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
 
       {/* HIỂN THỊ NỘI DUNG GIẢI PHÁP */}
       {solution ? (
-        <div className="animate-fade-in-up bg-white p-8 md:p-10 rounded-[2.5rem] border border-blue-100 shadow-xl relative">
+        <div className="animate-fade-in-up bg-[#12254a]/40 backdrop-blur-md p-8 md:p-10 rounded-[2.5rem] border border-[#1c3664] shadow-[0_0_30px_rgba(0,229,255,0.1)] relative">
             
-            {/* Vùng hiển thị Markdown tùy chỉnh CSS cho Light Mode */}
+            {/* Vùng hiển thị Markdown tùy chỉnh CSS cho Dark-SciFi Mode */}
             <div className="prose max-w-none 
-                prose-headings:text-blue-800 prose-headings:uppercase prose-headings:tracking-wider prose-headings:font-bold
-                prose-h3:text-lg prose-h3:border-b prose-h3:border-slate-200 prose-h3:pb-2 prose-h3:text-blue-600
-                prose-p:text-slate-700 prose-p:leading-relaxed
-                prose-strong:text-blue-700 prose-strong:font-extrabold
-                prose-ul:text-slate-600 prose-li:marker:text-blue-500
-                prose-blockquote:border-l-blue-500 prose-blockquote:bg-blue-50 prose-blockquote:p-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic
+                prose-headings:text-[#00e5ff] prose-headings:uppercase prose-headings:tracking-wider prose-headings:font-bold prose-headings:drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]
+                prose-h3:text-lg prose-h3:border-b prose-h3:border-[#1c3664] prose-h3:pb-2 prose-h3:text-[#00e5ff]
+                prose-p:text-white prose-p:leading-relaxed
+                prose-strong:text-[#00ff9d] prose-strong:font-extrabold prose-strong:drop-shadow-[0_0_3px_rgba(0,255,157,0.5)]
+                prose-ul:text-[#8b9bc0] prose-li:marker:text-[#00e5ff]
+                prose-blockquote:border-l-[#00e5ff] prose-blockquote:bg-[#00e5ff]/10 prose-blockquote:p-4 prose-blockquote:rounded-r-lg prose-blockquote:not-italic prose-blockquote:text-white prose-blockquote:shadow-inner
                 [&_ol]:space-y-2 [&_ul]:space-y-2
-                katex-display:text-center katex-display:my-4 katex-display:text-xl katex-display:text-emerald-700
-                [&_.katex]:text-emerald-700 font-mono text-sm
-                [&>div]:!bg-transparent [&>div]:!border-none [&>div]:!shadow-none [&>div]:!text-slate-800"
+                katex-display:text-center katex-display:my-4 katex-display:text-xl katex-display:text-[#00ff9d] katex-display:drop-shadow-[0_0_8px_#00ff9d]
+                [&_.katex]:text-[#00ff9d] font-mono text-sm
+                [&>div]:!bg-transparent [&>div]:!border-none [&>div]:!shadow-none [&>div]:!text-white"
                 dangerouslySetInnerHTML={{ __html: processAIHtml(solution) }}
             ></div>
             
-            <div className="mt-10 text-right border-t border-slate-200 pt-6">
-                <button onClick={() => { setSolution(null); localStorage.removeItem("current_stats"); }} className="text-[11px] font-bold text-slate-500 uppercase tracking-widest hover:text-red-500 transition-colors border border-transparent hover:border-red-200 hover:bg-red-50 px-4 py-2 rounded-lg">
-                    [ ⚠️ RESET TOÀN BỘ PHÂN TÍCH ]
+            <div className="mt-10 text-right border-t border-[#1c3664] pt-6">
+                <button onClick={() => { setSolution(null); localStorage.removeItem("current_stats"); }} className="text-[11px] font-bold text-[#8b9bc0] uppercase tracking-widest hover:text-[#ff003c] hover:drop-shadow-[0_0_5px_#ff003c] transition-all border border-transparent hover:border-[#ff003c]/50 hover:bg-[#ff003c]/10 px-4 py-2 rounded-lg">
+                    [ ⚠️ KHÔI PHỤC & ĐẶT LẠI HỆ THỐNG ]
                 </button>
             </div>
         </div>
       ) : !stats && (
-        <div className="text-center py-28 bg-white rounded-[3rem] border border-blue-100 shadow-sm">
-            <div className="text-5xl opacity-30 mb-6">🔌</div>
-            <p className="text-lg font-bold text-slate-500 tracking-widest uppercase">Mất kết nối Dữ liệu</p>
-            <p className="text-xs text-slate-400 mt-2 font-mono">Vui lòng quay lại Trạm Báo Cáo và ấn nút "YÊU CẦU GIẢI PHÁP SƯ PHẠM".</p>
+        <div className="text-center py-28 bg-[#12254a]/40 backdrop-blur-xl rounded-[3rem] border border-[#1c3664] shadow-sm">
+            <div className="text-5xl opacity-30 mb-6 drop-shadow-[0_0_10px_#00e5ff]">🔌</div>
+            <p className="text-lg font-bold text-[#8b9bc0] tracking-widest uppercase">Mất kết nối Dữ liệu Lõi</p>
+            <p className="text-xs text-[#1c3664] mt-2 font-mono">Vui lòng quay lại Trạm Báo Cáo và ấn nút "TƯ VẤN SƯ PHẠM →".</p>
         </div>
       )}
 
-      {/* --- PHẦN 2: KHUNG CHAT SƯ PHẠM --- */}
+      {/* --- PHẦN 2: KHUNG CHAT SƯ PHẠM (SECURE COMMS CHANNEL) --- */}
       {solution && (
-          <div className="mt-8 bg-slate-50 rounded-[2rem] border border-blue-100 shadow-lg overflow-hidden flex flex-col h-[600px] relative">
+          <div className="mt-8 bg-[#091128] rounded-[2rem] border border-[#1c3664] shadow-[0_0_20px_rgba(0,229,255,0.05)] overflow-hidden flex flex-col h-[600px] relative">
               {/* Header Chat */}
-              <div className="bg-white p-4 flex items-center justify-between border-b border-blue-100 shadow-sm z-10">
+              <div className="bg-[#12254a]/80 backdrop-blur-md p-4 flex items-center justify-between border-b border-[#1c3664] shadow-sm z-10">
                   <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-center shadow-sm">👨‍🏫</div>
+                      <div className="w-10 h-10 bg-[#040b16] border border-[#00e5ff]/30 rounded-xl flex items-center justify-center shadow-[inset_0_0_8px_rgba(0,229,255,0.2)]">👨‍🏫</div>
                       <div>
-                          <div className="font-bold text-xs text-slate-700 uppercase tracking-widest">Kênh Liên Lạc Trực Tiếp</div>
-                          <div className="text-[10px] text-slate-500 font-mono mt-0.5">ID: {model}</div>
+                          <div className="font-bold text-xs text-white uppercase tracking-widest drop-shadow-sm">Kênh Liên Lạc Bảo Mật</div>
+                          <div className="text-[10px] text-[#00e5ff] font-mono mt-0.5">ID: {model}</div>
                       </div>
                   </div>
-                  <div className="flex gap-1.5">
-                      <div className="w-3 h-3 rounded-full bg-emerald-500 shadow-sm"></div>
+                  <div className="flex gap-1.5 items-center">
+                      <span className="text-[9px] uppercase tracking-widest font-mono text-[#00ff9d]">Online</span>
+                      <div className="w-2.5 h-2.5 rounded-full bg-[#00ff9d] shadow-[0_0_8px_#00ff9d] animate-pulse"></div>
                   </div>
               </div>
 
               {/* Nội dung Chat */}
               <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-transparent relative custom-scrollbar z-0">
+                  {/* Lưới tọa độ chìm trong nền chat */}
+                  <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(0,229,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,229,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px] -z-10"></div>
+                  
                   {/* Lời chào AI */}
                   <div className="flex gap-4">
-                      <div className="w-10 h-10 bg-white border border-blue-100 rounded-full flex items-center justify-center text-lg flex-shrink-0 shadow-sm">🤖</div>
-                      <div className="bg-white p-4 rounded-2xl rounded-tl-sm border border-blue-100 shadow-sm text-sm text-slate-700 max-w-[85%] font-mono leading-relaxed">
+                      <div className="w-10 h-10 bg-[#040b16] border border-[#00e5ff]/50 text-[#00e5ff] rounded-full flex items-center justify-center text-lg flex-shrink-0 shadow-[0_0_10px_rgba(0,229,255,0.2)]">🤖</div>
+                      <div className="bg-[#12254a]/60 backdrop-blur-sm p-4 rounded-2xl rounded-tl-sm border border-[#1c3664] shadow-sm text-sm text-white max-w-[85%] font-mono leading-relaxed">
                           Quá trình giải mã hoàn tất. Thầy/cô cần trích xuất thêm dữ liệu hoặc chi tiết hóa phương pháp nào không? (Gợi ý: "Lập bảng tóm tắt lỗi sai").
                       </div>
                   </div>
 
+                  {/* Lịch sử Chat */}
                   {chatHistory.map((msg, idx) => (
                       <div key={idx} className={`flex gap-4 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
                           <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm flex-shrink-0 font-bold shadow-sm border 
-                              ${msg.role === 'user' ? 'bg-blue-600 border-blue-700 text-white' : 'bg-white border-blue-100 text-slate-700'}`}>
+                              ${msg.role === 'user' ? 'bg-[#00e5ff] border-[#00e5ff] text-[#040b16] shadow-[0_0_10px_#00e5ff]' : 'bg-[#040b16] border-[#00e5ff]/50 text-[#00e5ff]'}`}>
                               {msg.role === 'user' ? 'T' : '🤖'}
                           </div>
                           
                           <div className={`p-4 rounded-2xl shadow-sm text-sm max-w-[85%] overflow-x-auto leading-relaxed font-mono
-                              ${msg.role === 'user' ? 'bg-blue-50 border border-blue-200 text-blue-900 rounded-tr-sm' : 'bg-white border border-blue-100 text-slate-700 rounded-tl-sm'}`}>
-                                <div className="prose max-w-none prose-p:my-1 prose-pre:bg-slate-100 prose-pre:border prose-pre:border-slate-200 prose-code:text-emerald-700 katex-display:text-emerald-700 [&_.katex]:text-emerald-700 prose-strong:text-blue-700 prose-headings:text-blue-800">
+                              ${msg.role === 'user' ? 'bg-[#00e5ff]/10 border border-[#00e5ff]/30 text-[#00e5ff] rounded-tr-sm backdrop-blur-sm' : 'bg-[#12254a]/60 border border-[#1c3664] text-white rounded-tl-sm backdrop-blur-sm'}`}>
+                                <div className="prose max-w-none prose-p:my-1 prose-pre:bg-[#040b16] prose-pre:border prose-pre:border-[#1c3664] prose-code:text-[#00ff9d] katex-display:text-[#00ff9d] katex-display:drop-shadow-[0_0_5px_#00ff9d] [&_.katex]:text-[#00ff9d] prose-strong:text-[#00e5ff] prose-headings:text-white">
                                     <ReactMarkdown
                                         remarkPlugins={[remarkMath]}
                                         rehypePlugins={[rehypeKatex]}
@@ -246,14 +251,15 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                       </div>
                   ))}
 
+                  {/* Hiệu ứng AI Đang gõ (Typing) */}
                   {chatLoading && (
                       <div className="flex gap-4 animate-fade-in">
-                          <div className="w-10 h-10 bg-white border border-blue-100 rounded-full flex items-center justify-center text-lg shadow-sm">🤖</div>
-                          <div className="bg-white p-4 rounded-2xl rounded-tl-sm border border-blue-100 shadow-sm">
+                          <div className="w-10 h-10 bg-[#040b16] border border-[#00e5ff]/50 text-[#00e5ff] rounded-full flex items-center justify-center text-lg shadow-[0_0_10px_rgba(0,229,255,0.2)]">🤖</div>
+                          <div className="bg-[#12254a]/60 backdrop-blur-sm p-4 rounded-2xl rounded-tl-sm border border-[#1c3664] shadow-sm flex items-center">
                               <div className="flex gap-1.5">
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.15s'}}></div>
-                                  <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.3s'}}></div>
+                                  <div className="w-2 h-2 bg-[#00e5ff] rounded-full animate-bounce shadow-[0_0_5px_#00e5ff]"></div>
+                                  <div className="w-2 h-2 bg-[#00e5ff] rounded-full animate-bounce shadow-[0_0_5px_#00e5ff]" style={{animationDelay: '0.15s'}}></div>
+                                  <div className="w-2 h-2 bg-[#00e5ff] rounded-full animate-bounce shadow-[0_0_5px_#00e5ff]" style={{animationDelay: '0.3s'}}></div>
                               </div>
                           </div>
                       </div>
@@ -262,10 +268,10 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
               </div>
 
               {/* Input Chat */}
-              <div className="p-4 bg-white border-t border-blue-100 flex gap-3 z-10">
+              <div className="p-4 bg-[#040b16] border-t border-[#1c3664] flex gap-3 z-10">
                   <input 
                       type="text" 
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-sm text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 outline-none font-mono placeholder:text-slate-400 transition-all shadow-inner" 
+                      className="flex-1 bg-[#091128] border border-[#1c3664] rounded-xl px-5 py-4 text-sm text-white focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/50 outline-none font-mono placeholder:text-[#8b9bc0] transition-all shadow-inner" 
                       placeholder="[ Nhập lệnh truy vấn hệ thống... ]" 
                       value={chatInput} 
                       onChange={(e) => setChatInput(e.target.value)} 
@@ -274,7 +280,7 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                   <button 
                       onClick={handleSendChat} 
                       disabled={chatLoading || !chatInput.trim()} 
-                      className="bg-blue-600 hover:bg-blue-700 text-white w-14 rounded-xl flex items-center justify-center disabled:opacity-50 disabled:hover:bg-blue-600 shadow-sm transition-all border border-blue-700"
+                      className="bg-[#00e5ff] hover:bg-white text-[#040b16] w-14 rounded-xl flex items-center justify-center disabled:opacity-30 disabled:hover:bg-[#00e5ff] shadow-[0_0_15px_rgba(0,229,255,0.4)] transition-all font-bold text-lg"
                   >
                       ➤
                   </button>

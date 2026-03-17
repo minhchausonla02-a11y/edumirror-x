@@ -7,107 +7,114 @@
 }
 
 /* ========================================= */
-/* 1. NỀN TẢNG SƯ PHẠM (LIGHT BLUE THEME)    */
+/* 1. NỀN TẢNG SCI-FI (DARK THEME - ViSEF)   */
 /* ========================================= */
 html, body { 
   margin: 0; 
   padding: 0;
-  /* Nền Xám ánh Xanh lơ cực nhạt - Rộng rãi, sạch sẽ, chống mỏi mắt */
-  background-color: #F0F6FF; 
-  /* Chữ xám than đậm - Tương phản tốt, dễ đọc văn bản dài */
-  color: #1E293B; 
+  
+  /* Nền Xanh đen vũ trụ cực sâu */
+  background-color: #091128; 
+  /* Chữ trắng tinh để nổi bật trên nền tối */
+  color: #ffffff; 
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
-  /* Hiệu ứng chuyển màu mượt mà nếu bạn làm nút Dark/Light mode sau này */
-  transition: background-color 0.3s ease, color 0.3s ease;
+  
+  /* ĐẶC BIỆT: Hiệu ứng lưới nền (Grid Blueprint) giống bản vẽ kỹ thuật Radar */
+  background-image: 
+    linear-gradient(rgba(0, 229, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px; /* Kích thước ô lưới */
+  background-position: center center;
 }
 
 /* ========================================= */
-/* 2. THANH CUỘN (SCROLLBAR) ACADEMIC CLEAN  */
+/* 2. THANH CUỘN (SCROLLBAR) CYBERPUNK       */
 /* ========================================= */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.03); 
+  background: rgba(9, 17, 40, 0.8); /* Nền track tối */
   border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(37, 99, 235, 0.3); /* Xanh dương mờ */
+  background: rgba(0, 229, 255, 0.3); /* Xanh Cyan mờ */
   border-radius: 10px;
-  transition: background 0.3s ease;
+  border: 1px solid rgba(0, 229, 255, 0.2);
+  transition: all 0.3s ease;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(37, 99, 235, 0.6); /* Đậm lên khi tương tác */
+  background: rgba(0, 229, 255, 0.8); /* Rực sáng lên khi tương tác */
+  box-shadow: 0 0 10px #00e5ff;
 }
 
 /* ========================================= */
-/* 3. HIỆU ỨNG HÀO QUANG AI (SOFT AURA)      */
-/* Thay thế Neon chói lóa bằng vầng sáng sâu */
+/* 3. HIỆU ỨNG HÀO QUANG AI (NEON GLOW)      */
 /* ========================================= */
 .animate-rgb-shift {
-  animation: gentleShift 10s linear infinite;
+  animation: gentleShift 8s linear infinite;
 }
 
 @keyframes gentleShift {
   0% { filter: hue-rotate(0deg); }
-  50% { filter: hue-rotate(15deg); } /* Giảm biên độ đổi màu để giữ sự điềm tĩnh */
+  50% { filter: hue-rotate(30deg); } 
   100% { filter: hue-rotate(0deg); }
 }
 
-/* Tỏa sáng viền mờ màu Xanh dương cho text */
+/* Tỏa sáng viền mờ màu Cyan cho text */
 .neon-text {
-  color: #1D4ED8;
-  text-shadow: 0 4px 15px rgba(37, 99, 235, 0.2), 
-               0 0 30px rgba(56, 189, 248, 0.1);
+  color: #00e5ff;
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.5), 
+               0 0 20px rgba(0, 229, 255, 0.3);
 }
 
-/* Icon nổi khối 3D nhẹ nhàng thay vì rực sáng */
+/* Icon nổi khối 3D phát sáng */
 .neon-icon {
-  filter: drop-shadow(0 4px 8px rgba(37, 99, 235, 0.25));
+  filter: drop-shadow(0 0 8px rgba(0, 229, 255, 0.5));
   transition: all 0.3s ease;
 }
 
 .neon-icon:hover {
-  filter: drop-shadow(0 6px 12px rgba(37, 99, 235, 0.4));
-  transform: translateY(-2px);
+  filter: drop-shadow(0 0 15px #00e5ff);
+  transform: translateY(-2px) scale(1.05);
 }
 
 /* --- HIỆU ỨNG CHỮ EDUMIRROR TÊN APP --- */
 .text-glow-cyan {
-  color: #2563EB; /* Xanh dương chủ đạo (Primary Blue) */
+  color: #ffffff; /* Chữ trắng lõi */
   font-weight: 800;
-  text-shadow: 0 2px 10px rgba(37, 99, 235, 0.2); 
+  text-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff; /* Viền sáng rực rỡ */
+  letter-spacing: 1px;
 }
 
 /* --- HIỆU ỨNG CHỮ X (Điểm nhấn công nghệ) --- */
 .text-outline-neon {
-  color: #0EA5E9; /* Xanh Sky Blue sáng hơn một chút để phân biệt */
-  -webkit-text-stroke: 0px transparent; /* Bỏ viền rỗng cũ */
-  text-shadow: 0 2px 8px rgba(14, 165, 233, 0.3);
+  color: transparent; 
+  -webkit-text-stroke: 1.5px #00e5ff; /* Viền Cyan rỗng bên trong */
+  text-shadow: 0 0 15px rgba(0, 229, 255, 0.8);
 }
 
 /* ========================================= */
-/* 4. HIỆU ỨNG NHỊP THỞ AI (PULSE RIPPLE)    */
-/* Dùng cho các trạng thái "SẴN SÀNG"        */
+/* 4. HIỆU ỨNG NHỊP THỞ AI (CYBER PULSE)     */
+/* Đổi từ Xanh lá sang Xanh lơ (Cyan)        */
 /* ========================================= */
 .ai-breathing {
   animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  /* Đảm bảo phần tử có border-radius tròn nếu dùng cho nút chấm nhỏ */
 }
 
 @keyframes pulse-ring {
   0% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); /* Sóng màu xanh ngọc (Success) */
+    box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.6); /* Sóng màu Cyan */
   }
   70% {
-    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); /* Tỏa ra và mờ dần */
+    box-shadow: 0 0 0 12px rgba(0, 229, 255, 0); /* Tỏa ra xa hơn */
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 0 rgba(0, 229, 255, 0);
   }
 }
 
@@ -116,6 +123,6 @@ html, body {
 /* ========================================= */
 @layer base {
   :root { 
-    --radius: 0.75rem; /* Bo góc to hơn một chút để thân thiện với giáo dục */
+    --radius: 0.5rem; /* Giảm bo góc lại một chút để trông sắc sảo, công nghệ cao hơn */
   }
 }

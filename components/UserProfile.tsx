@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 
 export default function UserProfile() {
   const [user, setUser] = useState<any>(null)
-  // THÊM: State để quản lý việc mở/đóng menu và Ref để bắt sự kiện click ra ngoài
+  // State để quản lý việc mở/đóng menu và Ref để bắt sự kiện click ra ngoài
   const [isOpen, setIsOpen] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
 
@@ -22,7 +22,7 @@ export default function UserProfile() {
     getUser()
   }, [])
 
-  // 2. THÊM MỚI: Xử lý đóng menu khi click ra ngoài vùng dropdown (Tiêu chuẩn UX)
+  // 2. Xử lý đóng menu khi click ra ngoài vùng dropdown (Tiêu chuẩn UX)
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -51,11 +51,12 @@ export default function UserProfile() {
     }
 
     return (
+      // 🚀 Đã sửa fixed thành định vị thông thường, phong cách Nút bấm Sci-Fi
       <a 
         href="/login" 
-        className="fixed top-4 right-4 z-50 rounded-full bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-lg hover:bg-blue-700 transition-colors"
+        className="z-50 rounded-xl bg-transparent border border-[#00e5ff] px-5 py-2.5 text-sm font-bold text-[#00e5ff] shadow-[0_0_10px_rgba(0,229,255,0.2)] hover:bg-[#00e5ff] hover:text-[#040b16] transition-all uppercase tracking-wider whitespace-nowrap"
       >
-        Đăng nhập ngay
+        Đăng nhập
       </a>
     )
   }
@@ -65,35 +66,42 @@ export default function UserProfile() {
 
   // TRƯỜNG HỢP 2: Đã đăng nhập (Giáo viên)
   return (
-    <div className="fixed top-4 right-4 z-50" ref={dropdownRef}>
-      {/* Nút Avatar */}
+    // 🚀 Đổi 'fixed' thành 'relative' để Avatar nằm gọn gàng bên trong Header
+    <div className="relative z-50" ref={dropdownRef}>
+      
+      {/* Nút Avatar (Phong cách Lõi Hologram) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all shadow-lg border-2 border-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-        title="Tài khoản của bạn"
+        className="flex items-center justify-center w-11 h-11 rounded-full bg-[#12254a]/80 hover:bg-[#00e5ff]/20 text-[#00e5ff] font-extrabold transition-all shadow-[0_0_15px_rgba(0,229,255,0.3)] border border-[#00e5ff]/50 focus:outline-none focus:ring-2 focus:ring-[#00e5ff]/50 drop-shadow-[0_0_5px_#00e5ff]"
+        title="Định danh Hệ thống"
       >
         {initial}
       </button>
 
-      {/* Dropdown Menu (Chỉ hiện khi isOpen = true) */}
+      {/* Dropdown Menu (Chỉ hiện khi isOpen = true) - Kính mờ Viễn tưởng */}
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-60 origin-top-right rounded-xl bg-white shadow-xl border border-gray-100 focus:outline-none z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="absolute right-0 mt-3 w-64 origin-top-right rounded-xl bg-[#040b16]/90 backdrop-blur-xl shadow-[0_0_20px_rgba(0,229,255,0.15)] border border-[#00e5ff]/30 focus:outline-none z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="py-1">
+            
             {/* Header: Hiển thị Email */}
-            <div className="px-4 py-3 border-b border-gray-100 bg-slate-50">
-              <p className="text-[11px] text-gray-500 uppercase font-bold mb-1 tracking-wider">Giáo viên</p>
-              <p className="text-sm font-bold text-blue-600 truncate" title={user.email}>
+            <div className="px-4 py-3 border-b border-[#1c3664] bg-[#091128]/80">
+              <p className="text-[10px] text-[#8b9bc0] uppercase font-bold mb-1 tracking-widest flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#00ff9d] animate-pulse"></span>
+                  Định danh Hệ thống
+              </p>
+              <p className="text-sm font-bold text-[#00e5ff] truncate drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]" title={user.email}>
                 {user.email}
               </p>
             </div>
             
-            {/* Nút Đăng xuất */}
+            {/* Nút Đăng xuất (Cảnh báo Đỏ Neon) */}
             <button
               onClick={handleLogout}
-              className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors flex items-center gap-3 font-medium"
+              className="w-full text-left px-4 py-3 text-sm text-[#ff003c] hover:bg-[#ff003c]/10 transition-colors flex items-center gap-3 font-bold uppercase tracking-wider"
             >
-              <span className="text-lg">🚪</span> Đăng xuất
+              <span className="text-lg drop-shadow-[0_0_5px_#ff003c]">🚪</span> NGẮT KẾT NỐI
             </button>
+            
           </div>
         </div>
       )}

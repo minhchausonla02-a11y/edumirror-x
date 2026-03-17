@@ -30,27 +30,27 @@ type TopTab = "upload" | "dashboard" | "ai";
 const MobilePreview = ({ survey }: { survey: SurveyV2UI }) => {
   if (!survey) return null;
   return (
-    <div className="bg-slate-50 min-h-full p-4 font-sans text-slate-800">
-      <h2 className="text-lg font-bold text-blue-700 mb-6 text-center leading-tight">
+    <div className="bg-[#091128] min-h-full p-4 font-sans text-white border-x border-[#1c3664]">
+      <h2 className="text-lg font-bold text-[#00e5ff] mb-6 text-center leading-tight drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]">
         {survey.title}
       </h2>
       <div className="space-y-5 pb-8">
         {survey.questions.map((q, idx) => (
-          <div key={idx} className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
-            <p className="font-bold text-sm mb-3 text-slate-800">
-              <span className="text-blue-600 mr-1 font-extrabold">Câu {idx + 1}:</span> {q.text}
+          <div key={idx} className="bg-[#12254a]/60 backdrop-blur-sm p-4 rounded-2xl border border-[#1c3664] shadow-sm">
+            <p className="font-bold text-sm mb-3 text-white">
+              <span className="text-[#00e5ff] mr-1 font-extrabold drop-shadow-md">Câu {idx + 1}:</span> {q.text}
             </p>
             {q.type !== "text" ? (
               <div className="space-y-2 mt-3">
                 {q.options?.map((opt: string, oIdx: number) => (
-                  <div key={oIdx} className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
-                    <div className={`w-4 h-4 rounded-${q.type === 'multi_choice' ? 'sm' : 'full'} border border-slate-300 flex-shrink-0 bg-white`}></div>
-                    <span className="text-sm text-slate-600">{opt}</span>
+                  <div key={oIdx} className="flex items-center gap-3 bg-[#040b16]/50 p-2.5 rounded-xl border border-[#1c3664]/50">
+                    <div className={`w-4 h-4 rounded-${q.type === 'multi_choice' ? 'sm' : 'full'} border border-[#00e5ff]/50 flex-shrink-0 bg-transparent`}></div>
+                    <span className="text-sm text-[#8b9bc0]">{opt}</span>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="w-full h-20 bg-slate-50 border border-dashed border-slate-300 rounded-xl mt-3 p-3 text-xs text-slate-400 italic">
+              <div className="w-full h-20 bg-[#040b16]/50 border border-dashed border-[#1c3664] rounded-xl mt-3 p-3 text-xs text-[#8b9bc0] italic">
                 Khu vực học sinh nhập câu trả lời...
               </div>
             )}
@@ -208,17 +208,17 @@ function EduMirrorContent() {
   };
 
   return (
-    <div className="min-h-screen bg-transparent text-slate-800 font-sans relative transition-colors duration-500">
+    <div className="min-h-screen bg-transparent text-white font-sans relative transition-colors duration-500">
       {loading && <AILoading />}
 
-      {/* HEADER: Nền trắng kính mờ, viền xanh nhạt */}
-      <header className="w-full bg-white/80 backdrop-blur-xl border-b border-blue-100 sticky top-0 z-30 shadow-sm">
+      {/* HEADER: Nền tối kính mờ */}
+      <header className="w-full bg-[#040b16]/80 backdrop-blur-xl border-b border-[#1c3664] sticky top-0 z-30 shadow-[0_4px_30px_rgba(0,0,0,0.5)]">
         <div className="mx-auto max-w-7xl px-6 py-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             
-            {/* LOGO KHU VỰC: Academic Blue */}
+            {/* LOGO KHU VỰC */}
             <div className="flex items-center gap-3 md:gap-4 cursor-pointer hover:scale-105 transition-transform duration-300">
-              <div className="w-12 h-12 md:w-14 md:h-14 relative flex items-center justify-center rounded-xl bg-blue-50 border border-blue-100 shadow-sm">
+              <div className="w-12 h-12 md:w-14 md:h-14 relative flex items-center justify-center rounded-xl bg-[#12254a]/50 border border-[#00e5ff]/30 shadow-[0_0_15px_rgba(0,229,255,0.2)]">
                 <img 
                   src="/crystal-logo.png" 
                   alt="EduMirror Core" 
@@ -232,14 +232,14 @@ function EduMirrorContent() {
             </div>
 
             <div className="flex flex-col sm:flex-row items-center gap-4 md:gap-6">
-              <div className="flex items-center bg-slate-50 p-1 rounded-xl border border-slate-200 shadow-inner">
-                <span className="pl-3 pr-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest hidden sm:inline-block">
+              <div className="flex items-center bg-[#12254a]/40 p-1 rounded-xl border border-[#1c3664] shadow-inner">
+                <span className="pl-3 pr-2 text-[10px] font-bold text-[#8b9bc0] uppercase tracking-widest hidden sm:inline-block">
                   Core:
                 </span>
                 <select
                   value={model}
                   onChange={(e) => setModel(e.target.value)}
-                  className="bg-transparent text-xs font-bold text-blue-700 px-2 py-1.5 rounded-lg outline-none cursor-pointer hover:bg-white transition-colors [&>option]:bg-white [&>option]:text-slate-800"
+                  className="bg-transparent text-xs font-bold text-[#00e5ff] px-2 py-1.5 rounded-lg outline-none cursor-pointer hover:bg-[#1c3664]/50 transition-colors [&>option]:bg-[#091128] [&>option]:text-white"
                 >
                   {AVAILABLE_MODELS.map((m) => (
                     <option key={m.id} value={m.id}>{m.name}</option>
@@ -252,20 +252,20 @@ function EduMirrorContent() {
             </div>
           </div>
 
-          {/* TABS NÂNG CẤP */}
-          <div className="mt-6 flex gap-8 border-b border-slate-200 relative">
+          {/* TABS NÂNG CẤP (CYBERPUNK STYLE) */}
+          <div className="mt-6 flex gap-8 border-b border-[#1c3664] relative">
             {[
-              { id: "upload", label: "01. Soạn bài & Sinh phiếu" },
-              { id: "dashboard", label: "02. Báo cáo Lớp học" },
-              { id: "ai", label: "03. Tư vấn Sư phạm" },
+              { id: "upload", label: "01. SOẠN BÀI & SINH PHIẾU" },
+              { id: "dashboard", label: "02. BÁO CÁO LỚP HỌC" },
+              { id: "ai", label: "03. TƯ VẤN SƯ PHẠM" },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => switchTab(tab.id as TopTab)}
-                className={`pb-4 text-sm font-bold uppercase tracking-wider transition-all duration-300 border-b-2 relative ${
+                className={`pb-4 text-sm font-bold tracking-wider transition-all duration-300 border-b-2 relative ${
                   activeTab === tab.id
-                    ? "border-blue-600 text-blue-700"
-                    : "border-transparent text-slate-500 hover:text-blue-600"
+                    ? "border-[#00e5ff] text-[#00e5ff] drop-shadow-[0_0_8px_rgba(0,229,255,0.8)]"
+                    : "border-transparent text-[#8b9bc0] hover:text-[#00e5ff]/70"
                 }`}
               >
                 {tab.label}
@@ -280,23 +280,23 @@ function EduMirrorContent() {
           {activeTab === "upload" && (
             <>
               {/* API KEY PANEL */}
-              <section className="bg-white p-5 rounded-2xl border border-blue-100 shadow-sm max-w-5xl mx-auto transition-shadow hover:shadow-md">
+              <section className="bg-[#12254a]/40 backdrop-blur-md p-5 rounded-2xl border border-[#1c3664] shadow-[0_4px_20px_rgba(0,0,0,0.3)] max-w-5xl mx-auto transition-all hover:border-[#00e5ff]/40 hover:shadow-[0_0_15px_rgba(0,229,255,0.1)]">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex items-start gap-4">
-                    <div className="mt-0.5 h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center border border-blue-100 shadow-inner text-blue-600">
+                    <div className="mt-0.5 h-10 w-10 rounded-xl bg-[#091128] flex items-center justify-center border border-[#00e5ff]/30 shadow-inner text-[#00e5ff]">
                       🔑
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-slate-800 tracking-wide">Kết nối AI cho tiết học</div>
-                      <div className="text-xs text-slate-500 mt-1">Cấp quyền truy cập hệ thống phân tích lõi.</div>
+                      <div className="text-sm font-bold text-white tracking-wide">Kết nối AI cho tiết học</div>
+                      <div className="text-xs text-[#8b9bc0] mt-1">Cấp quyền truy cập hệ thống phân tích lõi.</div>
                       {apiKey ? (
                         <div className="mt-2 inline-flex items-center gap-2 text-[11px] uppercase tracking-wider">
-                          <span className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-600 border border-emerald-200 font-bold ai-breathing">● Sẵn sàng</span>
-                          <span className="text-slate-500 font-mono">••••{apiKey.slice(-4)}</span>
+                          <span className="px-2 py-1 rounded-md bg-[#00e5ff]/10 text-[#00e5ff] border border-[#00e5ff]/30 font-bold ai-breathing">● Sẵn sàng</span>
+                          <span className="text-[#8b9bc0] font-mono">••••{apiKey.slice(-4)}</span>
                         </div>
                       ) : (
                         <div className="mt-2 inline-flex items-center gap-2 text-[11px] uppercase tracking-wider">
-                          <span className="px-2 py-1 rounded-md bg-amber-50 text-amber-600 border border-amber-200 font-bold">⚠ Chờ cấp quyền</span>
+                          <span className="px-2 py-1 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold">⚠ Chờ cấp quyền</span>
                         </div>
                       )}
                     </div>
@@ -309,15 +309,15 @@ function EduMirrorContent() {
                         type="password"
                         defaultValue={apiKey}
                         placeholder="Nhập khóa hệ thống..."
-                        className="outline-none px-4 py-2 text-sm w-[240px] md:w-[300px] border border-slate-300 rounded-xl bg-white text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/50 transition-all font-mono"
+                        className="outline-none px-4 py-2 text-sm w-[240px] md:w-[300px] border border-[#1c3664] rounded-xl bg-[#091128] text-white focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/50 transition-all font-mono"
                       />
-                      <button onClick={() => { handleSaveKey(); setEditingKey(false); }} className="bg-blue-600 text-white text-sm font-bold px-5 py-2 rounded-xl hover:bg-blue-700 transition-colors shadow-sm">
+                      <button onClick={() => { handleSaveKey(); setEditingKey(false); }} className="bg-transparent border border-[#00e5ff] text-[#00e5ff] shadow-[inset_0_0_10px_rgba(0,229,255,0.2)] text-sm font-bold px-5 py-2 rounded-xl hover:bg-[#00e5ff] hover:text-[#040b16] transition-all">
                         Lưu
                       </button>
-                      {apiKey && <button onClick={() => setEditingKey(false)} className="text-sm font-bold text-slate-400 hover:text-slate-600 px-3">Hủy</button>}
+                      {apiKey && <button onClick={() => setEditingKey(false)} className="text-sm font-bold text-[#8b9bc0] hover:text-white px-3">Hủy</button>}
                     </div>
                   ) : (
-                    <button onClick={() => setEditingKey(true)} className="px-5 py-2 rounded-xl border border-slate-200 bg-slate-50 text-sm font-bold text-slate-600 hover:bg-slate-100 transition-colors">
+                    <button onClick={() => setEditingKey(true)} className="px-5 py-2 rounded-xl border border-[#1c3664] bg-[#091128] text-sm font-bold text-[#8b9bc0] hover:border-[#00e5ff]/50 hover:text-white transition-colors">
                       Đổi khóa
                     </button>
                   )}
@@ -330,38 +330,38 @@ function EduMirrorContent() {
                 {/* DÒNG 1: VISION AI & THÔNG TIN LỚP HỌC */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Vision AI */}
-                  <div className="bg-white p-5 rounded-3xl border border-blue-100 flex items-center justify-between shadow-sm hover:shadow-md transition-shadow">
+                  <div className="bg-[#12254a]/40 backdrop-blur-md p-5 rounded-3xl border border-[#1c3664] flex items-center justify-between shadow-sm hover:border-[#00e5ff]/30 transition-colors">
                     <div>
-                      <h4 className="text-sm font-bold text-blue-600 flex items-center gap-2"><span>👁️‍🗨️</span> Mắt thần Vision AI</h4>
-                      <p className="text-[11px] text-slate-500 mt-1.5 uppercase tracking-wider">Quét công thức Toán/Lý/Hóa từ hình ảnh</p>
+                      <h4 className="text-sm font-bold text-[#00e5ff] flex items-center gap-2"><span>👁️‍🗨️</span> Mắt thần Vision AI</h4>
+                      <p className="text-[11px] text-[#8b9bc0] mt-1.5 uppercase tracking-wider">Quét công thức Toán/Lý/Hóa từ hình ảnh</p>
                     </div>
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input type="checkbox" className="sr-only peer" checked={useVisionParsing} onChange={(e) => setUseVisionParsing(e.target.checked)}/>
-                      <div className="w-12 h-6 bg-slate-200 border border-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+                      <div className="w-12 h-6 bg-[#091128] border border-[#1c3664] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-6 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00e5ff] shadow-inner"></div>
                     </label>
                   </div>
 
                   {/* Thông tin Lớp & Tiết */}
-                  <div className="bg-white p-5 rounded-3xl border border-blue-100 flex flex-col justify-center shadow-sm hover:shadow-md transition-shadow">
-                     <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-widest mb-3">Định vị Không gian & Thời gian</h4>
+                  <div className="bg-[#12254a]/40 backdrop-blur-md p-5 rounded-3xl border border-[#1c3664] flex flex-col justify-center shadow-sm hover:border-[#00e5ff]/30 transition-colors">
+                     <h4 className="text-[11px] font-bold text-[#8b9bc0] uppercase tracking-widest mb-3">Định vị Không gian & Thời gian</h4>
                      <div className="flex items-center gap-3">
                         <input 
                           type="text" placeholder="Lớp (VD: 12A1)" value={className} onChange={(e) => setClassName(e.target.value)}
-                          className="flex-1 bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2 outline-none font-mono text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all placeholder:text-slate-400"
+                          className="flex-1 bg-[#091128] border border-[#1c3664] text-sm rounded-xl px-4 py-2 outline-none font-mono text-white focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/30 transition-all placeholder:text-[#8b9bc0]"
                         />
-                        <span className="text-slate-400 font-bold">-</span>
+                        <span className="text-[#8b9bc0] font-bold">-</span>
                         <input 
                           type="text" placeholder="Tiết (VD: 3)" value={period} onChange={(e) => setPeriod(e.target.value)}
-                          className="w-[100px] bg-slate-50 border border-slate-200 text-sm rounded-xl px-4 py-2 outline-none font-mono text-slate-800 focus:bg-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30 transition-all placeholder:text-slate-400 text-center"
+                          className="w-[100px] bg-[#091128] border border-[#1c3664] text-sm rounded-xl px-4 py-2 outline-none font-mono text-white focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/30 transition-all placeholder:text-[#8b9bc0] text-center"
                         />
                      </div>
                   </div>
                 </div>
 
                 {/* DÒNG 2: NÚT CHỌN MÔN */}
-                <div className="bg-white p-6 rounded-3xl border border-blue-100 shadow-sm">
-                   <h3 className="text-xs font-bold text-slate-600 flex items-center gap-2 uppercase tracking-widest mb-4">
-                      <span className="text-blue-500">📚</span> Phân hệ Môn học
+                <div className="bg-[#12254a]/40 backdrop-blur-md p-6 rounded-3xl border border-[#1c3664] shadow-sm">
+                   <h3 className="text-xs font-bold text-white flex items-center gap-2 uppercase tracking-widest mb-4">
+                      <span className="text-[#00e5ff]">📚</span> Phân hệ Môn học
                    </h3>
                    <div className="flex flex-wrap gap-3">
                       {SUBJECTS.map((sub) => (
@@ -370,8 +370,8 @@ function EduMirrorContent() {
                             onClick={() => setSubject(sub)}
                             className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 border 
                                 ${subject === sub 
-                                   ? "bg-blue-100 border-blue-500 text-blue-700 shadow-sm transform scale-105" 
-                                   : "bg-slate-50 border-slate-200 text-slate-600 hover:text-slate-800 hover:bg-slate-100"}`}
+                                   ? "bg-transparent border-[#00e5ff] text-[#00e5ff] shadow-[inset_0_0_10px_rgba(0,229,255,0.2),_0_0_10px_rgba(0,229,255,0.3)] transform scale-105" 
+                                   : "bg-[#091128] border-[#1c3664] text-[#8b9bc0] hover:text-white hover:border-[#00e5ff]/50"}`}
                          >
                             {sub}
                          </button>
@@ -379,28 +379,28 @@ function EduMirrorContent() {
                    </div>
                 </div>
 
-                {/* DÒNG 3: MA TRẬN NHẬP LIỆU BÀI DẠY */}
-                <div className="bg-white p-2 rounded-3xl border border-blue-100 shadow-md relative">
-                   <div className="bg-slate-50 rounded-[1.3rem] overflow-hidden relative border border-slate-200">
-                      {/* Grid Overlay cho giao diện sáng */}
-                      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(37,99,235,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(37,99,235,0.05)_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+                {/* DÒNG 3: MA TRẬN NHẬP LIỆU BÀI DẠY (RADAR SCANNER) */}
+                <div className="bg-[#12254a]/40 backdrop-blur-md p-2 rounded-3xl border border-[#1c3664] shadow-[0_0_20px_rgba(0,0,0,0.5)] relative">
+                   <div className="bg-[#040b16] rounded-[1.3rem] overflow-hidden relative border border-[#1c3664]">
+                      {/* Grid Overlay cho giao diện Sci-Fi */}
+                      <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(0,229,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(0,229,255,0.05)_1px,transparent_1px)] bg-[size:24px_24px]"></div>
                       
                       {/* Tiêu đề góc */}
                       <div className="absolute top-4 left-5 pointer-events-none z-20">
-                         <span className="bg-white px-3 py-1 rounded border border-blue-200 text-[10px] font-mono text-blue-600 tracking-widest uppercase shadow-sm">
+                         <span className="bg-[#091128] px-3 py-1 rounded border border-[#00e5ff]/50 text-[10px] font-mono text-[#00e5ff] tracking-widest uppercase shadow-[0_0_8px_rgba(0,229,255,0.3)]">
                             [ RADAR QUÉT VĂN BẢN ]
                          </span>
                       </div>
 
                       <textarea
-                        className="relative z-10 w-full h-[400px] bg-transparent text-sm text-slate-800 placeholder:text-slate-400 p-6 pt-16 focus:outline-none focus:bg-white/50 transition-all resize-none leading-relaxed font-mono custom-scrollbar"
+                        className="relative z-10 w-full h-[400px] bg-transparent text-sm text-white placeholder:text-[#8b9bc0] p-6 pt-16 focus:outline-none focus:bg-[#12254a]/30 transition-all resize-none leading-relaxed font-mono custom-scrollbar"
                         placeholder="Dán nội dung giáo án vào khu vực này để tiến hành đồng bộ..."
                         value={lessonText}
                         onChange={(e) => setLessonText(e.target.value)}
                       />
                       
                       <div className="absolute bottom-5 right-5 z-20">
-                        <label className="cursor-pointer bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-bold px-5 py-3 rounded-xl shadow-sm hover:shadow flex items-center gap-2 transition-all group">
+                        <label className="cursor-pointer bg-[#091128] hover:bg-[#1c3664] border border-[#00e5ff]/50 text-[#00e5ff] text-xs font-bold px-5 py-3 rounded-xl shadow-[0_0_10px_rgba(0,229,255,0.2)] flex items-center gap-2 transition-all group">
                           <span className="text-lg group-hover:-translate-y-1 transition-transform">📁</span> Tải Tệp Lên
                           <input type="file" accept=".pdf,.doc,.docx,.txt,image/*" className="hidden" onChange={handleFileChange} />
                         </label>
@@ -409,12 +409,12 @@ function EduMirrorContent() {
                 </div>
 
                 {/* DÒNG 4: HỆ QUY CHIẾU (TARGETING) */}
-                <div className="bg-blue-50/50 p-6 rounded-3xl border border-blue-100 shadow-sm">
-                  <h3 className="text-sm font-bold text-blue-700 mb-3 flex items-center gap-2 uppercase tracking-widest">
+                <div className="bg-[#12254a]/40 backdrop-blur-md p-6 rounded-3xl border border-[#1c3664] shadow-sm">
+                  <h3 className="text-sm font-bold text-[#00e5ff] mb-3 flex items-center gap-2 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">
                     🎯 Thiết lập Chuẩn đầu ra (Targeting)
                   </h3>
                   <textarea
-                    className="w-full h-24 p-4 rounded-xl border border-blue-200 bg-white text-sm text-slate-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all resize-none shadow-inner placeholder:text-slate-400"
+                    className="w-full h-24 p-4 rounded-xl border border-[#1c3664] bg-[#091128] text-sm text-white focus:ring-1 focus:ring-[#00e5ff] focus:border-[#00e5ff] outline-none transition-all resize-none shadow-inner placeholder:text-[#8b9bc0]"
                     placeholder="VD: Học sinh nắm được khái niệm tích phân (Nhập từ 1-3 mục tiêu cốt lõi)..."
                     value={standardsText}
                     onChange={(e) => setStandardsText(e.target.value)}
@@ -422,17 +422,17 @@ function EduMirrorContent() {
                 </div>
 
                 {/* DÒNG 5: TRUNG TÂM TÁC VỤ */}
-                <div className="bg-white p-8 rounded-[2rem] border border-blue-200 shadow-lg relative overflow-hidden mt-10">
+                <div className="bg-[#12254a]/40 backdrop-blur-xl p-8 rounded-[2rem] border border-[#1c3664] shadow-[0_0_30px_rgba(0,229,255,0.05)] relative overflow-hidden mt-10">
                   <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
                     
                     {/* Select Mode */}
                     <div className="flex-shrink-0 w-full md:w-auto">
-                       <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 text-center md:text-left">Động cơ Xử lý</h3>
-                       <div className="flex bg-slate-50 p-1.5 rounded-2xl border border-slate-200 shadow-inner">
-                          <button onClick={() => setProcessMode("standard")} className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${processMode === "standard" ? "bg-white text-blue-700 shadow-sm border border-blue-100" : "text-slate-500 hover:text-slate-700 border border-transparent"}`}>
+                       <h3 className="text-[10px] font-bold text-[#8b9bc0] uppercase tracking-widest mb-3 text-center md:text-left">Động cơ Xử lý</h3>
+                       <div className="flex bg-[#091128] p-1.5 rounded-2xl border border-[#1c3664] shadow-inner">
+                          <button onClick={() => setProcessMode("standard")} className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${processMode === "standard" ? "bg-transparent text-[#00e5ff] shadow-[inset_0_0_8px_rgba(0,229,255,0.3)] border border-[#00e5ff]" : "text-[#8b9bc0] hover:text-white border border-transparent"}`}>
                             <span>🚀</span> Tốc độ
                           </button>
-                          <button onClick={() => setProcessMode("premium")} className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${processMode === "premium" ? "bg-amber-50 border border-amber-200 text-amber-600 shadow-sm" : "text-slate-500 hover:text-slate-700 border border-transparent"}`}>
+                          <button onClick={() => setProcessMode("premium")} className={`px-6 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${processMode === "premium" ? "bg-transparent border border-[#00e5ff] text-[#00e5ff] shadow-[inset_0_0_8px_rgba(0,229,255,0.3)]" : "text-[#8b9bc0] hover:text-white border border-transparent"}`}>
                             <span>💎</span> Cao cấp
                           </button>
                        </div>
@@ -443,11 +443,11 @@ function EduMirrorContent() {
                       <button
                         onClick={handleGenerateSurvey}
                         disabled={loading}
-                        className="w-full max-w-md font-extrabold text-lg tracking-widest uppercase bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-5 rounded-2xl shadow-lg transform transition-all hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 disabled:shadow-none flex items-center justify-center gap-3"
+                        className="w-full max-w-md font-extrabold text-lg tracking-widest uppercase bg-gradient-to-r from-[#00e5ff] to-[#2196f3] text-[#040b16] py-5 rounded-2xl shadow-[0_0_20px_rgba(0,229,255,0.5)] transform transition-all hover:-translate-y-1 hover:shadow-[0_0_30px_rgba(0,229,255,0.8)] active:translate-y-0 disabled:opacity-50 disabled:hover:translate-y-0 disabled:shadow-none flex items-center justify-center gap-3"
                       >
                         {loading ? <span className="animate-pulse">⏳ ĐANG KÍCH HOẠT HỆ THỐNG...</span> : "✨ KHỞI TẠO PHIẾU KHẢO SÁT"}
                       </button>
-                      <button onClick={() => { setLessonText(""); setStandardsText(""); setSurvey(null); setSelectedFile(null); setSurveyId(null); setQrUrl(""); setClassName(""); setPeriod(""); }} className="mt-4 text-[10px] text-slate-500 uppercase tracking-widest hover:text-slate-800 transition-colors">
+                      <button onClick={() => { setLessonText(""); setStandardsText(""); setSurvey(null); setSelectedFile(null); setSurveyId(null); setQrUrl(""); setClassName(""); setPeriod(""); }} className="mt-4 text-[10px] text-[#8b9bc0] uppercase tracking-widest hover:text-[#00e5ff] hover:drop-shadow-[0_0_5px_#00e5ff] transition-all">
                         [ Hủy lệnh & Làm mới ]
                       </button>
                     </div>
@@ -459,33 +459,33 @@ function EduMirrorContent() {
 
               {/* TRẠM CHỈNH SỬA & PREVIEW */}
               {survey && (
-                <div className="bg-white p-6 md:p-8 rounded-[2rem] border border-blue-200 shadow-xl animate-fade-in-up max-w-6xl mx-auto mt-12">
-                  <h3 className="text-xl md:text-2xl font-bold text-slate-800 mb-8 flex items-center gap-3 border-b border-slate-200 pb-4 tracking-wide">
-                    <span className="text-blue-600">🛠️</span> Trạm hiệu chỉnh Dữ liệu
+                <div className="bg-[#12254a]/40 backdrop-blur-xl p-6 md:p-8 rounded-[2rem] border border-[#1c3664] shadow-[0_0_30px_rgba(0,229,255,0.1)] animate-fade-in-up max-w-6xl mx-auto mt-12">
+                  <h3 className="text-xl md:text-2xl font-bold text-white mb-8 flex items-center gap-3 border-b border-[#1c3664] pb-4 tracking-wide">
+                    <span className="text-[#00e5ff]">🛠️</span> Trạm hiệu chỉnh Dữ liệu
                   </h3>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                     <div className="order-2 lg:order-1">
                        <SurveyEditor survey={survey} setSurvey={setSurvey} />
                     </div>
-                    <div className="order-1 lg:order-2 flex flex-col items-center lg:border-l border-slate-200 lg:pl-10">
-                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Preview Khách
+                    <div className="order-1 lg:order-2 flex flex-col items-center lg:border-l border-[#1c3664] lg:pl-10">
+                      <h4 className="text-xs font-bold text-[#8b9bc0] uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-[#00e5ff] shadow-[0_0_8px_#00e5ff] animate-pulse"></span> Preview Khách
                       </h4>
-                      <div className="border-[8px] border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl transform scale-95 w-full max-w-[360px] bg-white h-[600px] overflow-y-auto custom-scrollbar relative">
-                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-slate-800 rounded-b-xl z-20"></div>
+                      <div className="border-[8px] border-[#091128] rounded-[2.5rem] overflow-hidden shadow-[0_0_20px_rgba(0,0,0,0.8)] transform scale-95 w-full max-w-[360px] bg-[#091128] h-[600px] overflow-y-auto custom-scrollbar relative">
+                        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-[#091128] rounded-b-xl z-20 border-b border-x border-[#1c3664]"></div>
                         <MobilePreview survey={survey} />
                       </div>
                       <div className="mt-8 w-full max-w-[360px]">
                         {qrUrl ? (
-                          <div className="animate-fade-in text-center bg-emerald-50 p-6 rounded-2xl border border-emerald-200">
-                            <div className="text-emerald-700 text-sm font-bold mb-4 uppercase tracking-widest">✅ Truyền dẫn thành công</div>
-                            <img src={qrUrl} alt="QR" className="w-48 h-48 mx-auto border-4 border-white rounded-xl mb-4 shadow-md" />
-                            <button onClick={handleOpenQRInNewTab} className="text-xs font-bold text-white bg-emerald-600 px-5 py-2.5 rounded-xl shadow hover:bg-emerald-700 transition-all uppercase tracking-wider">
+                          <div className="animate-fade-in text-center bg-[#091128] p-6 rounded-2xl border border-[#00e5ff]/50 shadow-[0_0_15px_rgba(0,229,255,0.2)]">
+                            <div className="text-[#00e5ff] text-sm font-bold mb-4 uppercase tracking-widest">✅ Truyền dẫn thành công</div>
+                            <img src={qrUrl} alt="QR" className="w-48 h-48 mx-auto border-4 border-[#040b16] rounded-xl mb-4 shadow-md" />
+                            <button onClick={handleOpenQRInNewTab} className="text-xs font-bold text-[#040b16] bg-[#00e5ff] px-5 py-2.5 rounded-xl shadow-[0_0_10px_rgba(0,229,255,0.5)] hover:bg-white transition-all uppercase tracking-wider">
                               Mở kết nối ↗
                             </button>
                           </div>
                         ) : (
-                          <button onClick={handleSaveAndPublish} disabled={loading} className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white rounded-xl text-sm font-extrabold uppercase tracking-widest shadow-md transition-all flex justify-center items-center gap-2">
+                          <button onClick={handleSaveAndPublish} disabled={loading} className="w-full py-4 bg-transparent border-2 border-[#00e5ff] hover:bg-[#00e5ff] hover:text-[#040b16] text-[#00e5ff] rounded-xl text-sm font-extrabold uppercase tracking-widest shadow-[0_0_15px_rgba(0,229,255,0.3)] transition-all flex justify-center items-center gap-2">
                             {loading ? "⏳ Đang mã hóa..." : "🚀 Xuất bản & Tạo QR"}
                           </button>
                         )}
@@ -516,7 +516,7 @@ function EduMirrorContent() {
 
 export default function EduMirrorApp() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-slate-50 flex items-center justify-center text-blue-600 font-bold">Khởi động hệ thống...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#091128] flex items-center justify-center text-[#00e5ff] drop-shadow-[0_0_8px_#00e5ff] font-bold">Khởi động hệ thống lõi...</div>}>
       <EduMirrorContent />
     </Suspense>
   );

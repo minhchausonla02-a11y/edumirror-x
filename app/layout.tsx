@@ -1,13 +1,13 @@
-import UserProfile from '@/components/UserProfile'
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
+// 🚀 NÂNG CẤP THÔNG TIN DỰ ÁN CHO TAB TRÌNH DUYỆT
 export const metadata: Metadata = {
-  title: "EduMirror X",
-  description: "Trợ lý phản chiếu học tập bằng AI",
+  title: "EduMirror X | Lõi AI Phân Tích Sư Phạm",
+  description: "Hệ thống Trợ lý phản chiếu học tập và phân tích sư phạm bằng AI (Dự án Khoa học Kỹ thuật)",
 };
 
 export default function RootLayout({
@@ -17,8 +17,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="vi">
-      <body className={inter.className}>
-        <UserProfile /> {/* QUAN TRỌNG: Ở đây chỉ để children, KHÔNG ĐƯỢC ĐỂ Navbar hay Header nào cả */}
+      {/* Thêm bg-[#091128] text-white antialiased trực tiếp vào body để chống chớp màn hình trắng khi tải trang */}
+      <body className={`${inter.className} bg-[#091128] text-white antialiased min-h-screen`}>
+        {/* Đã xóa <UserProfile /> ở đây vì nó đã được tích hợp vào Header của từng trang */}
         {children}
       </body>
     </html>
