@@ -16,14 +16,14 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://he-thong-da
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "key-khoi-dong";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// 🚀 THÊM MÔ HÌNH GEMINI VÀO DANH SÁCH
+// 🚀 SỬA LỖI 404: CẬP NHẬT ĐÚNG TÊN MODEL GEMINI (-latest)
 const AVAILABLE_MODELS = [
   { id: "gpt-4o", name: "GPT-4o (Đa phương thức - Tốc độ chớp nhoáng)" },
   { id: "gpt-4.5", name: "GPT-4.5 (Hiểu ngữ cảnh sâu - Giảm ảo giác)" },
   { id: "gpt-5", name: "GPT-5 (Trí tuệ Nhân tạo Thế hệ mới)" },
   { id: "gpt-5.4", name: "GPT-5.4 (Trí tuệ Nhân tạo Lõi - Khuyên dùng)" },
-  { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro (Hệ sinh thái Google - Khuyên dùng)" },
-  { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash (Xử lý siêu tốc)" }
+  { id: "gemini-1.5-pro-latest", name: "Gemini 1.5 Pro (Hệ sinh thái Google - Khuyên dùng)" },
+  { id: "gemini-1.5-flash-latest", name: "Gemini 1.5 Flash (Xử lý siêu tốc)" }
 ];
 
 const SUBJECTS = ["Toán học", "Vật lý", "Hóa học", "Sinh học", "Ngữ văn", "Tiếng Anh", "Lịch sử", "Địa lý", "GDCD", "Tin học"];
