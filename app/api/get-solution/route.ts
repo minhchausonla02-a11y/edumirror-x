@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai"; // 🚀 THÊM THƯ VIỆN GEMINI
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -6,23 +7,9 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    // 👇 LẤY MODEL TỪ BODY
-    // Lưu ý: stats là dữ liệu từ Dashboard gửi sang
-    const { stats, lessonText, apiKey, model = "gpt-5.4" } = body;
+    // 🚀 LẤY THÊM geminiKey TỪ BODY
+    const { stats, lessonText, apiKey, geminiKey, model = "gpt-5.4" } = body;
     
-    const finalKey = apiKey || process.env.OPENAI_API_KEY;
-    if (!finalKey) return NextResponse.json({ error: "Thiếu API Key" }, { status: 401 });
-
-    const openai = new OpenAI({ apiKey: finalKey });
-
-    // 🚀 BƯỚC CẤU HÌNH MODEL THEO YÊU CẦU MỚI NHẤT
-    let apiModel = model; 
-    
-    // Chỉ bọc lót riêng gpt-4.5 đẩy về gpt-4o, còn lại (gpt-4o, gpt-5, gpt-5.4) giữ nguyên bản!
-    if (model === "gpt-4.5") {
-        apiModel = "gpt-4o"; 
-    }
-
     // PROMPT 4 TẦNG (Đã bổ sung "Luật Thép" về Trình bày và Ngôn ngữ thuần Việt)
     const prompt = `
       Bạn là Chuyên gia Phân tích Dữ liệu Giáo dục & Cố vấn Sư phạm cấp cao tại Việt Nam (thuộc dự án EduMirror X).
@@ -76,13 +63,43 @@ export async function POST(req: Request) {
       </div>
     `;
 
-    const response = await openai.chat.completions.create({
-      model: apiModel, // 👈 QUAN TRỌNG: Dùng biến apiModel đã bọc lót 4.5
-      messages: [{ role: "user", content: prompt }],
-      
-    });
+    // =========================================================
+    // NGÃ RẼ 1: XỬ LÝ NẾU NGƯỜI DÙNG CHỌN GEMINI
+    // =========================================================
+    if (model.startsWith("gemini")) {
+      const finalGeminiKey = geminiKey || process.env.GOOGLE_GEMINI_API_KEY;
+      if (!finalGeminiKey) return NextResponse.json({ error: "Thiếu Gemini API Key. Vui lòng cập nhật ở Panel kết nối." }, { status: 401 });
 
-    return NextResponse.json({ result: response.choices[0].message.content });
+      const genAI = new GoogleGenerativeAI(finalGeminiKey);
+      const geminiModel = genAI.getGenerativeModel({ model: model });
+
+      const result = await geminiModel.generateContent(prompt);
+      const responseText = result.response.text();
+      
+      return NextResponse.json({ result: responseText });
+    } 
+    // =========================================================
+    // NGÃ RẼ 2: XỬ LÝ NẾU NGƯỜI DÙNG CHỌN OPENAI (Quy trình cũ)
+    // =========================================================
+    else {
+      const finalKey = apiKey || process.env.OPENAI_API_KEY;
+      if (!finalKey) return NextResponse.json({ error: "Thiếu OpenAI API Key. Vui lòng cập nhật ở Panel kết nối." }, { status: 401 });
+
+      const openai = new OpenAI({ apiKey: finalKey });
+
+      let apiModel = model; 
+      if (model === "gpt-4.5") {
+          apiModel = "gpt-4o"; 
+      }
+
+      const response = await openai.chat.completions.create({
+        model: apiModel,
+        messages: [{ role: "user", content: prompt }],
+      });
+
+      return NextResponse.json({ result: response.choices[0].message.content });
+    }
+
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

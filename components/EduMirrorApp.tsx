@@ -16,11 +16,14 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://he-thong-da
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "key-khoi-dong";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// 🚀 THÊM MÔ HÌNH GEMINI VÀO DANH SÁCH
 const AVAILABLE_MODELS = [
   { id: "gpt-4o", name: "GPT-4o (Đa phương thức - Tốc độ chớp nhoáng)" },
   { id: "gpt-4.5", name: "GPT-4.5 (Hiểu ngữ cảnh sâu - Giảm ảo giác)" },
   { id: "gpt-5", name: "GPT-5 (Trí tuệ Nhân tạo Thế hệ mới)" },
-  { id: "gpt-5.4", name: "GPT-5.4 (Trí tuệ Nhân tạo Lõi - Khuyên dùng)" }
+  { id: "gpt-5.4", name: "GPT-5.4 (Trí tuệ Nhân tạo Lõi - Khuyên dùng)" },
+  { id: "gemini-1.5-pro", name: "Gemini 1.5 Pro (Hệ sinh thái Google - Khuyên dùng)" },
+  { id: "gemini-1.5-flash", name: "Gemini 1.5 Flash (Xử lý siêu tốc)" }
 ];
 
 const SUBJECTS = ["Toán học", "Vật lý", "Hóa học", "Sinh học", "Ngữ văn", "Tiếng Anh", "Lịch sử", "Địa lý", "GDCD", "Tin học"];
@@ -72,6 +75,7 @@ function EduMirrorContent() {
 
   const [mounted, setMounted] = useState(false);
   const [apiKey, setApiKey] = useState("");
+  const [geminiKey, setGeminiKey] = useState(""); // 🚀 STATE LƯU KEY GEMINI
   const [model, setModel] = useState("gpt-5.4");
   const [editingKey, setEditingKey] = useState(false);
 
@@ -91,18 +95,28 @@ function EduMirrorContent() {
   const [loadingStep, setLoadingStep] = useState("");
   const [useVisionParsing, setUseVisionParsing] = useState(false);
 
+  // 🚀 TẢI CẢ 2 KEY LÊN KHI MỞ APP
   useEffect(() => {
     setMounted(true);
     const k = localStorage.getItem("edumirror_key") || "";
+    const gk = localStorage.getItem("edumirror_gemini_key") || "";
     if (k) setApiKey(k);
+    if (gk) setGeminiKey(gk);
   }, []);
 
+  // 🚀 LƯU ĐÚNG KEY CHO ĐÚNG MODEL
   const handleSaveKey = () => {
     const inp = document.getElementById("apiKeyInput") as HTMLInputElement;
     const v = inp.value.trim();
-    localStorage.setItem("edumirror_key", v);
-    setApiKey(v);
-    alert("Đã lưu API Key");
+    if (model.startsWith("gemini")) {
+      localStorage.setItem("edumirror_gemini_key", v);
+      setGeminiKey(v);
+      alert("✅ Đã lưu khóa bảo mật Google Gemini");
+    } else {
+      localStorage.setItem("edumirror_key", v);
+      setApiKey(v);
+      alert("✅ Đã lưu khóa bảo mật OpenAI");
+    }
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -161,10 +175,13 @@ function EduMirrorContent() {
     setLoading(true);
     try {
       const saved = localStorage.getItem("edumirror_key") || "";
+      const savedGemini = localStorage.getItem("edumirror_gemini_key") || "";
+      
       const res = await fetch("/api/generate-survey", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ model, content: lessonText, standards: standardsText, apiKey: saved, processMode, subject, className, period }),
+        // 🚀 GỬI CẢ 2 KEY XUỐNG BACKEND
+        body: JSON.stringify({ model, content: lessonText, standards: standardsText, apiKey: saved, geminiKey: savedGemini, processMode, subject, className, period }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error);
@@ -279,45 +296,67 @@ function EduMirrorContent() {
         <main className="mx-auto max-w-7xl px-4 sm:px-6 py-10 space-y-8">
           {activeTab === "upload" && (
             <>
-              {/* API KEY PANEL */}
-              <section className="bg-[#12254a]/40 backdrop-blur-md p-5 rounded-2xl border border-[#1c3664] shadow-[0_4px_20px_rgba(0,0,0,0.3)] max-w-5xl mx-auto transition-all hover:border-[#00e5ff]/40 hover:shadow-[0_0_15px_rgba(0,229,255,0.1)]">
+              {/* 🚀 API KEY PANEL: ADAPTIVE UI CHO GEMINI VÀ OPENAI */}
+              <section className={`backdrop-blur-md p-5 rounded-2xl border shadow-[0_4px_20px_rgba(0,0,0,0.3)] max-w-5xl mx-auto transition-all duration-500
+                  ${model.startsWith("gemini") 
+                      ? "bg-[#1a1235]/60 border-[#b100ff]/50 hover:shadow-[0_0_20px_rgba(177,0,255,0.2)]" 
+                      : "bg-[#12254a]/40 border-[#1c3664] hover:shadow-[0_0_15px_rgba(0,229,255,0.1)] hover:border-[#00e5ff]/40"}`}>
+                
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div className="flex items-start gap-4">
-                    <div className="mt-0.5 h-10 w-10 rounded-xl bg-[#091128] flex items-center justify-center border border-[#00e5ff]/30 shadow-inner text-[#00e5ff]">
-                      🔑
+                    <div className={`mt-0.5 h-10 w-10 rounded-xl bg-[#040b16] flex items-center justify-center border shadow-inner text-lg transition-colors
+                        ${model.startsWith("gemini") ? "border-[#b100ff]/50 text-[#b100ff] shadow-[inset_0_0_10px_rgba(177,0,255,0.3)]" : "border-[#00e5ff]/30 text-[#00e5ff] shadow-[inset_0_0_10px_rgba(0,229,255,0.2)]"}`}>
+                      {model.startsWith("gemini") ? "✨" : "🔑"}
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-white tracking-wide">Kết nối AI cho tiết học</div>
+                      <div className="text-sm font-bold text-white tracking-wide drop-shadow-sm">
+                        {model.startsWith("gemini") ? "Kết nối Google Gemini" : "Kết nối OpenAI Core"}
+                      </div>
                       <div className="text-xs text-[#8b9bc0] mt-1">Cấp quyền truy cập hệ thống phân tích lõi.</div>
-                      {apiKey ? (
+                      
+                      {/* Hiển thị trạng thái */}
+                      {(model.startsWith("gemini") ? geminiKey : apiKey) ? (
                         <div className="mt-2 inline-flex items-center gap-2 text-[11px] uppercase tracking-wider">
-                          <span className="px-2 py-1 rounded-md bg-[#00e5ff]/10 text-[#00e5ff] border border-[#00e5ff]/30 font-bold ai-breathing">● Sẵn sàng</span>
-                          <span className="text-[#8b9bc0] font-mono">••••{apiKey.slice(-4)}</span>
+                          <span className={`px-2 py-1 rounded-md font-bold ai-breathing border transition-colors
+                              ${model.startsWith("gemini") ? "bg-[#b100ff]/10 text-[#d8b4fe] border-[#b100ff]/40" : "bg-[#00e5ff]/10 text-[#00e5ff] border-[#00e5ff]/30"}`}>
+                            ● Sẵn sàng
+                          </span>
+                          <span className="text-[#8b9bc0] font-mono">
+                            ••••{(model.startsWith("gemini") ? geminiKey : apiKey).slice(-4)}
+                          </span>
                         </div>
                       ) : (
                         <div className="mt-2 inline-flex items-center gap-2 text-[11px] uppercase tracking-wider">
-                          <span className="px-2 py-1 rounded-md bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold">⚠ Chờ cấp quyền</span>
+                          <span className="px-2 py-1 rounded-md bg-[#ff003c]/10 text-[#ff003c] border border-[#ff003c]/30 font-bold drop-shadow-[0_0_5px_rgba(255,0,60,0.5)]">⚠ Chờ cấp quyền</span>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {!apiKey || editingKey ? (
-                    <div className="flex items-center gap-2">
+                  {/* Khu vực Nhập Input */}
+                  {!(model.startsWith("gemini") ? geminiKey : apiKey) || editingKey ? (
+                    <div className="flex items-center gap-2 animate-fade-in">
                       <input
                         id="apiKeyInput"
                         type="password"
-                        defaultValue={apiKey}
-                        placeholder="Nhập khóa hệ thống..."
-                        className="outline-none px-4 py-2 text-sm w-[240px] md:w-[300px] border border-[#1c3664] rounded-xl bg-[#091128] text-white focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/50 transition-all font-mono"
+                        defaultValue={model.startsWith("gemini") ? geminiKey : apiKey}
+                        placeholder={model.startsWith("gemini") ? "Nhập mã Google AI Studio..." : "Nhập mã OpenAI API..."}
+                        className={`outline-none px-4 py-2 text-sm w-[240px] md:w-[300px] border rounded-xl bg-[#040b16] text-white focus:ring-1 transition-all font-mono shadow-inner
+                            ${model.startsWith("gemini") ? "border-[#b100ff]/50 focus:border-[#b100ff] focus:ring-[#b100ff]/50" : "border-[#1c3664] focus:border-[#00e5ff] focus:ring-[#00e5ff]/50"}`}
                       />
-                      <button onClick={() => { handleSaveKey(); setEditingKey(false); }} className="bg-transparent border border-[#00e5ff] text-[#00e5ff] shadow-[inset_0_0_10px_rgba(0,229,255,0.2)] text-sm font-bold px-5 py-2 rounded-xl hover:bg-[#00e5ff] hover:text-[#040b16] transition-all">
+                      <button onClick={() => { handleSaveKey(); setEditingKey(false); }} 
+                              className={`bg-transparent border text-sm font-bold px-5 py-2 rounded-xl transition-all uppercase tracking-wider
+                                  ${model.startsWith("gemini") ? "border-[#b100ff] text-[#d8b4fe] hover:bg-[#b100ff] hover:text-white shadow-[0_0_10px_rgba(177,0,255,0.2)]" : "border-[#00e5ff] text-[#00e5ff] hover:bg-[#00e5ff] hover:text-[#040b16] shadow-[0_0_10px_rgba(0,229,255,0.2)]"}`}>
                         Lưu
                       </button>
-                      {apiKey && <button onClick={() => setEditingKey(false)} className="text-sm font-bold text-[#8b9bc0] hover:text-white px-3">Hủy</button>}
+                      {(model.startsWith("gemini") ? geminiKey : apiKey) && (
+                        <button onClick={() => setEditingKey(false)} className="text-[11px] font-bold text-[#8b9bc0] hover:text-[#ff003c] uppercase tracking-widest px-3 transition-colors">Hủy</button>
+                      )}
                     </div>
                   ) : (
-                    <button onClick={() => setEditingKey(true)} className="px-5 py-2 rounded-xl border border-[#1c3664] bg-[#091128] text-sm font-bold text-[#8b9bc0] hover:border-[#00e5ff]/50 hover:text-white transition-colors">
+                    <button onClick={() => setEditingKey(true)} 
+                            className={`px-5 py-2 rounded-xl border bg-[#040b16] text-sm font-bold text-[#8b9bc0] hover:text-white transition-colors uppercase tracking-wider
+                                ${model.startsWith("gemini") ? "border-[#b100ff]/40 hover:border-[#b100ff] hover:shadow-[0_0_10px_rgba(177,0,255,0.3)]" : "border-[#1c3664] hover:border-[#00e5ff] hover:shadow-[0_0_10px_rgba(0,229,255,0.3)]"}`}>
                       Đổi khóa
                     </button>
                   )}
@@ -409,17 +448,31 @@ function EduMirrorContent() {
                 </div>
 
                 {/* DÒNG 4: HỆ QUY CHIẾU (TARGETING) */}
-                <div className="bg-[#12254a]/40 backdrop-blur-md p-6 rounded-3xl border border-[#1c3664] shadow-sm">
-                  <h3 className="text-sm font-bold text-[#00e5ff] mb-3 flex items-center gap-2 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">
-                    🎯 Thiết lập Chuẩn đầu ra (Targeting)
-                  </h3>
-                  <textarea
-                    className="w-full h-24 p-4 rounded-xl border border-[#1c3664] bg-[#091128] text-sm text-white focus:ring-1 focus:ring-[#00e5ff] focus:border-[#00e5ff] outline-none transition-all resize-none shadow-inner placeholder:text-[#8b9bc0]"
-                    placeholder="Nhập các chuẩn đầu ra cần đạt (khuyên dùng 2 đến 3 mục tiêu). 
-Hệ thống AI sẽ dùng dữ liệu này làm 'kim chỉ nam' để sinh câu hỏi trắc nghiệm và đánh giá chính xác năng lực học sinh..."
-                    value={standardsText}
-                    onChange={(e) => setStandardsText(e.target.value)}
-                  />
+                <div className="bg-[#12254a]/40 backdrop-blur-md p-6 rounded-3xl border border-[#1c3664] shadow-[0_0_15px_rgba(0,0,0,0.3)] relative overflow-hidden group hover:border-[#00e5ff]/50 transition-all">
+                  <div className="absolute inset-0 pointer-events-none bg-[linear-gradient(rgba(0,229,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(0,229,255,0.03)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
+
+                  <div className="relative z-10">
+                      <h3 className="text-sm font-bold text-[#00e5ff] mb-3 flex items-center gap-2 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">
+                        🎯 Thiết lập Chuẩn đầu ra (Targeting)
+                      </h3>
+                      
+                      <div className="mb-4 bg-[#040b16]/80 border-l-2 border-[#00e5ff] p-3 rounded-r-lg shadow-inner">
+                         <p className="text-[11px] font-mono text-[#8b9bc0] leading-relaxed">
+                            <span className="text-[#00e5ff] font-bold drop-shadow-[0_0_2px_#00e5ff]">[ SYSTEM GUIDE ]</span> Thiết lập hệ tọa độ mục tiêu để Lõi AI tối ưu hóa độ chính xác:
+                            <br/>
+                            <span className="text-[#00ff9d] mr-1.5 mt-1 inline-block">▸</span> Cung cấp 1-3 trọng tâm kiến thức/kỹ năng lõi.
+                            <br/>
+                            <span className="text-[#00ff9d] mr-1.5 mt-1 inline-block">▸</span> Thuật toán sẽ dùng dữ liệu này làm mỏ neo để sinh các câu hỏi trắc nghiệm đánh giá bám sát năng lực thực tế.
+                         </p>
+                      </div>
+
+                      <textarea
+                        className="w-full h-24 p-4 rounded-xl border border-[#1c3664] bg-[#091128]/80 text-sm text-white focus:ring-1 focus:ring-[#00e5ff] focus:border-[#00e5ff] outline-none transition-all resize-none shadow-[inset_0_0_10px_rgba(0,0,0,0.5)] placeholder:text-[#8b9bc0]/40 font-mono custom-scrollbar"
+                        placeholder="[ Đang chờ tọa độ mục tiêu... Cú pháp đề xuất: <Động từ năng lực> + <Kiến thức lõi>. VD: Vận dụng tích phân để tính diện tích. ]"
+                        value={standardsText}
+                        onChange={(e) => setStandardsText(e.target.value)}
+                      />
+                  </div>
                 </div>
 
                 {/* DÒNG 5: TRUNG TÂM TÁC VỤ */}
@@ -506,7 +559,8 @@ Hệ thống AI sẽ dùng dữ liệu này làm 'kim chỉ nam' để sinh câu
 
           {activeTab === "ai" && (
             <section className="animate-fade-in">
-              <AISuggestionsView lessonText={lessonText} apiKey={apiKey} model={model} />
+              {/* 🚀 ĐẨY CẢ GEMINI KEY XUỐNG CHO TRANG BÁO CÁO SƯ PHẠM */}
+              <AISuggestionsView lessonText={lessonText} apiKey={apiKey} geminiKey={geminiKey} model={model} />
             </section>
           )}
         </main>

@@ -1,4 +1,5 @@
 import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai"; // 🚀 THÊM THƯ VIỆN GEMINI
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -44,7 +45,7 @@ const SUBJECT_CONFIGS: Record<string, any> = {
     `,
     buildQuestions: (gaps: string[]) => [
       { id: "q1", type: "single_choice", text: "1. Cảm nhận chung của em về tiết Toán hôm nay?", options: ["A1 – Rất cuốn, thích thú 🤩", "A2 – Bình thường 🙂", "A3 – Hơi ngợp (nhiều công thức/số liệu) 🤯", "A4 – Mệt, khó tập trung 😴"] },
-      { id: "q2", type: "single_choice", text: "2. Em tự đánh giá mức độ nắm vững công thức và cách giải?", options: ["B1 – Chưa hiểu (Mất gốc)", "B2 – Mơ hồ (Cần cô/thầy giảng lại)", "B3 – Hiểu cơ bản, làm được bài dễ", "B4 – Hiểu rõ, tự tin xử lý bài khó"] },
+      { id: "q2", type: "single_choice", text: "2. Em tự đánh giá mức độ nắm vững công thức và cách giải?", options: ["B1 – Chưa hiểu (Mất gốc)", "B2 – Mơ hồ (Cần cô/thầy giảng lại)", "B3 – Hiểu cơ bản, làm được bài dễ", "B4 – Hiểu rõ, tự tự xử lý bài khó"] },
       { id: "q3", type: "multi_choice", text: "3. Trong bài này, tình huống/bước tính toán nào khiến em dễ bị 'mắc bẫy' nhất?", options: [...gaps, "✅ Em nắm chắc toàn bộ kiến thức, không vướng mắc", "⚡ Thầy/cô tính nhanh quá, em ghi không kịp"] },
       { id: "q4", type: "multi_choice", text: "4. Em muốn thầy/cô điều chỉnh gì để dễ hiểu hơn?", options: ["🐢 Giảng chậm lại ở các bước biến đổi trung gian", "💡 Thêm ví dụ minh họa song song với lý thuyết", "📝 Cô đọng các công thức trọng tâm", "🗣️ Nhắc lại kiến thức cũ trước khi áp dụng"] },
       { id: "q5", type: "multi_choice", text: "5. Cách học nào giúp em tiếp thu Toán tốt nhất?", options: ["📝 Thầy cô giải mẫu chi tiết trên bảng", "✍️ Tự nháp bài ngay tại lớp và được chấm/sửa", "👥 Thảo luận cách giải với bạn cùng bàn", "📖 Có tài liệu sơ đồ tư duy phân loại dạng bài"] },
@@ -154,25 +155,16 @@ SUBJECT_CONFIGS["Hóa học"] = SUBJECT_CONFIGS["Toán học"];
 
 
 // =====================================================================
-// XỬ LÝ API CHÍNH
+// XỬ LÝ API CHÍNH (ĐA MÔ HÌNH - MULTI-MODEL)
 // =====================================================================
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { content, model = "gpt-5.4", apiKey, standards, processMode, subject, className, period } = body || {};
-
-    const finalKey = apiKey || process.env.OPENAI_API_KEY;
-    if (!finalKey) return NextResponse.json({ error: "Thiếu API Key" }, { status: 401 });
-
-    const openai = new OpenAI({ apiKey: finalKey });
+    
+    // 🚀 LẤY THÊM geminiKey TỪ FRONTEND GỬI XUỐNG
+    const { content, model = "gpt-5.4", apiKey, geminiKey, standards, processMode, subject, className, period } = body || {};
 
     const config = SUBJECT_CONFIGS[subject] || SUBJECT_CONFIGS["DEFAULT"];
-
-    // 🚀 ĐỒNG BỘ: MỞ KHÓA TOÀN BỘ SỨC MẠNH GPT-5, CHỈ BỌC LÓT GPT-4.5
-    let realOpenAIModel = model; 
-    if (model === "gpt-4.5") {
-      realOpenAIModel = "gpt-4o"; 
-    }
 
     const systemPrompt = `
       ${config.buildPrompt(processMode, standards)}
@@ -184,18 +176,59 @@ export async function POST(req: Request) {
       }
     `;
 
-    const completion = await openai.chat.completions.create({
-      model: realOpenAIModel,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: `Nội dung bài dạy:\n${content.substring(0, 15000)}` }
-      ],
-      response_format: { type: "json_object" }
-    });
+    let aiData;
 
-    const aiData = safeParse(completion.choices[0].message.content || "{}");
+    // =========================================================
+    // NGÃ RẼ 1: XỬ LÝ NẾU NGƯỜI DÙNG CHỌN GEMINI
+    // =========================================================
+    if (model.startsWith("gemini")) {
+      const finalGeminiKey = geminiKey || process.env.GOOGLE_GEMINI_API_KEY;
+      if (!finalGeminiKey) return NextResponse.json({ error: "Thiếu Gemini API Key. Vui lòng cập nhật ở Panel kết nối." }, { status: 401 });
 
-    // 🚀 GHÉP CHUỖI TIÊU ĐỀ THÔNG MINH
+      const genAI = new GoogleGenerativeAI(finalGeminiKey);
+      
+      // Khởi tạo model và ép kiểu đầu ra là JSON để khỏi vỡ cấu trúc
+      const geminiModel = genAI.getGenerativeModel({ 
+        model: model,
+        generationConfig: { responseMimeType: "application/json" }
+      });
+
+      // Gemini không dùng mảng "messages" với role "system" giống OpenAI, 
+      // nên ta ghép prompt hệ thống và nội dung bài dạy thành 1 chuỗi lệnh duy nhất.
+      const combinedPrompt = `${systemPrompt}\n\nNội dung bài dạy:\n${content.substring(0, 15000)}`;
+
+      const result = await geminiModel.generateContent(combinedPrompt);
+      const responseText = result.response.text();
+      
+      aiData = safeParse(responseText);
+    } 
+    // =========================================================
+    // NGÃ RẼ 2: XỬ LÝ NẾU NGƯỜI DÙNG CHỌN OPENAI (Quy trình cũ)
+    // =========================================================
+    else {
+      const finalKey = apiKey || process.env.OPENAI_API_KEY;
+      if (!finalKey) return NextResponse.json({ error: "Thiếu OpenAI API Key. Vui lòng cập nhật ở Panel kết nối." }, { status: 401 });
+
+      const openai = new OpenAI({ apiKey: finalKey });
+
+      let realOpenAIModel = model; 
+      if (model === "gpt-4.5") {
+        realOpenAIModel = "gpt-4o"; 
+      }
+
+      const completion = await openai.chat.completions.create({
+        model: realOpenAIModel,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Nội dung bài dạy:\n${content.substring(0, 15000)}` }
+        ],
+        response_format: { type: "json_object" }
+      });
+
+      aiData = safeParse(completion.choices[0].message.content || "{}");
+    }
+
+    // 🚀 GHÉP CHUỖI TIÊU ĐỀ THÔNG MINH (Dùng chung cho cả 2 lõi)
     let finalTitle = aiData.lesson_title || `Phản hồi tiết học ${subject || ''}`;
     
     if (className || period) {
