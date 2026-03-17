@@ -23,9 +23,9 @@ export async function POST(req: Request) {
         apiModel = "gpt-4o"; 
     }
 
-    // PROMPT 4 TẦNG (Đã bổ sung "Luật Thép" về trình bày Công thức Toán học)
+    // PROMPT 4 TẦNG (Đã bổ sung "Luật Thép" về Trình bày và Ngôn ngữ thuần Việt)
     const prompt = `
-      Bạn là Chuyên gia Phân tích Dữ liệu Giáo dục & Sư phạm (EduMirror X).
+      Bạn là Chuyên gia Phân tích Dữ liệu Giáo dục & Cố vấn Sư phạm cấp cao tại Việt Nam (thuộc dự án EduMirror X).
       
       DỮ LIỆU ĐẦU VÀO:
       1. Thống kê lớp học (JSON): ${JSON.stringify(stats)}
@@ -34,6 +34,17 @@ export async function POST(req: Request) {
       NHIỆM VỤ: 
       Phân tích sâu và đưa ra báo cáo cải tiến dạy học theo cấu trúc 4 TẦNG chuẩn khoa học.
       
+      🔥 QUY TẮC NGÔN NGỮ VÀ VĂN PHONG (LUẬT THÉP BẮT BUỘC):
+      - SỬ DỤNG 100% TIẾNG VIỆT THUẦN VIỆT, chuẩn văn phong sư phạm của Việt Nam (phù hợp với chương trình GDPT 2018).
+      - TUYỆT ĐỐI KHÔNG dùng các từ tiếng Anh lóng, thuật ngữ doanh nghiệp hoặc phương Tây gây khó hiểu cho giáo viên.
+      - BẮT BUỘC THAY THẾ CÁC TỪ SAU (nếu có định dùng):
+        + KHÔNG DÙNG "KPI" -> Hãy dùng "Chỉ tiêu phấn đấu", "Mục tiêu định lượng".
+        + KHÔNG DÙNG "Exit ticket" -> Hãy dùng "Phiếu kiểm tra cuối giờ", "Bài tập củng cố nhanh".
+        + KHÔNG DÙNG "Core / Standard / Challenge" -> Hãy dùng "Mức độ Nhận biết / Thông hiểu / Vận dụng (Nâng cao)".
+        + KHÔNG DÙNG "Mindmap" -> Hãy dùng "Sơ đồ tư duy".
+        + KHÔNG DÙNG "Flashcard" -> Hãy dùng "Thẻ ghi nhớ", "Thẻ học tập".
+      - Lời văn cần gần gũi, thực tế, dễ hiểu, mang tính chất tư vấn, động viên và hỗ trợ giáo viên.
+
       🔥 QUY TẮC TRÌNH BÀY CÔNG THỨC TOÁN/LÝ/HÓA BẮT BUỘC:
       - TUYỆT ĐỐI KHÔNG viết công thức dạng text thô sơ (ví dụ cấm viết: 3^x, 9^(x+1), log_2(x)).
       - BẮT BUỘC phải dùng định dạng HTML hoặc Unicode để công thức hiển thị chuẩn sư phạm.
@@ -41,7 +52,7 @@ export async function POST(req: Request) {
       - Dùng thẻ HTML <sub> để viết chỉ số dưới (VD: log<sub>2</sub>x, H<sub>2</sub>O).
       - Sử dụng các ký hiệu toán học chuẩn xác: ≠, ≥, ≤, ×, ÷, √, ⇒, ⇔.
       
-      YÊU CẦU ĐẦU RA (HTML trong thẻ div, giao diện đẹp):
+      YÊU CẦU ĐẦU RA (HTML trong thẻ div, cấu trúc 4 tầng rõ ràng):
       <div class="space-y-6 font-sans text-gray-800">
         <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
            <h3 class="text-indigo-700 font-bold text-sm uppercase mb-3">📊 Tầng 1: Ảnh chụp nhanh tiết học</h3>
