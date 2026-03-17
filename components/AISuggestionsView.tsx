@@ -11,17 +11,28 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
   const processAIHtml = (content: string) => {
     if (!content) return "";
     
-    // 1. Render Toán học
-    let processed = content.replace(/\\\[(.*?)\\\]/gs, '$$$1$$').replace(/\\\((.*?)\\\)/gs, '$$$1$$');
+    // 1. DỌN RÁC MARKDOWN: Xóa bỏ chuỗi ```html và ``` bị kẹt ở đầu/cuối
+    let processed = content.replace(/```html/gi, '').replace(/```/g, '').trim();
     
-    // 2. Ép các class AI về chuẩn Dark Mode
-    processed = processed.replace(/bg-white/g, "bg-transparent")
-                         .replace(/bg-slate-50/g, "bg-[#12254a]/30")
-                         .replace(/text-slate-[8-9]00/g, "text-white")
-                         .replace(/text-gray-[1-9]00/g, "text-[#8b9bc0]")
-                         .replace(/border-slate-[2-3]00/g, "border-[#1c3664]")
-                         .replace(/text-blue-[6-7]00/g, "text-[#00e5ff]")
-                         .replace(/bg-blue-50/g, "bg-[#00e5ff]/10");
+    // 2. Render Toán học
+    processed = processed.replace(/\\\[(.*?)\\\]/gs, '$$$1$$').replace(/\\\((.*?)\\\)/gs, '$$$1$$');
+    
+    // 3. LỘT XÁC TAILWIND LIGHT SANG DARK-SCIFI BẰNG REGEX DIỆN RỘNG
+    processed = processed
+      // Ép MỌI nền sáng (red-50, green-50, orange-50...) thành nền kính mờ vũ trụ
+      .replace(/bg-[a-zA-Z]+-50/g, "bg-[#12254a]/60 backdrop-blur-sm shadow-[inset_0_0_15px_rgba(0,229,255,0.05)]")
+      .replace(/bg-[a-zA-Z]+-100/g, "bg-[#091128]/80")
+      .replace(/bg-white/g, "bg-transparent")
+      
+      // Đổi toàn bộ chữ xám/đen của AI thành màu Trắng hoặc Xanh phát sáng
+      .replace(/text-[a-zA-Z]+-800/g, "text-white font-medium drop-shadow-sm")
+      .replace(/text-[a-zA-Z]+-900/g, "text-white font-bold")
+      .replace(/text-[a-zA-Z]+-700/g, "text-[#00ff9d]") // Các text nhấn sẽ đổi sang màu Neon Xanh ngọc
+      .replace(/text-[a-zA-Z]+-600/g, "text-[#00e5ff]") // Các text phụ đổi sang Cyan
+      
+      // Ép viền thành màu chuẩn, có hiệu ứng hover sáng lên
+      .replace(/border-[a-zA-Z]+-[200|300]/g, "border-[#1c3664] hover:border-[#00e5ff]/50 transition-all duration-300 hover:shadow-[0_0_15px_rgba(0,229,255,0.2)]");
+
     return processed;
   };
   
@@ -166,7 +177,7 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
       </div>
 
       {/* HIỂN THỊ NỘI DUNG GIẢI PHÁP */}
-      {solution ? (
+      {solution && (
         <div className="animate-fade-in-up bg-[#12254a]/40 backdrop-blur-md p-8 md:p-10 rounded-[2.5rem] border border-[#1c3664] shadow-[0_0_30px_rgba(0,229,255,0.1)] relative">
             
             {/* Vùng hiển thị Markdown tùy chỉnh CSS cho Dark-SciFi Mode */}
@@ -180,7 +191,8 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
                 [&_ol]:space-y-2 [&_ul]:space-y-2
                 katex-display:text-center katex-display:my-4 katex-display:text-xl katex-display:text-[#00ff9d] katex-display:drop-shadow-[0_0_8px_#00ff9d]
                 [&_.katex]:text-[#00ff9d] font-mono text-sm
-                [&>div]:!bg-transparent [&>div]:!border-none [&>div]:!shadow-none [&>div]:!text-white"
+                /* CHỐNG TÀNG HÌNH: Ép tất cả các text bên trong đều hiển thị màu trắng nếu bị miss class */
+                [&>div]:!bg-transparent [&>div]:!border-none [&>div]:!shadow-none [&_div]:!text-white [&_p]:!text-white [&_span]:!text-white"
                 dangerouslySetInnerHTML={{ __html: processAIHtml(solution) }}
             ></div>
             
