@@ -1,6 +1,6 @@
 // File: app/api/analyze-feedback/route.ts
 import OpenAI from "openai";
-import { GoogleGenerativeAI } from "@google/generative-ai"; // 🚀 THÊM THƯ VIỆN GEMINI
+import { GoogleGenerativeAI } from "@google/generative-ai"; 
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -25,14 +25,12 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // Lấy thêm geminiKey từ body do giao diện gửi xuống
     const { feedbacks, apiKey, geminiKey, model = "gpt-5.4" } = body;
 
     if (!feedbacks || feedbacks.length === 0) {
       return NextResponse.json({ result: [] });
     }
 
-    // --- PROMPT: BỘ LỌC SƯ PHẠM & DỊCH THUẬT GEN Z (GIỮ NGUYÊN) ---
     const prompt = `
       Bạn là Trợ lý Thư ký Hội đồng Giáo dục (EduMirror AI).
       
@@ -71,18 +69,18 @@ export async function POST(req: Request) {
     // NGÃ RẼ 1: XỬ LÝ NẾU NGƯỜI DÙNG CHỌN GEMINI
     // =========================================================
     if (model.startsWith("gemini")) {
-      // Ưu tiên geminiKey, đồng thời dùng .trim() để xóa khoảng trắng thừa gây lỗi 400
       const rawGeminiKey = geminiKey || process.env.GOOGLE_GEMINI_API_KEY || "";
       const finalGeminiKey = rawGeminiKey.trim();
 
       if (!finalGeminiKey) return NextResponse.json({ error: "Thiếu Google Gemini API Key" }, { status: 401 });
 
-      // 🚀 CHỐT HẠ: ÉP CỨNG model "gemini-2.0-flash" để tuyệt đối không bao giờ bị lỗi 404 nữa!
-      const realGeminiModel = "gemini-2.0-flash";
+      // 🚀 CHIỀU LÒNG GOOGLE: Ép sang dùng bản 2.5 mới nhất!
+      let realGeminiModel = "gemini-2.5-flash"; 
+      if (model.includes("pro")) {
+          realGeminiModel = "gemini-2.5-pro";
+      }
 
       const genAI = new GoogleGenerativeAI(finalGeminiKey);
-      
-      // Khởi tạo model BÌNH THƯỜNG
       const geminiModel = genAI.getGenerativeModel({ model: realGeminiModel });
 
       const result = await geminiModel.generateContent(prompt);
@@ -91,7 +89,7 @@ export async function POST(req: Request) {
       aiResultData = safeParse(responseText);
     } 
     // =========================================================
-    // NGÃ RẼ 2: XỬ LÝ NẾU NGƯỜI DÙNG CHỌN OPENAI (Quy trình cũ)
+    // NGÃ RẼ 2: XỬ LÝ NẾU NGƯỜI DÙNG CHỌN OPENAI
     // =========================================================
     else {
       const finalKey = apiKey || process.env.OPENAI_API_KEY;
