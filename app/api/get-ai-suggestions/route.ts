@@ -44,15 +44,33 @@ Hãy trả về JSON (không markdown) theo cấu trúc 3 tầng sau:
 }
 `;
 
+// Hàm parse JSON an toàn
+function safeParse(text: string) {
+  try {
+    const cleanText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const startIndex = cleanText.indexOf('{');
+    const endIndex = cleanText.lastIndexOf('}');
+    if (startIndex !== -1 && endIndex !== -1) {
+      return JSON.parse(cleanText.substring(startIndex, endIndex + 1));
+    }
+    return {};
+  } catch (e) {
+    console.error("Lỗi trích xuất JSON:", e);
+    return {};
+  }
+}
+
 // Hàm gọi OpenAI
 async function callOpenAI(apiKey: string, model: string, inputData: any) {
+  let realModel = model;
+  if (model === "gpt-4.5") realModel = "gpt-4o";
+
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
-      model: model,
+      model: realModel,
       messages: [{ role: "system", content: SYSTEM_PROMPT }, { role: "user", content: JSON.stringify(inputData) }],
-      temperature: 0.7,
     }),
   });
   const data = await response.json();
@@ -60,23 +78,30 @@ async function callOpenAI(apiKey: string, model: string, inputData: any) {
   return data.choices[0].message.content;
 }
 
-// Hàm gọi Gemini
-async function callGemini(apiKey: string, inputData: any) {
+// Hàm gọi Gemini (🚀 Đã sửa chuẩn 2.5 Flash)
+async function callGemini(apiKey: string, modelName: string, inputData: any) {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  // 🚀 Dùng biến modelName truyền từ Frontend xuống (mặc định sẽ là gemini-2.5-flash)
+  const geminiModel = genAI.getGenerativeModel({ model: modelName });
   const prompt = `${SYSTEM_PROMPT}\n\nDữ liệu đầu vào:\n${JSON.stringify(inputData)}`;
-  const result = await model.generateContent(prompt);
+  const result = await geminiModel.generateContent(prompt);
   return result.response.text();
 }
 
 export async function POST(req: Request) {
   try {
-    const { lessonText, analysis, model } = await req.json();
-    const apiKey = req.headers.get("x-proxy-key") || process.env.GEMINI_API_KEY;
+    const { lessonText, analysis, model = "gpt-5.4", apiKey } = await req.json();
 
-    if (!apiKey) return NextResponse.json({ error: "Thiếu API Key" }, { status: 401 });
+    // 🚀 Đồng bộ chuẩn API Key từ Frontend hoặc Biến môi trường
+    let finalKey = apiKey;
+    if (!finalKey) {
+       if (model.startsWith("gemini")) finalKey = process.env.GOOGLE_GEMINI_API_KEY;
+       else finalKey = process.env.OPENAI_API_KEY;
+    }
 
-    // Tổng hợp dữ liệu (Kết hợp bài học + Dashboard thực tế/giả lập)
+    if (!finalKey) return NextResponse.json({ error: `Thiếu API Key cho mô hình ${model}` }, { status: 401 });
+
+    // Tổng hợp dữ liệu
     const inputData = {
       lesson_content: lessonText ? lessonText.slice(0, 4000) : "Chưa có nội dung chi tiết",
       dashboard_stats: analysis || {
@@ -88,14 +113,14 @@ export async function POST(req: Request) {
     };
 
     let resultText = "";
-    if (model.startsWith("gpt")) {
-      resultText = await callOpenAI(apiKey, model, inputData);
+    if (model.startsWith("gemini")) {
+      // 🚀 Gọi Gemini với đúng Key và Model mới nhất
+      resultText = await callGemini(finalKey, model, inputData);
     } else {
-      resultText = await callGemini(apiKey, inputData);
+      resultText = await callOpenAI(finalKey, model, inputData);
     }
 
-    const cleanJson = resultText.replace(/```json|```/g, "").trim();
-    const suggestionData = JSON.parse(cleanJson);
+    const suggestionData = safeParse(resultText);
 
     return NextResponse.json({ suggestion: suggestionData });
 

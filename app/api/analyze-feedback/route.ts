@@ -1,8 +1,25 @@
 // File: app/api/analyze-feedback/route.ts
 import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai"; // 🚀 THÊM THƯ VIỆN GEMINI
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+
+// Hàm parse JSON an toàn (Dùng chung cho cả 2 AI)
+function safeParse(text: string) {
+  try {
+    const cleanText = text.replace(/```json/g, "").replace(/```/g, "").trim();
+    const startIndex = cleanText.indexOf('[');
+    const endIndex = cleanText.lastIndexOf(']');
+    if (startIndex !== -1 && endIndex !== -1) {
+      return JSON.parse(cleanText.substring(startIndex, endIndex + 1));
+    }
+    return [];
+  } catch (e) {
+    console.error("Lỗi trích xuất JSON:", e);
+    return [];
+  }
+}
 
 export async function POST(req: Request) {
   try {
@@ -11,21 +28,8 @@ export async function POST(req: Request) {
     // Lấy model từ body, nếu không có sẽ mặc định là GPT-5.4 tiêu chuẩn
     const { feedbacks, apiKey, model = "gpt-5.4" } = body;
 
-    const finalKey = apiKey || process.env.OPENAI_API_KEY;
-    if (!finalKey) return NextResponse.json({ error: "Thiếu API Key" }, { status: 401 });
-
     if (!feedbacks || feedbacks.length === 0) {
       return NextResponse.json({ result: [] });
-    }
-
-    const openai = new OpenAI({ apiKey: finalKey });
-
-    // 🚀 BƯỚC NÂNG CẤP ĐỒNG BỘ: ĐỊNH TUYẾN MODEL THÔNG MINH
-    let realOpenAIModel = model; 
-    
-    // Chỉ bọc lót riêng gpt-4.5 đẩy về gpt-4o, còn lại (gpt-4o, gpt-5, gpt-5.4) giữ nguyên bản!
-    if (model === "gpt-4.5") {
-      realOpenAIModel = "gpt-4o"; 
     }
 
     // --- PROMPT: BỘ LỌC SƯ PHẠM & DỊCH THUẬT GEN Z (GIỮ NGUYÊN) ---
@@ -47,7 +51,7 @@ export async function POST(req: Request) {
       DANH SÁCH PHẢN HỒI GỐC:
       ${JSON.stringify(feedbacks)}
 
-      YÊU CẦU ĐẦU RA (JSON Array thuần túy, KHÔNG markdown):
+      YÊU CẦU ĐẦU RA (JSON Array thuần túy, KHÔNG markdown, KHÔNG giải thích):
       [
         {
           "category": "Nhãn ngắn gọn (VD: 'Kiến thức', 'Phương pháp', 'Lời khen', 'Góp ý')",
@@ -61,25 +65,50 @@ export async function POST(req: Request) {
       Sắp xếp theo số lượng giảm dần. Nếu lọc xong không còn gì thì trả về [].
     `;
 
-    const response = await openai.chat.completions.create({
-      model: realOpenAIModel, // 🚀 CHẠY MODEL ĐÃ ĐƯỢC CHUYỂN ĐỔI AN TOÀN
-      messages: [{ role: "user", content: prompt }],
-      // LƯU Ý: Không cài đặt 'temperature' ở đây để tương thích tối đa với dòng model GPT-5 / o-series
-    });
+    let aiResultData;
 
-    let content = response.choices[0].message.content || "[]";
-    
-    // 🚀 BƯỚC NÂNG CẤP: BỘ LỌC CHỐNG NGHẸN JSON (Giúp tránh lỗi khi AI lỡ chèn chữ thừa)
-    const startIndex = content.indexOf('[');
-    const endIndex = content.lastIndexOf(']');
-    
-    if (startIndex !== -1 && endIndex !== -1) {
-      content = content.substring(startIndex, endIndex + 1);
-    } else {
-      content = "[]";
+    // =========================================================
+    // NGÃ RẼ 1: XỬ LÝ NẾU NGƯỜI DÙNG CHỌN GEMINI
+    // =========================================================
+    if (model.startsWith("gemini")) {
+      // Dùng chung apiKey do giao diện Frontend đẩy xuống, hoặc lấy từ Env
+      const finalGeminiKey = apiKey || process.env.GOOGLE_GEMINI_API_KEY;
+      if (!finalGeminiKey) return NextResponse.json({ error: "Thiếu Gemini API Key" }, { status: 401 });
+
+      const genAI = new GoogleGenerativeAI(finalGeminiKey);
+      
+      // Khởi tạo model BÌNH THƯỜNG (Không ép kiểu MIME JSON để tránh lỗi của Google)
+      const geminiModel = genAI.getGenerativeModel({ model: model });
+
+      const result = await geminiModel.generateContent(prompt);
+      const responseText = result.response.text();
+      
+      aiResultData = safeParse(responseText);
+    } 
+    // =========================================================
+    // NGÃ RẼ 2: XỬ LÝ NẾU NGƯỜI DÙNG CHỌN OPENAI (Quy trình cũ)
+    // =========================================================
+    else {
+      const finalKey = apiKey || process.env.OPENAI_API_KEY;
+      if (!finalKey) return NextResponse.json({ error: "Thiếu OpenAI API Key" }, { status: 401 });
+
+      const openai = new OpenAI({ apiKey: finalKey });
+
+      let realOpenAIModel = model; 
+      if (model === "gpt-4.5") {
+        realOpenAIModel = "gpt-4o"; 
+      }
+
+      const response = await openai.chat.completions.create({
+        model: realOpenAIModel,
+        messages: [{ role: "user", content: prompt }],
+      });
+
+      const content = response.choices[0].message.content || "[]";
+      aiResultData = safeParse(content);
     }
-    
-    return NextResponse.json({ result: JSON.parse(content) });
+
+    return NextResponse.json({ result: aiResultData });
 
   } catch (error: any) {
     console.error("Analyze Feedback Error:", error);
