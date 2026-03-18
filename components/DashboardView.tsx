@@ -51,9 +51,10 @@ export default function DashboardView({ model }: { model?: string }) {
   const [surveyPayload, setSurveyPayload] = useState<any>(null); 
   const [loading, setLoading] = useState(false);
   
-  // 🚀 TÍNH NĂNG PHÂN TRANG (PAGINATION)
+  // 🚀 TÍNH NĂNG PHÂN TRANG (PAGINATION) ĐÃ HOÀN THIỆN
   const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false); // Kiểm tra xem còn trang sau không
+  const [totalPages, setTotalPages] = useState(1); // Đã thêm
+  const [hasMore, setHasMore] = useState(false); 
 
   // 🚀 STATE QUẢN LÝ LUÂN CHUYỂN DỮ LIỆU (HUMAN-IN-THE-LOOP)
   const [editableFeedbacks, setEditableFeedbacks] = useState<any[]>([]);
@@ -68,21 +69,21 @@ export default function DashboardView({ model }: { model?: string }) {
   const [showTrash, setShowTrash] = useState(false); 
 
   const fetchSurveys = (currentPage: number = 1) => {
-    // 🚀 Bổ sung gửi thông tin số trang (page) lên Backend
     fetch(`/api/list-surveys?page=${currentPage}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.surveys && data.surveys.length > 0) {
           setSurveys(data.surveys);
-          setHasMore(data.hasMore || false); // Backend sẽ báo xem còn trang tiếp theo không
+          setHasMore(data.hasMore || false); 
+          setTotalPages(data.totalPages || 1); // Đã thêm nhận tổng số trang
           
-          // Chỉ tự động chọn phiếu đầu tiên khi ở trang 1
           if (currentPage === 1 && (!selectedId || !data.surveys.find((s:any) => s.short_id === selectedId))) {
               setSelectedId(data.surveys[0].short_id);
           }
         } else {
             setSurveys([]);
             setHasMore(false);
+            setTotalPages(1);
             if(currentPage === 1) {
               setSelectedId("");
               setStats(null);
@@ -93,7 +94,6 @@ export default function DashboardView({ model }: { model?: string }) {
       .catch(err => console.error("Lỗi tải danh sách:", err));
   };
 
-  // Tải danh sách mỗi khi chuyển trang
   useEffect(() => { fetchSurveys(page); }, [page]);
 
   const fetchStats = () => {
@@ -180,7 +180,6 @@ export default function DashboardView({ model }: { model?: string }) {
     localStorage.setItem("current_diagnosis", problemText);
     localStorage.setItem("current_stats", JSON.stringify(stats));
     
-    // 🚀 NÂNG CẤP 3: Sử dụng router.push để chuyển tab mượt mà
     router.push("/?tab=ai&mode=solve");
   };
 
@@ -196,7 +195,6 @@ export default function DashboardView({ model }: { model?: string }) {
       finally { setDeleting(false); }
   };
 
-  // 🚀 Đã nâng cấp Progress Bar thành Thanh Năng Lượng (Energy Bar)
   const ProgressBar = ({ label, val, total, color }: any) => {
     const pct = total > 0 ? Math.round((val / total) * 100) : 0;
     
@@ -239,15 +237,27 @@ export default function DashboardView({ model }: { model?: string }) {
           <p className="text-sm text-[#8b9bc0] font-mono mt-1">{stats ? `Mẫu thu thập: ${stats.total} biến số` : "Đang chờ chỉ định tệp dữ liệu..."}</p>
         </div>
         
-        <div className="flex gap-2 w-full md:w-auto items-center">
+        <div className="flex gap-3 w-full md:w-auto items-center">
             {surveys.length > 0 ? (
             <>
-                {/* NÚT CHUYỂN TRANG */}
-                <button 
-                  onClick={() => setPage(p => Math.max(1, p - 1))} 
-                  disabled={page === 1}
-                  className="px-2 py-3 bg-transparent text-[#00e5ff] rounded-xl border border-[#00e5ff]/50 disabled:opacity-30 hover:bg-[#00e5ff] hover:text-[#040b16] transition-all"
-                >◀</button>
+                {/* 🚀 CỤM ĐIỀU HƯỚNG TRANG CHUYÊN NGHIỆP ĐÃ ĐƯỢC THÊM VÀO ĐÂY */}
+                <div className="flex items-center bg-[#091128] border border-[#1c3664] rounded-xl p-1 shadow-inner shrink-0">
+                    <button 
+                      onClick={() => setPage(p => Math.max(1, p - 1))} 
+                      disabled={page === 1}
+                      className="px-3 py-2 text-xs bg-transparent text-[#00e5ff] rounded-lg disabled:opacity-30 hover:bg-[#1c3664] transition-all font-bold"
+                    >◀</button>
+
+                    <span className="px-3 text-[11px] font-bold text-[#00e5ff] uppercase tracking-widest whitespace-nowrap drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]">
+                        Trang {page} / {totalPages}
+                    </span>
+
+                    <button 
+                      onClick={() => setPage(p => p + 1)} 
+                      disabled={!hasMore}
+                      className="px-3 py-2 text-xs bg-transparent text-[#00e5ff] rounded-lg disabled:opacity-30 hover:bg-[#1c3664] transition-all font-bold"
+                    >▶</button>
+                </div>
 
                 <select 
                     className="flex-1 p-3 border rounded-xl text-sm min-w-[250px] max-w-[400px] bg-[#091128] text-[#00e5ff] border-[#1c3664] font-mono outline-none cursor-pointer focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/50 shadow-inner [&>option]:bg-[#040b16] [&>option]:text-white"
@@ -265,14 +275,8 @@ export default function DashboardView({ model }: { model?: string }) {
                     })}
                 </select>
 
-                <button 
-                  onClick={() => setPage(p => p + 1)} 
-                  disabled={!hasMore}
-                  className="px-2 py-3 bg-transparent text-[#00e5ff] rounded-xl border border-[#00e5ff]/50 disabled:opacity-30 hover:bg-[#00e5ff] hover:text-[#040b16] transition-all"
-                >▶</button>
-
-                <button onClick={() => fetchSurveys(page)} className="p-3 bg-transparent text-[#00e5ff] rounded-xl hover:bg-[#00e5ff] hover:text-[#040b16] border border-[#00e5ff]/50 transition-all shadow-[0_0_10px_rgba(0,229,255,0.1)]" title="Đồng bộ lại">🔄</button>
-                <button onClick={handleDelete} disabled={deleting} className="p-3 bg-transparent text-[#ff003c] rounded-xl hover:bg-[#ff003c] hover:text-white border border-[#ff003c]/50 transition-all shadow-[0_0_10px_rgba(255,0,60,0.1)]" title="Tiêu hủy tệp">{deleting ? "..." : "🗑️"}</button>
+                <button onClick={() => fetchSurveys(page)} className="p-3 shrink-0 bg-transparent text-[#00e5ff] rounded-xl hover:bg-[#00e5ff] hover:text-[#040b16] border border-[#00e5ff]/50 transition-all shadow-[0_0_10px_rgba(0,229,255,0.1)]" title="Đồng bộ lại">🔄</button>
+                <button onClick={handleDelete} disabled={deleting} className="p-3 shrink-0 bg-transparent text-[#ff003c] rounded-xl hover:bg-[#ff003c] hover:text-white border border-[#ff003c]/50 transition-all shadow-[0_0_10px_rgba(255,0,60,0.1)]" title="Tiêu hủy tệp">{deleting ? "..." : "🗑️"}</button>
             </>
             ) : <div className="text-amber-400 text-sm p-2 font-mono bg-amber-500/10 rounded-lg border border-amber-500/30">Chưa có tệp dữ liệu nào trong kho.</div>}
         </div>
