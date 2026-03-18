@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { GoogleGenerativeAI } from "@google/generative-ai"; // 🚀 THÊM THƯ VIỆN GEMINI
+import { GoogleGenerativeAI } from "@google/generative-ai"; 
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    // 🚀 LẤY THÊM geminiKey TỪ BODY
+    // LẤY THÊM geminiKey TỪ BODY
     const { stats, lessonText, apiKey, geminiKey, model = "gpt-5.4" } = body;
     
     // PROMPT 4 TẦNG (Đã bổ sung "Luật Thép" về Trình bày và Ngôn ngữ thuần Việt)
@@ -72,8 +72,11 @@ export async function POST(req: Request) {
 
       if (!finalGeminiKey) return NextResponse.json({ error: "Thiếu Gemini API Key. Vui lòng cập nhật ở Panel kết nối." }, { status: 401 });
 
-      // 🚀 CHỐT HẠ: Luôn luôn chuyển về gemini-2.0-flash cho an toàn, bất kể chọn tên ảo gì trên giao diện
-      const realGeminiModel = "gemini-2.0-flash";
+      // 🚀 ĐÃ CẬP NHẬT: Sử dụng model gemini-2.5-flash theo đúng tài khoản Paid Tier của bạn
+      let realGeminiModel = "gemini-2.5-flash"; 
+      if (model.includes("pro")) {
+          realGeminiModel = "gemini-2.5-pro";
+      }
 
       const genAI = new GoogleGenerativeAI(finalGeminiKey);
       const geminiModel = genAI.getGenerativeModel({ model: realGeminiModel });
