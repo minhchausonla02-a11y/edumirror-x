@@ -25,8 +25,8 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // Lấy model từ body, nếu không có sẽ mặc định là GPT-5.4 tiêu chuẩn
-    const { feedbacks, apiKey, model = "gpt-5.4" } = body;
+    // 🚀 ĐÃ SỬA: Lấy thêm geminiKey từ body do giao diện gửi xuống
+    const { feedbacks, apiKey, geminiKey, model = "gpt-5.4" } = body;
 
     if (!feedbacks || feedbacks.length === 0) {
       return NextResponse.json({ result: [] });
@@ -71,14 +71,24 @@ export async function POST(req: Request) {
     // NGÃ RẼ 1: XỬ LÝ NẾU NGƯỜI DÙNG CHỌN GEMINI
     // =========================================================
     if (model.startsWith("gemini")) {
-      // Dùng chung apiKey do giao diện Frontend đẩy xuống, hoặc lấy từ Env
-      const finalGeminiKey = apiKey || process.env.GOOGLE_GEMINI_API_KEY;
-      if (!finalGeminiKey) return NextResponse.json({ error: "Thiếu Gemini API Key" }, { status: 401 });
+      // 🚀 ĐÃ SỬA: Ưu tiên geminiKey, đồng thời dùng .trim() để xóa khoảng trắng thừa gây lỗi 400
+      const rawGeminiKey = geminiKey || process.env.GOOGLE_GEMINI_API_KEY || "";
+      const finalGeminiKey = rawGeminiKey.trim();
+
+      if (!finalGeminiKey) return NextResponse.json({ error: "Thiếu Google Gemini API Key" }, { status: 401 });
+
+      // 🚀 ĐÃ SỬA: Map tên model ảo (2.5) về model thực tế mà Google hỗ trợ
+      let realGeminiModel = model;
+      if (model.includes("2.5") && model.includes("pro")) {
+          realGeminiModel = "gemini-1.5-pro"; 
+      } else if (model.includes("2.5") && model.includes("flash")) {
+          realGeminiModel = "gemini-2.0-flash"; // Dùng bản 2.0 xịn nhất trong gói trả phí của bạn
+      }
 
       const genAI = new GoogleGenerativeAI(finalGeminiKey);
       
-      // Khởi tạo model BÌNH THƯỜNG (Không ép kiểu MIME JSON để tránh lỗi của Google)
-      const geminiModel = genAI.getGenerativeModel({ model: model });
+      // Khởi tạo model BÌNH THƯỜNG
+      const geminiModel = genAI.getGenerativeModel({ model: realGeminiModel });
 
       const result = await geminiModel.generateContent(prompt);
       const responseText = result.response.text();
