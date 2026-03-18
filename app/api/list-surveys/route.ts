@@ -23,7 +23,7 @@ export async function GET(req: Request) {
 
     // Nếu chưa đăng nhập -> Trả về danh sách rỗng, không có trang sau
     if (!session) {
-      return NextResponse.json({ surveys: [], hasMore: false });
+      return NextResponse.json({ surveys: [], hasMore: false, totalPages: 1 });
     }
 
     // 4. Truy vấn dữ liệu (CÓ BỘ LỌC NGƯỜI DÙNG & PHÂN TRANG)
@@ -46,10 +46,12 @@ export async function GET(req: Request) {
         created_at: s.created_at || new Date().toISOString()
     })) || [];
 
-    // 🚀 Kiểm tra xem còn phiếu cho trang tiếp theo không
+    // 🚀 Tính toán xem còn phiếu cho trang tiếp theo không và TỔNG SỐ TRANG
     const hasMore = count !== null && count > (page * limit);
+    const totalPages = count !== null ? Math.ceil(count / limit) : 1;
 
-    return NextResponse.json({ surveys: validSurveys, hasMore: hasMore });
+    // 🚀 Trả về thêm totalPages cho giao diện
+    return NextResponse.json({ surveys: validSurveys, hasMore: hasMore, totalPages: totalPages });
 
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
