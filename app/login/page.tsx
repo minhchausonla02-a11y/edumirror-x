@@ -48,24 +48,26 @@ export default function LoginPage() {
           <input
             type="email"
             placeholder="Email"
-            className="w-full rounded border p-3"
+            // 🚀 Đã thêm text-gray-900 và viền focus
+            className="w-full rounded border p-3 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             onChange={(e) => setEmail(e.target.value)}
             value={email}
           />
           <input
             type="password"
             placeholder="Mật khẩu"
-            className="w-full rounded border p-3"
+            // 🚀 Đã thêm text-gray-900 và viền focus
+            className="w-full rounded border p-3 text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             onChange={(e) => setPassword(e.target.value)}
             value={password}
           />
         </div>
 
         <div className="flex gap-4 pt-4">
-          <button onClick={handleSignIn} disabled={loading} className="flex-1 rounded bg-blue-600 py-3 font-bold text-white hover:bg-blue-700">
+          <button onClick={handleSignIn} disabled={loading} className="flex-1 rounded bg-blue-600 py-3 font-bold text-white hover:bg-blue-700 transition-colors">
             {loading ? '...' : 'Đăng Nhập'}
           </button>
-          <button onClick={handleSignUp} disabled={loading} className="flex-1 rounded bg-gray-200 py-3 font-bold text-gray-800 hover:bg-gray-300">
+          <button onClick={handleSignUp} disabled={loading} className="flex-1 rounded bg-gray-200 py-3 font-bold text-gray-800 hover:bg-gray-300 transition-colors">
             Đăng Ký
           </button>
         </div>
