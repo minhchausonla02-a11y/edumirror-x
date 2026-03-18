@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     
-    // 🚀 ĐÃ SỬA: Lấy thêm geminiKey từ body do giao diện gửi xuống
+    // Lấy thêm geminiKey từ body do giao diện gửi xuống
     const { feedbacks, apiKey, geminiKey, model = "gpt-5.4" } = body;
 
     if (!feedbacks || feedbacks.length === 0) {
@@ -71,19 +71,14 @@ export async function POST(req: Request) {
     // NGÃ RẼ 1: XỬ LÝ NẾU NGƯỜI DÙNG CHỌN GEMINI
     // =========================================================
     if (model.startsWith("gemini")) {
-      // 🚀 ĐÃ SỬA: Ưu tiên geminiKey, đồng thời dùng .trim() để xóa khoảng trắng thừa gây lỗi 400
+      // Ưu tiên geminiKey, đồng thời dùng .trim() để xóa khoảng trắng thừa gây lỗi 400
       const rawGeminiKey = geminiKey || process.env.GOOGLE_GEMINI_API_KEY || "";
       const finalGeminiKey = rawGeminiKey.trim();
 
       if (!finalGeminiKey) return NextResponse.json({ error: "Thiếu Google Gemini API Key" }, { status: 401 });
 
-      // 🚀 ĐÃ SỬA: Map tên model ảo (2.5) về model thực tế mà Google hỗ trợ
-      let realGeminiModel = model;
-      if (model.includes("2.5") && model.includes("pro")) {
-          realGeminiModel = "gemini-1.5-pro"; 
-      } else if (model.includes("2.5") && model.includes("flash")) {
-          realGeminiModel = "gemini-2.0-flash"; // Dùng bản 2.0 xịn nhất trong gói trả phí của bạn
-      }
+      // 🚀 CHỐT HẠ: ÉP CỨNG model "gemini-2.0-flash" để tuyệt đối không bao giờ bị lỗi 404 nữa!
+      const realGeminiModel = "gemini-2.0-flash";
 
       const genAI = new GoogleGenerativeAI(finalGeminiKey);
       
