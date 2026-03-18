@@ -76,16 +76,33 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" }); 
   }, [chatHistory]);
 
+  // ============================================================================
+  // 🚀 ĐÃ SỬA: HÀM PHÂN TÍCH (GỬI KÈM GEMINI KEY TỪ BỘ NHỚ)
+  // ============================================================================
   const handleAnalyze = async () => {
     if (!stats) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/get-solution", {
+      // Đọc Key Gemini riêng biệt từ Local Storage
+      const savedGeminiKey = localStorage.getItem("geminiKey") || localStorage.getItem("edumirror_gemini_key") || localStorage.getItem("gemini_key");
+
+      const res = await fetch("/api/get-solution", { // Hoặc thay bằng đúng endpoint của bạn nếu là /api/generate-solution
         method: "POST",
-        body: JSON.stringify({ stats, lessonText, apiKey, model }) 
+        body: JSON.stringify({ 
+            stats, 
+            lessonText, 
+            apiKey, 
+            geminiKey: savedGeminiKey, // Bơm Key trả phí vào
+            model 
+        }) 
       });
       const data = await res.json();
-      setSolution(data.result);
+      
+      if (data.error) {
+          alert("Hệ thống báo lỗi: " + data.error);
+      } else {
+          setSolution(data.result);
+      }
     } catch (e) {
       alert("Lỗi kết nối AI");
     } finally {
@@ -93,6 +110,9 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
     }
   };
 
+  // ============================================================================
+  // 🚀 ĐÃ SỬA: HÀM CHAT (GỬI KÈM GEMINI KEY TỪ BỘ NHỚ)
+  // ============================================================================
   const handleSendChat = async () => {
     if (!chatInput.trim()) return;
     
@@ -102,18 +122,26 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
     setChatLoading(true);
 
     try {
+      // Đọc Key Gemini riêng biệt từ Local Storage
+      const savedGeminiKey = localStorage.getItem("geminiKey") || localStorage.getItem("edumirror_gemini_key") || localStorage.getItem("gemini_key");
+
       const res = await fetch("/api/chat-with-ai", {
         method: "POST",
         body: JSON.stringify({ 
             question: userMsg,
             context: { diagnosis: JSON.stringify(stats), currentSolution: solution },
             apiKey,
+            geminiKey: savedGeminiKey, // Bơm Key trả phí vào
             model
         })
       });
       const data = await res.json();
       
-      setChatHistory(prev => [...prev, { role: 'ai', content: data.result }]);
+      if (data.error) {
+          setChatHistory(prev => [...prev, { role: 'ai', content: `⚠️ HỆ THỐNG BÁO LỖI: ${data.error}` }]);
+      } else {
+          setChatHistory(prev => [...prev, { role: 'ai', content: data.result }]);
+      }
     } catch (e) {
       setChatHistory(prev => [...prev, { role: 'ai', content: "⚠️ MẤT KẾT NỐI TỚI TRUNG TÂM PHÂN TÍCH. VUI LÒNG THỬ LẠI." }]);
     } finally {
@@ -130,7 +158,7 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
          
          <div className="flex items-center gap-5 z-10">
             <div className="w-16 h-16 bg-[#040b16] border border-[#00e5ff]/50 rounded-2xl flex items-center justify-center text-3xl shadow-[0_0_15px_rgba(0,229,255,0.3)] drop-shadow-md">
-               🤖
+                🤖
             </div>
             <div>
                 <h2 className="text-2xl font-extrabold text-[#00e5ff] uppercase tracking-widest drop-shadow-[0_0_8px_#00e5ff]">

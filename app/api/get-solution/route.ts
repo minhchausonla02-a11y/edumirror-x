@@ -67,11 +67,16 @@ export async function POST(req: Request) {
     // NGÃ RẼ 1: XỬ LÝ NẾU NGƯỜI DÙNG CHỌN GEMINI
     // =========================================================
     if (model.startsWith("gemini")) {
-      const finalGeminiKey = geminiKey || process.env.GOOGLE_GEMINI_API_KEY;
+      const rawGeminiKey = geminiKey || process.env.GOOGLE_GEMINI_API_KEY || "";
+      const finalGeminiKey = rawGeminiKey.trim();
+
       if (!finalGeminiKey) return NextResponse.json({ error: "Thiếu Gemini API Key. Vui lòng cập nhật ở Panel kết nối." }, { status: 401 });
 
+      // 🚀 CHỐT HẠ: Luôn luôn chuyển về gemini-2.0-flash cho an toàn, bất kể chọn tên ảo gì trên giao diện
+      const realGeminiModel = "gemini-2.0-flash";
+
       const genAI = new GoogleGenerativeAI(finalGeminiKey);
-      const geminiModel = genAI.getGenerativeModel({ model: model });
+      const geminiModel = genAI.getGenerativeModel({ model: realGeminiModel });
 
       const result = await geminiModel.generateContent(prompt);
       const responseText = result.response.text();
