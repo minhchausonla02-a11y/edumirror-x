@@ -113,10 +113,16 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
   // ============================================================================
   // 🚀 ĐÃ SỬA: HÀM CHAT (GỬI KÈM GEMINI KEY TỪ BỘ NHỚ)
   // ============================================================================
+  // ============================================================================
+  // 🚀 ĐÃ SỬA: HÀM CHAT (GỬI KÈM TRÍ NHỚ VÀ GEMINI KEY TỪ BỘ NHỚ)
+  // ============================================================================
   const handleSendChat = async () => {
     if (!chatInput.trim()) return;
     
     const userMsg = chatInput;
+    // LƯU Ý: Lấy chatHistory hiện tại (trước khi push câu mới vào) để làm trí nhớ gửi đi
+    const currentHistory = [...chatHistory]; 
+    
     setChatHistory(prev => [...prev, { role: 'user', content: userMsg }]);
     setChatInput("");
     setChatLoading(true);
@@ -129,6 +135,7 @@ export default function AISuggestionsView({ lessonText, apiKey, model }: any) {
         method: "POST",
         body: JSON.stringify({ 
             question: userMsg,
+            history: currentHistory, // 🚀 BƠM TRÍ NHỚ VÀO CHO AI
             context: { diagnosis: JSON.stringify(stats), currentSolution: solution },
             apiKey,
             geminiKey: savedGeminiKey, // Bơm Key trả phí vào
