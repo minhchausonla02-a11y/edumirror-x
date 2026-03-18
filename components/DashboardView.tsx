@@ -150,10 +150,12 @@ export default function DashboardView({ model }: { model?: string }) {
       setIsSavingLabels(false);
   };
 
-  const analyzeFeedback = async () => {
+const analyzeFeedback = async () => {
     setAnalyzing(true);
     try {
         const savedKey = localStorage.getItem("edumirror_key");
+        const savedGeminiKey = localStorage.getItem("geminiKey") || localStorage.getItem("edumirror_gemini_key") || localStorage.getItem("gemini_key");
+        
         const normalFeedbacks = editableFeedbacks.filter(fb => !fb.is_sos && !fb.is_spam);
         const textArray = normalFeedbacks.map(fb => fb.raw_text);
         
@@ -165,11 +167,22 @@ export default function DashboardView({ model }: { model?: string }) {
 
         const res = await fetch("/api/analyze-feedback", {
             method: "POST",
-            body: JSON.stringify({ feedbacks: textArray, apiKey: savedKey, model: model })
+            body: JSON.stringify({ 
+                feedbacks: textArray, 
+                apiKey: savedKey, 
+                geminiKey: savedGeminiKey,
+                model: model 
+            })
         });
         const data = await res.json();
-        if (Array.isArray(data.result)) setAiResult(data.result);
-        else alert("AI trả về dữ liệu lỗi.");
+        
+        if (data.error) {
+            alert("Hệ thống báo lỗi: " + data.error);
+        } else if (Array.isArray(data.result)) {
+            setAiResult(data.result);
+        } else {
+            alert("AI trả về dữ liệu không đúng định dạng. Vui lòng thử lại.");
+        }
     } catch (e) { alert("Lỗi kết nối AI."); } 
     finally { setAnalyzing(false); }
   };
