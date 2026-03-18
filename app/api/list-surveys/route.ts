@@ -6,29 +6,38 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
+    // 🚀 TÍNH TOÁN PHÂN TRANG (PAGINATION)
+    const { searchParams } = new URL(req.url);
+    const page = parseInt(searchParams.get('page') || '1');
+    const limit = 20; // Mỗi trang 20 phiếu
+    
+    // Supabase dùng index để cắt dữ liệu (VD: Trang 1 là 0-19, Trang 2 là 20-39)
+    const start = (page - 1) * limit;
+    const end = start + limit - 1;
+
     // 2. Khởi tạo Supabase theo phiên làm việc của người dùng
     const supabase = await createClient();
 
     // 3. Kiểm tra xem ai đang đăng nhập
     const { data: { session } } = await supabase.auth.getSession();
 
-    // Nếu chưa đăng nhập -> Trả về danh sách rỗng (để Dashboard không bị lỗi)
+    // Nếu chưa đăng nhập -> Trả về danh sách rỗng, không có trang sau
     if (!session) {
-      return NextResponse.json({ surveys: [] });
+      return NextResponse.json({ surveys: [], hasMore: false });
     }
 
-    // 4. Truy vấn dữ liệu (CÓ BỘ LỌC NGƯỜI DÙNG)
-    const { data, error } = await supabase
+    // 4. Truy vấn dữ liệu (CÓ BỘ LỌC NGƯỜI DÙNG & PHÂN TRANG)
+    const { data, error, count } = await supabase
       .from("surveys")
-      .select("short_id, payload, created_at")
-      .eq("user_id", session.user.id) // <--- QUAN TRỌNG: Chỉ lấy bài của chính mình
-      .not("payload", "is", null)     // Giữ nguyên logic cũ: Lọc bỏ phiếu rỗng
+      .select("short_id, payload, created_at", { count: 'exact' }) // 🚀 Lấy thêm tổng số phiếu (count)
+      .eq("user_id", session.user.id) // QUAN TRỌNG: Chỉ lấy bài của chính mình
+      .not("payload", "is", null)     // Lọc bỏ phiếu rỗng
       .order("created_at", { ascending: false })
-      .limit(20);
+      .range(start, end);             // 🚀 Thay .limit(20) bằng .range() để cắt đúng trang
 
     if (error) throw error;
 
-    // 5. Xử lý dữ liệu (GIỮ NGUYÊN CODE CŨ CỦA BẠN 100%)
+    // 5. Xử lý dữ liệu định dạng
     const validSurveys = data?.map(s => ({
         ...s,
         // Nếu không có tiêu đề thì đặt tên tạm
@@ -37,7 +46,10 @@ export async function GET(req: Request) {
         created_at: s.created_at || new Date().toISOString()
     })) || [];
 
-    return NextResponse.json({ surveys: validSurveys });
+    // 🚀 Kiểm tra xem còn phiếu cho trang tiếp theo không
+    const hasMore = count !== null && count > (page * limit);
+
+    return NextResponse.json({ surveys: validSurveys, hasMore: hasMore });
 
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

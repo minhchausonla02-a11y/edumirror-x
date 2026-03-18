@@ -51,6 +51,10 @@ export default function DashboardView({ model }: { model?: string }) {
   const [surveyPayload, setSurveyPayload] = useState<any>(null); 
   const [loading, setLoading] = useState(false);
   
+  // 🚀 TÍNH NĂNG PHÂN TRANG (PAGINATION)
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false); // Kiểm tra xem còn trang sau không
+
   // 🚀 STATE QUẢN LÝ LUÂN CHUYỂN DỮ LIỆU (HUMAN-IN-THE-LOOP)
   const [editableFeedbacks, setEditableFeedbacks] = useState<any[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -63,26 +67,34 @@ export default function DashboardView({ model }: { model?: string }) {
   const [showRaw, setShowRaw] = useState(false); 
   const [showTrash, setShowTrash] = useState(false); 
 
-  const fetchSurveys = () => {
-    fetch("/api/list-surveys")
+  const fetchSurveys = (currentPage: number = 1) => {
+    // 🚀 Bổ sung gửi thông tin số trang (page) lên Backend
+    fetch(`/api/list-surveys?page=${currentPage}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.surveys && data.surveys.length > 0) {
           setSurveys(data.surveys);
-          if (!selectedId || !data.surveys.find((s:any) => s.short_id === selectedId)) {
+          setHasMore(data.hasMore || false); // Backend sẽ báo xem còn trang tiếp theo không
+          
+          // Chỉ tự động chọn phiếu đầu tiên khi ở trang 1
+          if (currentPage === 1 && (!selectedId || !data.surveys.find((s:any) => s.short_id === selectedId))) {
               setSelectedId(data.surveys[0].short_id);
           }
         } else {
             setSurveys([]);
-            setSelectedId("");
-            setStats(null);
-            setSurveyPayload(null);
+            setHasMore(false);
+            if(currentPage === 1) {
+              setSelectedId("");
+              setStats(null);
+              setSurveyPayload(null);
+            }
         }
       })
       .catch(err => console.error("Lỗi tải danh sách:", err));
   };
 
-  useEffect(() => { fetchSurveys(); }, []);
+  // Tải danh sách mỗi khi chuyển trang
+  useEffect(() => { fetchSurveys(page); }, [page]);
 
   const fetchStats = () => {
     if (!selectedId) return;
@@ -178,7 +190,7 @@ export default function DashboardView({ model }: { model?: string }) {
       setDeleting(true);
       try {
           const res = await fetch(`/api/delete-survey?id=${selectedId}`, { method: "DELETE" });
-          if (res.ok) { alert("Đã tiêu hủy dữ liệu thành công!"); fetchSurveys(); } 
+          if (res.ok) { alert("Đã tiêu hủy dữ liệu thành công!"); fetchSurveys(page); } 
           else { alert("Lỗi khi xóa phiếu."); }
       } catch (e) { alert("Lỗi kết nối server."); } 
       finally { setDeleting(false); }
@@ -227,17 +239,24 @@ export default function DashboardView({ model }: { model?: string }) {
           <p className="text-sm text-[#8b9bc0] font-mono mt-1">{stats ? `Mẫu thu thập: ${stats.total} biến số` : "Đang chờ chỉ định tệp dữ liệu..."}</p>
         </div>
         
-        <div className="flex gap-3 w-full md:w-auto items-center">
+        <div className="flex gap-2 w-full md:w-auto items-center">
             {surveys.length > 0 ? (
             <>
+                {/* NÚT CHUYỂN TRANG */}
+                <button 
+                  onClick={() => setPage(p => Math.max(1, p - 1))} 
+                  disabled={page === 1}
+                  className="px-2 py-3 bg-transparent text-[#00e5ff] rounded-xl border border-[#00e5ff]/50 disabled:opacity-30 hover:bg-[#00e5ff] hover:text-[#040b16] transition-all"
+                >◀</button>
+
                 <select 
-                    className="flex-1 p-3 border rounded-xl text-sm min-w-[300px] max-w-[450px] bg-[#091128] text-[#00e5ff] border-[#1c3664] font-mono outline-none cursor-pointer focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/50 shadow-inner [&>option]:bg-[#040b16] [&>option]:text-white"
+                    className="flex-1 p-3 border rounded-xl text-sm min-w-[250px] max-w-[400px] bg-[#091128] text-[#00e5ff] border-[#1c3664] font-mono outline-none cursor-pointer focus:border-[#00e5ff] focus:ring-1 focus:ring-[#00e5ff]/50 shadow-inner [&>option]:bg-[#040b16] [&>option]:text-white"
                     value={selectedId} onChange={(e) => setSelectedId(e.target.value)}
                 >
                     {surveys.map(s => {
                       const subj = extractSubject(s.payload?.type);
                       const prefix = subj ? `[${subj}] ` : "";
-                      const title = s.payload?.title ? s.payload.title.substring(0, 45) : "Phiếu khảo sát";
+                      const title = s.payload?.title ? s.payload.title.substring(0, 40) : "Phiếu khảo sát";
                       return (
                         <option key={s.short_id} value={s.short_id}>
                             {prefix}{title} ({formatSurveyDate(s.created_at)})
@@ -245,7 +264,14 @@ export default function DashboardView({ model }: { model?: string }) {
                       );
                     })}
                 </select>
-                <button onClick={fetchStats} className="p-3 bg-transparent text-[#00e5ff] rounded-xl hover:bg-[#00e5ff] hover:text-[#040b16] border border-[#00e5ff]/50 transition-all shadow-[0_0_10px_rgba(0,229,255,0.1)]" title="Đồng bộ lại">🔄</button>
+
+                <button 
+                  onClick={() => setPage(p => p + 1)} 
+                  disabled={!hasMore}
+                  className="px-2 py-3 bg-transparent text-[#00e5ff] rounded-xl border border-[#00e5ff]/50 disabled:opacity-30 hover:bg-[#00e5ff] hover:text-[#040b16] transition-all"
+                >▶</button>
+
+                <button onClick={() => fetchSurveys(page)} className="p-3 bg-transparent text-[#00e5ff] rounded-xl hover:bg-[#00e5ff] hover:text-[#040b16] border border-[#00e5ff]/50 transition-all shadow-[0_0_10px_rgba(0,229,255,0.1)]" title="Đồng bộ lại">🔄</button>
                 <button onClick={handleDelete} disabled={deleting} className="p-3 bg-transparent text-[#ff003c] rounded-xl hover:bg-[#ff003c] hover:text-white border border-[#ff003c]/50 transition-all shadow-[0_0_10px_rgba(255,0,60,0.1)]" title="Tiêu hủy tệp">{deleting ? "..." : "🗑️"}</button>
             </>
             ) : <div className="text-amber-400 text-sm p-2 font-mono bg-amber-500/10 rounded-lg border border-amber-500/30">Chưa có tệp dữ liệu nào trong kho.</div>}
